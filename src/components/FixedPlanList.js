@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { convertCurrency, formatCurrency } from '../lib/currency';
 
 export default function FixedPlanList({
@@ -58,6 +58,14 @@ export default function FixedPlanList({
   const [filterMaxPrice, setFilterMaxPrice] = useState(bounds.maxPrice);
   const [presetGb, setPresetGb] = useState('all');
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+
+  // Auto-reset filters when switching destination or loading new plans
+  useEffect(() => {
+    setFilterGb(bounds.maxGb);
+    setFilterDays(bounds.maxDays);
+    setFilterMaxPrice(bounds.maxPrice);
+    setPresetGb('all');
+  }, [fixedPlans, bounds]);
 
   const isFiltered =
     filterGb < bounds.maxGb ||
