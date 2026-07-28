@@ -44,13 +44,13 @@ export default function SingleCalendar({
       {/* Clean Single Container without extra nested border paddings */}
       <div className="bg-zinc-50 border border-zinc-200 p-3.5 sm:p-5 rounded-2xl mb-4 text-black shadow-xs">
         <div className="text-center mb-3">
-          <h3 className="text-base sm:text-lg font-bold font-sans text-black mb-1 flex items-center justify-center gap-2">
-            <svg className="w-4 h-4 text-black fill-current" viewBox="0 0 24 24">
+          <h3 className="text-sm sm:text-base md:text-lg font-bold font-sans text-black mb-1 flex items-center justify-center flex-wrap sm:flex-nowrap gap-1.5 leading-tight">
+            <svg className="w-4 h-4 text-black fill-current flex-shrink-0" viewBox="0 0 24 24">
               <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z" />
             </svg>
             <span>{lang === 'en' ? 'Select Dates on Calendar' : 'Selecciona las Fechas en el Calendario'}</span>
           </h3>
-          <p className="text-[11px] sm:text-xs text-zinc-500 font-medium font-sans">
+          <p className="text-[11px] sm:text-xs text-zinc-500 font-medium font-sans max-w-sm mx-auto leading-normal">
             {lang === 'en' ? 'Click 1st on arrival date, 2nd on departure date.' : 'Haz 1er clic en la fecha de llegada y 2º clic en la fecha de regreso.'}
           </p>
         </div>
