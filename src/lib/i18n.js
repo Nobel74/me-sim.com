@@ -567,3 +567,18 @@ export function getTranslation(lang = 'es') {
 export function getFaqData(lang = 'es') {
   return faqData[lang] || faqData.es;
 }
+
+export function getRegionName(regionKey = 'europe', lang = 'es') {
+  const names = {
+    europe: { es: 'Europa', en: 'Europe' },
+    asia: { es: 'Asia', en: 'Asia' },
+    'middle-east': { es: 'Oriente Medio (GCC)', en: 'Middle East (GCC)' },
+    'north-america': { es: 'Norteamérica', en: 'North America' },
+    'south-america': { es: 'Sudamérica', en: 'South America' },
+    caribbean: { es: 'Caribe', en: 'Caribbean' },
+    africa: { es: 'África', en: 'Africa' },
+    oceania: { es: 'Oceanía', en: 'Oceania' },
+    aukus: { es: 'Región AUKUS (AU, UK, US)', en: 'AUKUS Region (AU, UK, US)' },
+  };
+  return (names[regionKey] && names[regionKey][lang]) || regionKey;
+}

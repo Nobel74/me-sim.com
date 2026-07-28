@@ -282,7 +282,7 @@ export default function DestinationPage() {
             {lang === 'en' ? `eSIM for ${countryName}` : `eSIM para ${countryName}`}
           </h1>
 
-          <p className="text-zinc-200 font-sans text-sm sm:text-base md:text-lg font-normal leading-relaxed mb-6">
+          <p className="text-zinc-100 font-sans text-base sm:text-lg md:text-xl font-medium leading-relaxed mb-6">
             {lang === 'en'
               ? `Fast 4G/5G data from the second you land. Plans for ${countryName} from ${formattedMinPrice} or Unlimited for your travel dates. No roaming, no SIM swap.`
               : `Datos de alta velocidad 4G/5G desde que aterrizas. Planes para ${countryName} desde ${formattedMinPrice} o Datos Ilimitados para las fechas de tu viaje. Sin roaming, sin cambiar de SIM.`}
@@ -290,17 +290,17 @@ export default function DestinationPage() {
 
           {/* Glassmorphism Feature Highlight Card */}
           <div className="bg-white/10 backdrop-blur-md border border-white/20 p-4 sm:p-5 rounded-2xl flex flex-col gap-3.5 shadow-xl">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="bg-[#ffec00] text-black text-[10px] sm:text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+              <span className="w-full sm:w-auto bg-[#ffec00] text-black text-xs sm:text-sm font-bold px-3 py-1.5 rounded-full uppercase tracking-wider shadow-xs text-center flex items-center justify-center">
                 ⚡ {lang === 'en' ? 'Best Local Value' : 'Mejor Cobertura Local'}
               </span>
-              <span className="text-xs text-zinc-300 font-medium">
+              <span className="w-full sm:w-auto text-xs sm:text-sm text-white font-bold tracking-wide bg-black/60 px-3 py-1.5 rounded-full border border-white/10 shadow-xs text-center flex items-center justify-center">
                 {lang === 'en' ? `Plans from ${formattedMinPrice}` : `Planes desde ${formattedMinPrice}`}
               </span>
             </div>
 
             <div>
-              <strong className="text-base sm:text-xl font-bold text-white block mb-2">
+              <strong className="text-lg sm:text-xl md:text-2xl font-bold text-white block mb-2 leading-tight">
                 {lang === 'en' ? `High-Speed 4G/5G eSIM for ${countryName}` : `eSIM 4G/5G Alta Velocidad para ${countryName}`}
               </strong>
 

@@ -113,6 +113,18 @@ const REGION_CARDS_DATA = [
     flags: ['au', 'nz'],
     extraCount: '+6',
   },
+  {
+    iso: 'aukus',
+    nameEs: 'Alianza AUKUS',
+    nameEn: 'AUKUS Alliance',
+    descEs: 'Australia, Reino Unido y EE.UU. en una sola eSIM',
+    descEn: 'Australia, UK & USA on one single eSIM',
+    badgeEs: '3 países',
+    badgeEn: '3 countries',
+    priceEur: 4.90,
+    flags: ['au', 'gb', 'us'],
+    extraCount: null,
+  },
 ];
 
 export default function HomePage() {

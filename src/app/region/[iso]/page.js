@@ -17,6 +17,7 @@ const REGION_HERO_IMAGES = {
   caribbean: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1000&auto=format&fit=crop',
   africa: 'https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?q=80&w=1000&auto=format&fit=crop',
   oceania: 'https://images.unsplash.com/photo-1523482580672-f109ba8cb9be?q=80&w=1000&auto=format&fit=crop',
+  aukus: 'https://images.unsplash.com/photo-1523482580672-f109ba8cb9be?q=80&w=1000&auto=format&fit=crop',
 };
 
 const REGION_DESCRIPTIONS = {
@@ -51,6 +52,10 @@ const REGION_DESCRIPTIONS = {
   oceania: {
     es: 'Conexión garantizada en Australia, Nueva Zelanda, Fiyi y las islas del Pacífico con los mejores operadores locales.',
     en: 'Guaranteed 5G/4G connectivity in Australia, New Zealand, Fiji, and Pacific islands with top tier carriers.',
+  },
+  aukus: {
+    es: 'Australia, Reino Unido y EE.UU. unidos en una sola eSIM. Cobertura directa 5G de alta velocidad en las 3 potencias aliadas.',
+    en: 'Australia, United Kingdom, and USA united on a single eSIM profile. Top tier 5G connectivity across all 3 alliance nations.',
   },
 };
 
@@ -112,7 +117,9 @@ export default function RegionPage() {
   const heroImage = REGION_HERO_IMAGES[regionKey] || REGION_HERO_IMAGES.europe;
 
   // Filter countries belonging to this region
-  const regionCountries = ALL_WORLD_COUNTRIES.filter((c) => c.region === regionKey);
+  const regionCountries = regionKey === 'aukus'
+    ? ALL_WORLD_COUNTRIES.filter((c) => ['au', 'gb', 'us'].includes(c.iso))
+    : ALL_WORLD_COUNTRIES.filter((c) => c.region === regionKey);
 
   // Find cheapest price in this region
   const minPriceEur = regionCountries.reduce((min, c) => Math.min(min, c.baseEur || 4.90), 4.90);
@@ -151,7 +158,7 @@ export default function RegionPage() {
             {lang === 'en' ? `eSIM for ${regionName}` : `eSIM para viajar a ${regionName}`}
           </h1>
 
-          <p className="text-zinc-300 font-sans text-sm sm:text-base md:text-lg font-normal leading-relaxed mb-8">
+          <p className="text-zinc-100 font-sans text-base sm:text-lg md:text-xl font-medium leading-relaxed mb-8">
             {regionDesc}
           </p>
 
