@@ -7,6 +7,7 @@ import HeroSearch from '../components/HeroSearch';
 import CountryCard from '../components/CountryCard';
 import RegionCard from '../components/RegionCard';
 import ModeSwitcher from '../components/ModeSwitcher';
+import RegionModal from '../components/RegionModal';
 import FaqSection from '../components/FaqSection';
 
 const PREFERRED_ISO_ORDER = [
@@ -120,6 +121,8 @@ export default function HomePage() {
   const [rates, setRates] = useState({ EUR: 1, USD: 1.09, GBP: 0.85, AUD: 1.65 });
   const [plans, setPlans] = useState([]);
   const [mode, setMode] = useState('local');
+
+  const [selectedRegionData, setSelectedRegionData] = useState(null);
 
   const t = getTranslation(lang);
 

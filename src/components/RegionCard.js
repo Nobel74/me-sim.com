@@ -13,9 +13,13 @@ export default function RegionCard({ regionData, lang = 'es', currency = 'EUR', 
   const desc = lang === 'en' ? regionData.descEn : regionData.descEs;
   const badge = lang === 'en' ? regionData.badgeEn : regionData.badgeEs;
 
+  const handleClick = () => {
+    router.push(`/region/${regionData.iso}`);
+  };
+
   return (
     <div
-      onClick={() => router.push(`/destination/${regionData.iso}`)}
+      onClick={handleClick}
       aria-label={`eSIM ${title}`}
       className="bg-white rounded-3xl border border-zinc-200 hover:border-black p-3.5 sm:p-5 flex flex-col justify-between cursor-pointer hover:shadow-2xl transition-all group relative overflow-hidden"
     >
