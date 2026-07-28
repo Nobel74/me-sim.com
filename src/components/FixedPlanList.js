@@ -57,6 +57,7 @@ export default function FixedPlanList({
   const [filterDays, setFilterDays] = useState(bounds.maxDays);
   const [filterMaxPrice, setFilterMaxPrice] = useState(bounds.maxPrice);
   const [presetGb, setPresetGb] = useState('all');
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
   const isFiltered =
     filterGb < bounds.maxGb ||
@@ -104,13 +105,41 @@ export default function FixedPlanList({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start font-sans">
-      {/* Left Sidebar: Clean White Visual Filter Box with Flat Vector SVG Icons */}
-      <div className="lg:col-span-5 bg-white text-black rounded-2xl p-6 border border-zinc-200 shadow-md space-y-6">
+      {/* Mobile Accordion Toggle Button (Hidden on Desktop) */}
+      <div className="lg:hidden w-full">
+        <button
+          onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
+          className="w-full bg-white border border-zinc-300 hover:border-black p-4 rounded-2xl flex items-center justify-between shadow-xs transition-all text-left"
+        >
+          <div className="flex items-center gap-2.5">
+            <svg className="w-5 h-5 text-black fill-current" viewBox="0 0 24 24">
+              <path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z" />
+            </svg>
+            <span className="font-bold text-black text-sm">
+              {lang === 'en' ? 'Find Your Ideal Plan' : 'Encuentra tu Plan Ideal'}
+            </span>
+            {isFiltered && (
+              <span className="bg-[#ffec00] text-black text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
+                Activo
+              </span>
+            )}
+          </div>
+          <span className="text-zinc-500 font-bold text-xs">
+            {isMobileFiltersOpen ? (lang === 'en' ? 'Hide ▲' : 'Ocultar ▲') : (lang === 'en' ? 'Filter ▼' : 'Filtrar ▼')}
+          </span>
+        </button>
+      </div>
+
+      {/* Left Sidebar: Collapsible on Mobile, Permanent 5-cols on Desktop */}
+      <div
+        className={`lg:col-span-5 bg-white text-black rounded-2xl p-6 border border-zinc-200 shadow-md space-y-6 ${
+          isMobileFiltersOpen ? 'block' : 'hidden lg:block'
+        }`}
+      >
         <div className="flex justify-between items-center pb-3 border-b border-zinc-100">
           <div className="flex items-center gap-2.5">
             <span className="w-2.5 h-2.5 rounded-full bg-[#ffec00] border border-black/10"></span>
             <h4 className="text-base font-bold font-sans tracking-tight text-black flex items-center gap-2">
-              {/* Flat Filter Sliders SVG Icon */}
               <svg className="w-4 h-4 text-black fill-current" viewBox="0 0 24 24">
                 <path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z" />
               </svg>

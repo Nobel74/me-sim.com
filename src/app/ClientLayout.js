@@ -12,6 +12,7 @@ export default function ClientLayout({ children }) {
   const [currency, setCurrency] = useState('EUR');
   const [cartCount, setCartCount] = useState(0);
   const [currentUser, setCurrentUser] = useState(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const t = getTranslation(lang);
 
@@ -71,6 +72,7 @@ export default function ClientLayout({ children }) {
   useEffect(() => {
     updateCartCount();
     checkUserSession();
+    setIsMenuOpen(false);
   }, [pathname]);
 
   const handleLangChange = (newLang) => {
@@ -90,6 +92,7 @@ export default function ClientLayout({ children }) {
       await fetch('/api/auth/logout', { method: 'POST' });
       setCurrentUser(null);
       window.dispatchEvent(new Event('mesim_auth_changed'));
+      setIsMenuOpen(false);
       router.push('/');
     } catch {
       // ignore
@@ -98,8 +101,8 @@ export default function ClientLayout({ children }) {
 
   return (
     <>
-      {/* Top Preference Bar */}
-      <div className="bg-black text-white py-2.5 text-xs font-sans border-b border-zinc-800">
+      {/* Top Preference Bar (Hidden on tiny mobile, shown in drawer or desktop) */}
+      <div className="bg-black text-white py-2.5 text-xs font-sans border-b border-zinc-800 hidden md:block">
         <div className="container-naked flex justify-between items-center">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-[#ffec00] animate-pulse"></span>
@@ -161,17 +164,18 @@ export default function ClientLayout({ children }) {
       </div>
 
       {/* Main Header / Navigation */}
-      <header className="bg-white/90 border-b border-zinc-200/80 py-4 shadow-xs sticky top-0 z-40 backdrop-blur-md">
+      <header className="bg-white/90 border-b border-zinc-200/80 py-3.5 shadow-xs sticky top-0 z-40 backdrop-blur-md">
         <div className="container-naked flex justify-between items-center">
           <Link href="/" className="flex items-center no-underline">
             <img
               src="/logos/Logo-me-sim.svg"
               alt="ME-SIM"
-              className="h-11 w-auto hover:scale-105 transition-transform"
+              className="h-10 md:h-11 w-auto hover:scale-105 transition-transform"
             />
           </Link>
 
-          <nav className="flex gap-7 items-center font-semibold text-base text-zinc-800 font-sans">
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex gap-7 items-center font-semibold text-base text-zinc-800 font-sans">
             <Link href="/" className="hover:text-black hover:underline underline-offset-4 decoration-[#ffec00] decoration-4 transition-all">
               {t.navCatalog}
             </Link>
@@ -219,16 +223,125 @@ export default function ClientLayout({ children }) {
               </span>
             </Link>
           </nav>
+
+          {/* Mobile Actions: Cart Icon + Hamburger Toggle */}
+          <div className="flex md:hidden items-center gap-3">
+            <Link
+              href="/cart"
+              className="bg-[#ffec00] text-black border border-black/10 w-10 h-10 rounded-xl flex items-center justify-center relative transition-all shadow-xs"
+            >
+              <svg className="w-5 h-5 fill-current text-black" viewBox="0 0 24 24">
+                <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zm10 0c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2zm-9.83-3.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.13 0-.25-.11-.25-.25z" />
+              </svg>
+              <span className="absolute -top-1.5 -right-1.5 bg-black text-[#ffec00] font-bold font-sans text-[10px] min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1 border border-white">
+                {cartCount}
+              </span>
+            </Link>
+
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="bg-zinc-100 border border-zinc-300 w-10 h-10 rounded-xl flex items-center justify-center text-black"
+              aria-label="Abrir Menú"
+            >
+              {isMenuOpen ? (
+                <svg className="w-6 h-6 fill-current text-black" viewBox="0 0 24 24">
+                  <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                </svg>
+              ) : (
+                <svg className="w-6 h-6 fill-current text-black" viewBox="0 0 24 24">
+                  <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
+                </svg>
+              )}
+            </button>
+          </div>
         </div>
+
+        {/* Mobile Slide-in Drawer Menu Overlay */}
+        {isMenuOpen && (
+          <div className="md:hidden bg-white border-b border-zinc-200 p-6 space-y-6 shadow-2xl animate-in slide-in-from-top">
+            <div className="space-y-4">
+              <Link
+                href="/"
+                onClick={() => setIsMenuOpen(false)}
+                className="block font-semibold text-lg text-black py-2 border-b border-zinc-100"
+              >
+                {t.navCatalog}
+              </Link>
+
+              {currentUser ? (
+                <>
+                  <Link
+                    href="/dashboard"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="block font-semibold text-lg text-black py-2 border-b border-zinc-100"
+                  >
+                    {t.navDashboard}
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full text-left font-semibold text-lg text-red-600 py-2 border-b border-zinc-100 flex items-center gap-2"
+                  >
+                    <svg className="w-5 h-5 fill-current text-red-600" viewBox="0 0 24 24">
+                      <path d="M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42C17.99 7.86 19 9.81 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7c0-2.19 1.01-4.14 2.58-5.42L6.17 5.17C4.23 6.82 3 9.26 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.74-1.23-5.18-3.17-6.83z" />
+                    </svg>
+                    <span>{lang === 'en' ? 'Sign Out' : 'Cerrar Sesión'}</span>
+                  </button>
+                </>
+              ) : (
+                <Link
+                  href="/login"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="block font-semibold text-lg text-black py-2 border-b border-zinc-100"
+                >
+                  {lang === 'en' ? 'Sign In' : 'Iniciar Sesión'}
+                </Link>
+              )}
+            </div>
+
+            {/* Language & Currency Controls in Mobile Drawer */}
+            <div className="pt-2 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-zinc-500 uppercase">{t.language}:</span>
+                <div className="flex gap-2">
+                  {['es', 'en'].map((l) => (
+                    <button
+                      key={l}
+                      onClick={() => handleLangChange(l)}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold ${
+                        lang === l ? 'bg-[#ffec00] text-black border border-black/10' : 'bg-zinc-100 text-zinc-700'
+                      }`}
+                    >
+                      {l.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-zinc-500 uppercase">{t.currency}:</span>
+                <div className="flex gap-1.5">
+                  {['EUR', 'USD', 'GBP', 'AUD'].map((curr) => (
+                    <button
+                      key={curr}
+                      onClick={() => handleCurrChange(curr)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
+                        currency === curr ? 'bg-black text-[#ffec00]' : 'bg-zinc-100 text-zinc-700'
+                      }`}
+                    >
+                      {curr}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
-      {/* Main Page Layout Wrapper with Ambient Soft Yellow Glow Background */}
-      <main className="min-h-screen py-10 bg-zinc-50/70 relative overflow-hidden">
-        {/* Ambient Top Right Soft Yellow Glow */}
+      {/* Main Page Layout Wrapper */}
+      <main className="min-h-screen py-6 md:py-10 bg-zinc-50/70 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-b from-[#ffec00]/25 via-[#ffec00]/10 to-transparent rounded-full blur-3xl pointer-events-none -z-0"></div>
-        {/* Ambient Middle Left Soft Yellow Glow */}
         <div className="absolute top-1/3 -left-32 w-[500px] h-[500px] bg-[#ffec00]/15 rounded-full blur-3xl pointer-events-none -z-0"></div>
-        {/* Ambient Bottom Right Glow */}
         <div className="absolute bottom-10 right-10 w-[450px] h-[450px] bg-[#ffec00]/10 rounded-full blur-3xl pointer-events-none -z-0"></div>
 
         <div className="relative z-10">{children}</div>

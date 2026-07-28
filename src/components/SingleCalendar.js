@@ -41,28 +41,31 @@ export default function SingleCalendar({
 
   return (
     <div>
-      <div className="bg-zinc-100/90 border border-zinc-200 p-5 rounded-3xl mb-5 text-black shadow-inner">
+      <div className="bg-white border border-zinc-200 p-6 rounded-3xl mb-5 text-black shadow-md">
         <div className="text-center mb-5">
-          <h3 className="text-xl font-semibold font-semi text-black mb-1">
-            📅 {lang === 'en' ? 'Select Dates on Calendar' : 'Selecciona las Fechas en el Calendario'}
+          <h3 className="text-xl font-semibold font-semi text-black mb-1 flex items-center justify-center gap-2">
+            <svg className="w-5 h-5 text-black fill-current" viewBox="0 0 24 24">
+              <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z" />
+            </svg>
+            <span>{lang === 'en' ? 'Select Dates on Calendar' : 'Selecciona las Fechas en el Calendario'}</span>
           </h3>
           <p className="text-xs text-zinc-600 font-medium font-sans">
             {lang === 'en' ? 'Click 1st on arrival date, 2nd on departure date.' : 'Haz 1er clic en la fecha de llegada y 2º clic en la fecha de regreso.'}
           </p>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-zinc-200 shadow-md mb-5">
-          <div className="flex justify-between items-center mb-3 pb-2 border-b border-zinc-100">
+        <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-200 shadow-xs mb-5">
+          <div className="flex justify-between items-center mb-3 pb-2 border-b border-zinc-200">
             <button
               onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1))}
-              className="px-2 py-1 rounded-lg hover:bg-zinc-100 font-semibold text-black text-sm font-condensed"
+              className="px-2.5 py-1 rounded-lg hover:bg-zinc-200 font-semibold text-black text-sm font-condensed"
             >
               ◀
             </button>
             <span className="font-semibold font-semi text-black capitalize text-base">{monthName}</span>
             <button
               onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1))}
-              className="px-2 py-1 rounded-lg hover:bg-zinc-100 font-semibold text-black text-sm font-condensed"
+              className="px-2.5 py-1 rounded-lg hover:bg-zinc-200 font-semibold text-black text-sm font-condensed"
             >
               ▶
             </button>
@@ -108,12 +111,15 @@ export default function SingleCalendar({
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-zinc-200 flex items-center justify-between shadow-sm">
+        <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-200 flex items-center justify-between shadow-xs">
           <div>
-            <div className="flex gap-2 text-xs font-semibold text-zinc-500 font-condensed mb-0.5">
-              <span>🛫 {rangeStart ? rangeStart.toLocaleDateString() : 'Select'}</span>
+            <div className="flex items-center gap-2 text-xs font-semibold text-zinc-600 font-sans mb-1">
+              <svg className="w-3.5 h-3.5 fill-current text-black" viewBox="0 0 24 24">
+                <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" />
+              </svg>
+              <span>{rangeStart ? rangeStart.toLocaleDateString() : 'Select'}</span>
               <span>➔</span>
-              <span>🛬 {rangeEnd ? rangeEnd.toLocaleDateString() : (rangeStart ? rangeStart.toLocaleDateString() : 'Select')}</span>
+              <span>{rangeEnd ? rangeEnd.toLocaleDateString() : (rangeStart ? rangeStart.toLocaleDateString() : 'Select')}</span>
             </div>
             <strong className="text-xl font-semibold font-semi text-black block">
               {travelDays} {lang === 'en' ? (travelDays === 1 ? 'Day' : 'Days') : (travelDays === 1 ? 'Día' : 'Días')} {lang === 'en' ? 'Unlimited' : 'Ilimitados'}
@@ -129,10 +135,9 @@ export default function SingleCalendar({
         </div>
       </div>
 
-      {/* Button with balanced padding py-3 and larger font size text-xl */}
       <button
         onClick={handleAddToCartUnlimited}
-        className="w-full bg-[#ffec00] hover:bg-yellow-300 text-black font-semibold font-condensed tracking-wider uppercase py-3 px-6 rounded-xl text-xl transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 border border-black/10"
+        className="w-full bg-[#ffec00] hover:bg-yellow-300 text-black font-semibold font-condensed tracking-wider uppercase py-3.5 px-6 rounded-xl text-xl transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 border border-black/10"
       >
         {lang === 'en' ? `Add ${travelDays} Unlimited Days to Cart` : `Añadir ${travelDays} Días Ilimitados al Carrito`} • {formatCurrency(convertCurrency(unlimitedPriceEur, currency, rates), currency)} ➔
       </button>
