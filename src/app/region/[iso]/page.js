@@ -172,15 +172,17 @@ export default function RegionPage() {
       </div>
 
       {/* Hero Banner Section */}
-      <div className="relative rounded-3xl overflow-hidden bg-zinc-900 text-white mb-10 shadow-2xl border border-zinc-800">
-        <img
-          src={heroImage}
-          alt={regionName}
-          className="absolute inset-0 w-full h-full object-cover object-center opacity-75 filter brightness-95 transition-opacity"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-black/25"></div>
+      <div className="relative rounded-3xl bg-zinc-900 text-white mb-10 shadow-2xl border border-zinc-800">
+        <div className="absolute inset-0 rounded-3xl overflow-hidden">
+          <img
+            src={heroImage}
+            alt={regionName}
+            className="absolute inset-0 w-full h-full object-cover object-center opacity-75 filter brightness-95 transition-opacity"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-black/25"></div>
+        </div>
 
-        <div className="relative z-10 p-6 sm:p-10 md:p-12 max-w-3xl">
+        <div className="relative z-10 p-6 sm:p-10 md:p-12 w-full">
           <span className="bg-[#ffec00] text-black text-xs font-bold px-3.5 py-1 rounded-full uppercase tracking-wider mb-4 inline-block shadow-sm">
             ⚡ {lang === 'en' ? 'Regional eSIM Hub' : 'eSIM Cobertura Regional Multi-País'}
           </span>
@@ -241,7 +243,7 @@ export default function RegionPage() {
       </div>
 
       {/* Grid of Individual Country Cards in this Region */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-16">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 landscape:grid-cols-2 sm:landscape:grid-cols-3 lg:landscape:grid-cols-3 xl:landscape:grid-cols-4 gap-4 sm:gap-5 mb-16">
         {regionCountries.map((c) => {
           const matchingPlan = plans.find((p) => (p.iso || '').toLowerCase() === c.iso);
           const safePrice = matchingPlan ? matchingPlan.priceEur : (c.baseEur || 4.90);

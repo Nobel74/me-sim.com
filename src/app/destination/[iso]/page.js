@@ -252,15 +252,17 @@ export default function DestinationPage() {
       </nav>
 
       {/* Hero Banner Section */}
-      <div className="relative rounded-3xl overflow-hidden bg-zinc-900 text-white mb-10 shadow-2xl border border-zinc-800">
-        <img
-          src={DESTINATION_IMAGES[isoCode] || DESTINATION_IMAGES.europe}
-          alt={countryName}
-          className="absolute inset-0 w-full h-full object-cover object-center opacity-75 filter brightness-95 transition-opacity"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-black/25"></div>
+      <div className="relative rounded-3xl bg-zinc-900 text-white mb-10 shadow-2xl border border-zinc-800">
+        <div className="absolute inset-0 rounded-3xl overflow-hidden">
+          <img
+            src={DESTINATION_IMAGES[isoCode] || DESTINATION_IMAGES.europe}
+            alt={countryName}
+            className="absolute inset-0 w-full h-full object-cover object-center opacity-75 filter brightness-95 transition-opacity"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-black/25"></div>
+        </div>
 
-        <div className="relative z-10 p-6 sm:p-10 md:p-12 max-w-3xl">
+        <div className="relative z-10 p-6 sm:p-10 md:p-12 w-full">
           <div className="flex flex-wrap items-center gap-2.5 mb-4">
             <img
               src={`/flags/${isoCode}.webp`}
@@ -291,8 +293,11 @@ export default function DestinationPage() {
           {/* Glassmorphism Feature Highlight Card */}
           <div className="bg-white/10 backdrop-blur-md border border-white/20 p-4 sm:p-5 rounded-2xl flex flex-col gap-3.5 shadow-xl">
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
-              <span className="w-full sm:w-auto bg-[#ffec00] text-black text-xs sm:text-sm font-bold px-3 py-1.5 rounded-full uppercase tracking-wider shadow-xs text-center flex items-center justify-center">
-                ⚡ {lang === 'en' ? 'Best Local Value' : 'Mejor Cobertura Local'}
+              <span className="w-full sm:w-auto bg-[#ffec00] text-black text-xs sm:text-sm font-bold px-3 py-1.5 rounded-full uppercase tracking-wider shadow-xs text-center flex items-center justify-center gap-1.5">
+                <svg className="w-3.5 h-3.5 fill-current text-black flex-shrink-0" viewBox="0 0 24 24">
+                  <path d="M7 2v11h3v9l7-12h-4l4-8z" />
+                </svg>
+                <span>{lang === 'en' ? 'Best Local Value' : 'Mejor Cobertura Local'}</span>
               </span>
               <span className="w-full sm:w-auto text-xs sm:text-sm text-white font-bold tracking-wide bg-black/60 px-3 py-1.5 rounded-full border border-white/10 shadow-xs text-center flex items-center justify-center">
                 {lang === 'en' ? `Plans from ${formattedMinPrice}` : `Planes desde ${formattedMinPrice}`}

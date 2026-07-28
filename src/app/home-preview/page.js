@@ -2,13 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getTranslation, getCountryName } from '../lib/i18n';
-import HeroSearch from '../components/HeroSearch';
-import CountryCard from '../components/CountryCard';
-import RegionCard from '../components/RegionCard';
-import ModeSwitcher from '../components/ModeSwitcher';
-import RegionModal from '../components/RegionModal';
-import FaqSection from '../components/FaqSection';
+import { getTranslation, getCountryName } from '../../lib/i18n';
+import HeroSearch from '../../components/HeroSearch';
+import CountryCard from '../../components/CountryCard';
+import RegionCard from '../../components/RegionCard';
+import ModeSwitcher from '../../components/ModeSwitcher';
+import FaqSection from '../../components/FaqSection';
 
 const PREFERRED_ISO_ORDER = [
   'fr', 'es', 'us', 'cn', 'it', 'tr', 'mx', 'th', 'de', 'gb',
@@ -193,7 +192,7 @@ const HERO_RANDOM_BACKGROUNDS = [
   { url: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=1200&auto=format&fit=crop', nameEs: 'Bali, Indonesia', nameEn: 'Bali, Indonesia' },
 ];
 
-export default function HomePage() {
+export default function HomePreviewPage() {
   const [lang, setLang] = useState('es');
   const [currency, setCurrency] = useState('EUR');
   const [rates, setRates] = useState({ EUR: 1, USD: 1.09, GBP: 0.85, AUD: 1.65 });
@@ -268,7 +267,7 @@ export default function HomePage() {
 
   return (
     <div className="container-naked">
-      {/* Full Hero Header Design with Random Background Wallpapers */}
+      {/* Full Hero Header Design Matching Destination & Region Header */}
       <div className="relative rounded-3xl bg-zinc-900 text-white mb-12 shadow-2xl border border-zinc-800">
         <div className="absolute inset-0 rounded-3xl overflow-hidden">
           <img
@@ -305,7 +304,7 @@ export default function HomePage() {
 
           {/* Quick Search Bar */}
           <div className="mb-6 w-full">
-            <HeroSearch lang={lang} currency={currency} rates={rates} plans={plans} />
+            <HeroSearch lang={lang} />
           </div>
 
           {/* Glassmorphism Feature Highlight Card */}
@@ -347,7 +346,7 @@ export default function HomePage() {
               </span>
               <span>•</span>
               <span className="flex items-center gap-1.5">
-                <svg className="w-4 h-4 text-[#ffec00] fill-current" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-[#ffec00] fill-current" viewBox="0 2 24 24">
                   <path d="M12 18c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-4c-2.21 0-4.21.9-5.66 2.34l1.42 1.42C8.9 16.63 10.37 16 12 16s3.1.63 4.24 1.76l1.42-1.42C16.21 14.9 14.21 14 12 14zm0-4c-3.87 0-7.37 1.57-9.9 4.1l1.42 1.42C5.76 13.27 8.68 12 12 12s6.24 1.27 8.48 3.52l1.42-1.42C19.37 11.57 15.87 10 12 10z" />
                 </svg>
                 {lang === 'en' ? 'Hotspot included' : 'Hotspot incluido'}
@@ -364,65 +363,50 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* WHERE TO NEXT Header */}
-      <div id="catalog-section" className="mb-8">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-6">
-          <div className="w-full md:w-auto">
-            <span className="text-xs font-semibold font-condensed tracking-widest text-black uppercase block mb-1">
-              /// WHERE TO NEXT
-            </span>
-            <h2 className="text-3xl md:text-4xl font-semibold font-semi text-black tracking-tight">
-              {lang === 'en' ? 'Find your eSIM' : 'Encuentra tu eSIM'}
+      {/* Catalog Selector Section */}
+      <div id="catalog-section" className="scroll-mt-24 mb-10">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold font-sans text-black">
+              {t.popularDestinations}
             </h2>
-            <p className="text-zinc-600 font-sans text-sm md:text-base font-medium mt-1">
-              {mode === 'local'
-                ? (lang === 'en' ? 'Single-country plans for the spots our travelers reach for most.' : 'Planes por país individual para tus destinos más habituales.')
-                : (lang === 'en' ? 'One plan that covers a whole region, for trips that cross borders.' : 'Un solo plan que cubre toda una región para viajes multi-país.')}
-            </p>
           </div>
 
-          <Link
-            href="/destinations"
-            className="w-full sm:w-auto text-center justify-center bg-[#ffec00] hover:bg-yellow-300 text-black border border-black/10 px-5 py-3 rounded-xl flex sm:inline-flex items-center gap-2 font-semibold font-condensed tracking-wide transition-all shadow-md hover:shadow-lg text-base flex-shrink-0"
-          >
-            {lang === 'en' ? 'See all 198 countries' : 'Ver los 198 países'} ➔
-          </Link>
+          <ModeSwitcher mode={mode} setMode={setMode} lang={lang} />
         </div>
 
-        <ModeSwitcher mode={mode} setMode={setMode} lang={lang} />
+        {/* MODE 1: LOCAL */}
+        {mode === 'local' && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 landscape:grid-cols-2 sm:landscape:grid-cols-3 lg:landscape:grid-cols-3 xl:landscape:grid-cols-4 gap-4 sm:gap-5 mb-16">
+            {filteredLocalPlans.map((plan) => (
+              <CountryCard
+                key={plan.id}
+                iso={plan.iso}
+                countryName={getCountryName(plan.iso, lang, plan.country)}
+                priceEur={plan.priceEur}
+                lang={lang}
+                currency={currency}
+                rates={rates}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* MODE 2: REGIONAL */}
+        {mode === 'regional' && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+            {REGION_CARDS_DATA.map((reg) => (
+              <RegionCard
+                key={reg.iso}
+                regionData={reg}
+                lang={lang}
+                currency={currency}
+                rates={rates}
+              />
+            ))}
+          </div>
+        )}
       </div>
-
-      {/* MODE 1: LOCAL */}
-      {mode === 'local' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 landscape:grid-cols-2 sm:landscape:grid-cols-3 lg:landscape:grid-cols-3 xl:landscape:grid-cols-4 gap-4 sm:gap-5 mb-16">
-          {filteredLocalPlans.map((plan) => (
-            <CountryCard
-              key={plan.id}
-              iso={plan.iso}
-              countryName={getCountryName(plan.iso, lang, plan.country)}
-              priceEur={plan.priceEur}
-              lang={lang}
-              currency={currency}
-              rates={rates}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* MODE 2: REGIONAL */}
-      {mode === 'regional' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-          {REGION_CARDS_DATA.map((reg) => (
-            <RegionCard
-              key={reg.iso}
-              regionData={reg}
-              lang={lang}
-              currency={currency}
-              rates={rates}
-            />
-          ))}
-        </div>
-      )}
 
       {/* Interactive FAQ Accordion */}
       <FaqSection />
