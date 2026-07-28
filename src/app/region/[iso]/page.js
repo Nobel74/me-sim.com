@@ -138,9 +138,9 @@ export default function RegionPage() {
         <img
           src={heroImage}
           alt={regionName}
-          className="absolute inset-0 w-full h-full object-cover opacity-35 filter brightness-75"
+          className="absolute inset-0 w-full h-full object-cover object-center opacity-75 filter brightness-95 transition-opacity"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-transparent"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-black/25"></div>
 
         <div className="relative z-10 p-6 sm:p-10 md:p-12 max-w-3xl">
           <span className="bg-[#ffec00] text-black text-xs font-bold px-3.5 py-1 rounded-full uppercase tracking-wider mb-4 inline-block shadow-sm">
