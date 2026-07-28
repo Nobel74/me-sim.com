@@ -109,23 +109,23 @@ export default function FixedPlanList({
       <div className="lg:hidden w-full">
         <button
           onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
-          className="w-full bg-white border border-zinc-300 hover:border-black p-4 rounded-2xl flex items-center justify-between shadow-xs transition-all text-left"
+          className="w-full bg-white border border-zinc-300 hover:border-black p-3.5 sm:p-4 rounded-2xl flex items-center justify-between gap-2 shadow-xs transition-all text-left"
         >
-          <div className="flex items-center gap-2.5">
-            <svg className="w-5 h-5 text-black fill-current" viewBox="0 0 24 24">
+          <div className="flex items-center gap-2 min-w-0">
+            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-black fill-current flex-shrink-0" viewBox="0 0 24 24">
               <path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z" />
             </svg>
-            <span className="font-bold text-black text-sm">
+            <span className="font-bold text-black text-xs sm:text-sm truncate">
               {lang === 'en' ? 'Find Your Ideal Plan' : 'Encuentra tu Plan Ideal'}
             </span>
             {isFiltered && (
-              <span className="bg-[#ffec00] text-black text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
+              <span className="bg-[#ffec00] text-black text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase flex-shrink-0">
                 Activo
               </span>
             )}
           </div>
-          <span className="text-zinc-500 font-bold text-xs">
-            {isMobileFiltersOpen ? (lang === 'en' ? 'Hide ▲' : 'Ocultar ▲') : (lang === 'en' ? 'Filter ▼' : 'Filtrar ▼')}
+          <span className="text-zinc-500 font-bold text-xs flex-shrink-0 whitespace-nowrap">
+            {isMobileFiltersOpen ? (lang === 'en' ? 'Ocultar ▲' : 'Ocultar ▲') : (lang === 'en' ? 'Filtrar ▼' : 'Filtrar ▼')}
           </span>
         </button>
       </div>
@@ -261,10 +261,10 @@ export default function FixedPlanList({
 
       {/* Right Column: Filtered Plan Cards */}
       <div className="lg:col-span-7 space-y-4">
-        <h3 className="text-xs font-semibold font-condensed tracking-widest text-zinc-500 uppercase flex justify-between items-center">
+        <h3 className="text-xs font-semibold font-condensed tracking-widest text-zinc-500 uppercase flex flex-wrap items-center justify-between gap-2">
           <span>{lang === 'en' ? 'CHOOSE YOUR DATA PLAN' : 'ELIGE TU PLAN DE DATOS'}</span>
-          <span className="text-black font-semibold font-condensed flex items-center gap-1.5 bg-[#ffec00] px-2.5 py-0.5 rounded-full text-[11px] shadow-xs">
-            🟢 {filteredPlans.length} {lang === 'en' ? 'matching plans' : 'opciones filtradas'}
+          <span className="text-black font-bold font-sans flex items-center gap-1.5 bg-[#ffec00] px-2.5 py-1 rounded-full text-[10px] sm:text-xs shadow-xs whitespace-nowrap border border-black/10">
+            🟢 {filteredPlans.length} {lang === 'en' ? 'options' : 'opciones'}
           </span>
         </h3>
 

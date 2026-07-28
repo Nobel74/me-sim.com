@@ -325,26 +325,26 @@ export default function DestinationPage() {
       </div>
 
       {/* Plan Selector Section */}
-      <div className="w-full bg-white rounded-3xl border border-zinc-200 p-6 md:p-8 shadow-2xl">
-        <div className="flex bg-zinc-100 p-1.5 rounded-full mb-8 max-w-md mx-auto border border-zinc-200">
+      <div className="w-full bg-white rounded-3xl border border-zinc-200 p-4 sm:p-6 md:p-8 shadow-2xl">
+        <div className="flex bg-zinc-100 p-1 sm:p-1.5 rounded-full mb-6 sm:mb-8 max-w-md mx-auto border border-zinc-200 gap-1">
           <button
             onClick={() => setActiveTab('fixed')}
-            className={`flex-1 py-3 text-sm font-semibold font-condensed tracking-wider uppercase rounded-full transition-all ${
+            className={`flex-1 py-2.5 px-3 text-xs sm:text-sm font-bold font-condensed tracking-wider uppercase rounded-full transition-all whitespace-nowrap text-center ${
               activeTab === 'fixed' ? 'bg-black text-[#ffec00] shadow-md' : 'text-zinc-600 hover:text-black font-medium'
             }`}
           >
             {lang === 'en' ? 'Fixed plans' : 'Planes Fijos'} ({fixedPlans.length})
           </button>
 
-          {/* Unlimited Data Tab with Vector SVG Infinity Icon matching text color / active yellow */}
+          {/* Unlimited Data Tab */}
           <button
             onClick={() => setActiveTab('unlimited')}
-            className={`flex-1 py-3 text-sm font-semibold font-condensed tracking-wider uppercase rounded-full transition-all flex items-center justify-center gap-2 ${
+            className={`flex-1 py-2.5 px-3 text-xs sm:text-sm font-bold font-condensed tracking-wider uppercase rounded-full transition-all flex items-center justify-center gap-1.5 whitespace-nowrap text-center ${
               activeTab === 'unlimited' ? 'bg-black text-[#ffec00] shadow-md' : 'text-zinc-600 hover:text-black font-medium'
             }`}
           >
             <svg
-              className={`w-5 h-5 fill-current transition-colors ${
+              className={`w-4 h-4 sm:w-5 sm:h-5 fill-current flex-shrink-0 transition-colors ${
                 activeTab === 'unlimited' ? 'text-[#ffec00]' : 'text-zinc-600 group-hover:text-black'
               }`}
               viewBox="0 0 24 24"

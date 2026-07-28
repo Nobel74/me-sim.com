@@ -6,13 +6,13 @@
 export async function sendEmail({ to, subject, htmlText, type = 'magic_code', data = {} }) {
   console.log(`[EMAIL SERVICE] Preparing ${type} email for: ${to}`);
 
-  const smtpHost = process.env.SMTP_HOST || 'mail.me-sim.com';
+  const smtpHost = process.env.SMTP_HOST;
   const smtpPort = process.env.SMTP_PORT || '465';
-  const smtpUser = process.env.SMTP_USER || 'info@me-sim.com';
+  const smtpUser = process.env.SMTP_USER;
   const smtpPassword = process.env.SMTP_PASSWORD;
 
-  // 1. Try sending via Nodemailer if password configured in .env.local
-  if (smtpPassword) {
+  // 1. Try sending via Nodemailer if credentials configured in environment
+  if (smtpPassword && smtpUser && smtpHost) {
     try {
       const nodemailer = (await import('nodemailer')).default;
       const transporter = nodemailer.createTransport({
