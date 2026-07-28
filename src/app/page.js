@@ -209,7 +209,7 @@ export default function HomePage() {
     <div className="container-naked">
       {/* Unencapsulated Open Hero Section sitting seamlessly over ambient yellow glow */}
       <div className="pt-4 pb-14 mb-6">
-        <span className="bg-[#ffec00] text-black text-xs font-semibold font-condensed tracking-widest uppercase px-4 py-1.5 rounded-full inline-block mb-5 shadow-xs border border-black/10">
+        <span className="w-full sm:w-auto text-center justify-center bg-[#ffec00] text-black text-xs font-semibold font-condensed tracking-widest uppercase px-4 py-2 rounded-full inline-flex sm:inline-block mb-5 shadow-xs border border-black/10">
           ⚡ {lang === 'en' ? 'Instant Global Data' : 'Datos Móviles Instantáneos Sin Roaming'}
         </span>
 
@@ -227,7 +227,7 @@ export default function HomePage() {
       {/* WHERE TO NEXT Header */}
       <div className="mb-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-6">
-          <div>
+          <div className="w-full md:w-auto">
             <span className="text-xs font-semibold font-condensed tracking-widest text-black uppercase block mb-1">
               /// WHERE TO NEXT
             </span>
@@ -243,7 +243,7 @@ export default function HomePage() {
 
           <Link
             href="/destinations"
-            className="bg-[#ffec00] hover:bg-yellow-300 text-black border border-black/10 px-5 py-2.5 rounded-xl flex items-center gap-2 font-semibold font-condensed tracking-wide transition-all shadow-md hover:shadow-lg text-base flex-shrink-0"
+            className="w-full sm:w-auto text-center justify-center bg-[#ffec00] hover:bg-yellow-300 text-black border border-black/10 px-5 py-3 rounded-xl flex sm:inline-flex items-center gap-2 font-semibold font-condensed tracking-wide transition-all shadow-md hover:shadow-lg text-base flex-shrink-0"
           >
             {lang === 'en' ? 'See all 198 countries' : 'Ver los 198 países'} ➔
           </Link>

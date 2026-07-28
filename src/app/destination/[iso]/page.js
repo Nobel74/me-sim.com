@@ -325,12 +325,12 @@ export default function DestinationPage() {
       </div>
 
       {/* Plan Selector Section */}
-      <div className="w-full bg-white rounded-3xl border border-zinc-200 p-4 sm:p-6 md:p-8 shadow-2xl">
+      <div className="w-full bg-white rounded-3xl border border-zinc-200 p-3.5 sm:p-6 md:p-8 shadow-2xl">
         <div className="flex bg-zinc-100 p-1 sm:p-1.5 rounded-full mb-6 sm:mb-8 max-w-md mx-auto border border-zinc-200 gap-1">
           <button
             onClick={() => setActiveTab('fixed')}
             className={`flex-1 py-2.5 px-3 text-xs sm:text-sm font-bold font-condensed tracking-wider uppercase rounded-full transition-all whitespace-nowrap text-center ${
-              activeTab === 'fixed' ? 'bg-black text-[#ffec00] shadow-md' : 'text-zinc-600 hover:text-black font-medium'
+              activeTab === 'fixed' ? 'bg-black text-[#ffec00] shadow-md' : 'text-zinc-900 hover:text-black font-bold'
             }`}
           >
             {lang === 'en' ? 'Fixed plans' : 'Planes Fijos'} ({fixedPlans.length})
@@ -340,12 +340,12 @@ export default function DestinationPage() {
           <button
             onClick={() => setActiveTab('unlimited')}
             className={`flex-1 py-2.5 px-3 text-xs sm:text-sm font-bold font-condensed tracking-wider uppercase rounded-full transition-all flex items-center justify-center gap-1.5 whitespace-nowrap text-center ${
-              activeTab === 'unlimited' ? 'bg-black text-[#ffec00] shadow-md' : 'text-zinc-600 hover:text-black font-medium'
+              activeTab === 'unlimited' ? 'bg-black text-[#ffec00] shadow-md' : 'text-zinc-900 hover:text-black font-bold'
             }`}
           >
             <svg
               className={`w-4 h-4 sm:w-5 sm:h-5 fill-current flex-shrink-0 transition-colors ${
-                activeTab === 'unlimited' ? 'text-[#ffec00]' : 'text-zinc-600 group-hover:text-black'
+                activeTab === 'unlimited' ? 'text-[#ffec00]' : 'text-zinc-900 group-hover:text-black'
               }`}
               viewBox="0 0 24 24"
             >

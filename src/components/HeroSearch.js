@@ -101,14 +101,14 @@ export default function HeroSearch({ lang = 'es', currency = 'EUR', rates = {}, 
     : [];
 
   return (
-    <div ref={searchContainerRef} className="mt-8 max-w-2xl relative z-50">
+    <div ref={searchContainerRef} className="mt-6 md:mt-8 max-w-2xl w-full relative z-50">
       <div
-        className={`flex items-center bg-white rounded-full p-1.5 pl-6 shadow-2xl border-2 transition-all ${
+        className={`flex items-center bg-white rounded-full p-1 sm:p-1.5 pl-4 sm:pl-6 shadow-2xl border-2 transition-all ${
           isOpen ? 'border-[#ffec00] ring-4 ring-[#ffec00]/30' : 'border-white/20 hover:border-[#ffec00]'
         }`}
       >
         <svg
-          className="w-6 h-6 text-black flex-shrink-0 mr-3"
+          className="w-4 h-4 sm:w-6 sm:h-6 text-black flex-shrink-0 mr-2 sm:mr-3"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -130,7 +130,7 @@ export default function HeroSearch({ lang = 'es', currency = 'EUR', rates = {}, 
             setIsOpen(true);
           }}
           placeholder={t.searchPlaceholder}
-          className="w-full text-black font-semibold text-lg outline-none bg-transparent placeholder-zinc-400 font-sans"
+          className="w-full text-black font-semibold text-sm sm:text-lg outline-none bg-transparent placeholder-zinc-400 font-sans"
         />
 
         {searchTerm && (
@@ -139,7 +139,7 @@ export default function HeroSearch({ lang = 'es', currency = 'EUR', rates = {}, 
               setSearchTerm('');
               setIsOpen(true);
             }}
-            className="text-zinc-400 hover:text-black px-2 font-semibold text-base font-sans"
+            className="text-zinc-400 hover:text-black px-1.5 font-semibold text-sm sm:text-base font-sans"
           >
             ✕
           </button>
@@ -147,7 +147,7 @@ export default function HeroSearch({ lang = 'es', currency = 'EUR', rates = {}, 
 
         <button
           onClick={() => setIsOpen(false)}
-          className="bg-[#ffec00] hover:bg-yellow-300 text-black font-semibold font-condensed tracking-wider uppercase px-7 py-2.5 rounded-full text-lg shadow-md transition-all flex-shrink-0 ml-2 border border-black/10"
+          className="bg-[#ffec00] hover:bg-yellow-300 text-black font-bold font-condensed tracking-wider uppercase px-4 sm:px-7 py-2 sm:py-2.5 rounded-full text-xs sm:text-lg shadow-md transition-all flex-shrink-0 ml-1.5 sm:ml-2 border border-black/10"
         >
           {t.searchButton}
         </button>
@@ -155,7 +155,7 @@ export default function HeroSearch({ lang = 'es', currency = 'EUR', rates = {}, 
 
       {/* Dropdown Menu Floating Layer */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-3 bg-white rounded-3xl shadow-2xl border border-zinc-200 p-4 text-black overflow-hidden z-50 transition-all max-h-96 overflow-y-auto scrollbar-thin">
+        <div className="absolute top-full left-0 right-0 mt-3 bg-white rounded-3xl shadow-2xl border border-zinc-200 p-3 sm:p-4 text-black overflow-hidden z-50 transition-all max-h-80 sm:max-h-96 overflow-y-auto scrollbar-thin">
           {!searchTerm.trim() ? (
             <div>
               <h4 className="text-xs font-semibold font-condensed tracking-wider text-zinc-400 uppercase mb-3 px-3">
@@ -170,20 +170,20 @@ export default function HeroSearch({ lang = 'es', currency = 'EUR', rates = {}, 
                     <div
                       key={dest.iso}
                       onClick={() => handleNavigate(dest.iso)}
-                      className="flex items-center justify-between p-3.5 rounded-2xl hover:bg-[#ffec00]/20 cursor-pointer transition-colors group"
+                      className="flex items-center justify-between p-2.5 sm:p-3.5 rounded-2xl hover:bg-[#ffec00]/20 cursor-pointer transition-colors group"
                     >
-                      <div className="flex items-center gap-3.5">
+                      <div className="flex items-center gap-2.5 sm:gap-3.5">
                         <img
                           src={`/flags/${dest.iso}.webp`}
                           alt={name}
-                          className="w-9 h-9 rounded-full object-cover border border-zinc-200 shadow-sm"
+                          className="w-7 h-7 sm:w-9 sm:h-9 rounded-full object-cover border border-zinc-200 shadow-sm"
                         />
-                        <span className="font-semibold font-semi text-black text-lg">
+                        <span className="font-semibold font-semi text-black text-sm sm:text-lg">
                           {name}
                         </span>
                       </div>
                       <span className="text-xs font-semibold text-zinc-500 font-condensed">
-                        {t.fromPrice} <strong className="text-black text-base font-semibold font-condensed ml-1">{formatCurrency(displayPrice, currency)}</strong>
+                        {t.fromPrice} <strong className="text-black text-sm sm:text-base font-semibold font-condensed ml-1">{formatCurrency(displayPrice, currency)}</strong>
                       </span>
                     </div>
                   );
@@ -206,22 +206,22 @@ export default function HeroSearch({ lang = 'es', currency = 'EUR', rates = {}, 
                       <div
                         key={item.iso}
                         onClick={() => handleNavigate(item.iso)}
-                        className="flex items-center justify-between p-3.5 rounded-2xl hover:bg-[#ffec00]/20 cursor-pointer transition-colors group"
+                        className="flex items-center justify-between p-2.5 sm:p-3.5 rounded-2xl hover:bg-[#ffec00]/20 cursor-pointer transition-colors group"
                       >
-                        <div className="flex items-center gap-3.5">
+                        <div className="flex items-center gap-2.5 sm:gap-3.5">
                           <img
                             src={`/flags/${item.iso}.webp`}
                             alt={item.countryName}
-                            className="w-9 h-9 rounded-full object-cover border border-zinc-200 shadow-sm"
+                            className="w-7 h-7 sm:w-9 sm:h-9 rounded-full object-cover border border-zinc-200 shadow-sm"
                           />
                           <div>
-                            <span className="font-semibold font-semi text-black text-lg block">
+                            <span className="font-semibold font-semi text-black text-sm sm:text-lg block">
                               {item.countryName}
                             </span>
                           </div>
                         </div>
                         <span className="text-xs font-semibold text-zinc-500 font-condensed">
-                          {t.fromPrice} <strong className="text-black text-base font-semibold font-condensed ml-1">{formatCurrency(displayPrice, currency)}</strong>
+                          {t.fromPrice} <strong className="text-black text-sm sm:text-base font-semibold font-condensed ml-1">{formatCurrency(displayPrice, currency)}</strong>
                         </span>
                       </div>
                     );

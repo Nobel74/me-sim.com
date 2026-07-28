@@ -115,8 +115,8 @@ export default function FixedPlanList({
             <svg className="w-4 h-4 sm:w-5 sm:h-5 text-black fill-current flex-shrink-0" viewBox="0 0 24 24">
               <path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z" />
             </svg>
-            <span className="font-bold text-black text-xs sm:text-sm truncate">
-              {lang === 'en' ? 'Find Your Ideal Plan' : 'Encuentra tu Plan Ideal'}
+            <span className="font-bold text-black text-xs sm:text-sm whitespace-nowrap">
+              {lang === 'en' ? 'Filter Plans' : 'Filtrar Planes'}
             </span>
             {isFiltered && (
               <span className="bg-[#ffec00] text-black text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase flex-shrink-0">
@@ -136,23 +136,24 @@ export default function FixedPlanList({
           isMobileFiltersOpen ? 'block' : 'hidden lg:block'
         }`}
       >
-        <div className="flex justify-between items-center pb-3 border-b border-zinc-100">
-          <div className="flex items-center gap-2.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#ffec00] border border-black/10"></span>
-            <h4 className="text-base font-bold font-sans tracking-tight text-black flex items-center gap-2">
-              <svg className="w-4 h-4 text-black fill-current" viewBox="0 0 24 24">
-                <path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z" />
-              </svg>
-              <span>{lang === 'en' ? 'Find Your Ideal Plan' : 'Encuentra tu Plan Ideal'}</span>
-            </h4>
-          </div>
+        <div className="pb-3 border-b border-zinc-100">
+          <h4 className="text-base font-bold font-sans tracking-tight text-black flex items-center gap-2">
+            <svg className="w-4 h-4 text-black fill-current flex-shrink-0" viewBox="0 0 24 24">
+              <path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z" />
+            </svg>
+            <span>{lang === 'en' ? 'Find Your Ideal Plan' : 'Encuentra tu Plan Ideal'}</span>
+          </h4>
+
           {isFiltered && (
-            <button
-              onClick={resetFilters}
-              className="text-xs font-semibold text-zinc-600 hover:text-black underline font-sans"
-            >
-              {lang === 'en' ? 'Reset' : 'Restablecer'}
-            </button>
+            <div className="mt-2.5">
+              <button
+                onClick={resetFilters}
+                className="text-xs font-bold text-black bg-zinc-100 hover:bg-[#ffec00] border border-zinc-300 px-3 py-1 rounded-full inline-flex items-center gap-1.5 transition-all shadow-xs"
+              >
+                <span>✕</span>
+                <span>{lang === 'en' ? 'Reset Filters' : 'Borrar Filtros'}</span>
+              </button>
+            </div>
           )}
         </div>
 
@@ -355,7 +356,7 @@ export default function FixedPlanList({
         <button
           onClick={handleAddToCartFixed}
           disabled={!activeSelectedPlan}
-          className="w-full bg-[#ffec00] hover:bg-yellow-300 text-black font-semibold font-condensed tracking-wider uppercase py-3.5 px-6 rounded-xl text-xl transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 border border-black/10 mt-4"
+          className="w-full bg-[#ffec00] hover:bg-yellow-300 text-black font-bold font-sans tracking-wide py-3 px-1 sm:px-4 rounded-xl text-base sm:text-lg transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-1.5 sm:gap-2 border border-black/10 mt-4"
         >
           {lang === 'en' ? 'Add to Cart' : 'Añadir al Carrito'} • {activeSelectedPlan ? formatCurrency(convertCurrency(activeSelectedPlan.priceEur, currency, rates), currency) : ''} ➔
         </button>
