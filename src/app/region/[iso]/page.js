@@ -21,6 +21,7 @@ const REGION_HERO_IMAGES = {
   'china-hk-macau': 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?q=80&w=1000&auto=format&fit=crop',
   'east-asia': 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=1000&auto=format&fit=crop',
   'southeast-asia': 'https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?q=80&w=1000&auto=format&fit=crop',
+  'europe-morocco': 'https://images.unsplash.com/photo-1543783207-ec64e4d95325?q=80&w=1000&auto=format&fit=crop',
 };
 
 const REGION_DESCRIPTIONS = {
@@ -71,6 +72,10 @@ const REGION_DESCRIPTIONS = {
   'southeast-asia': {
     es: 'Recorre Tailandia, Malasia, Singapur, Indonesia, Vietnam y Filipinas con una sola eSIM y cobertura instantánea en todas las fronteras.',
     en: 'Explore Thailand, Malaysia, Singapore, Indonesia, Vietnam, and Philippines on a single eSIM profile with instant cross-border data.',
+  },
+  'europe-morocco': {
+    es: 'Cruza el Estrecho de Gibraltar y viaja sin interrupciones por toda la Unión Europea y Marruecos con una sola eSIM activa al instante.',
+    en: 'Cross the Strait of Gibraltar and travel seamlessly across all EU countries and Morocco on a single active eSIM profile.',
   },
 };
 
@@ -141,6 +146,8 @@ export default function RegionPage() {
     regionCountries = ALL_WORLD_COUNTRIES.filter((c) => ['jp', 'kr', 'tw'].includes(c.iso));
   } else if (regionKey === 'southeast-asia') {
     regionCountries = ALL_WORLD_COUNTRIES.filter((c) => ['th', 'my', 'sg', 'id', 'vn', 'ph', 'kh', 'la', 'mm'].includes(c.iso));
+  } else if (regionKey === 'europe-morocco') {
+    regionCountries = ALL_WORLD_COUNTRIES.filter((c) => c.region === 'europe' || c.iso === 'ma');
   } else {
     regionCountries = ALL_WORLD_COUNTRIES.filter((c) => c.region === regionKey);
   }

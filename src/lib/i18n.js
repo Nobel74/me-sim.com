@@ -575,6 +575,7 @@ export function getRegionName(regionKey = 'europe', lang = 'es') {
     'china-hk-macau': { es: 'China, Hong Kong y Macao (Sin Cortafuegos)', en: 'China, Hong Kong & Macau (No Firewall)' },
     'southeast-asia': { es: 'Sudeste Asiático (10 Países)', en: 'Southeast Asia (10 Countries)' },
     'east-asia': { es: 'Japón, Corea del Sur y Taiwán', en: 'Japan, South Korea & Taiwan' },
+    'europe-morocco': { es: 'Europa + Marruecos', en: 'Europe + Morocco' },
   };
   return (names[regionKey] && names[regionKey][lang]) || regionKey;
 }

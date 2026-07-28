@@ -72,6 +72,7 @@ export async function GET(request) {
     { iso: 'china-hk-macau', name: 'China + Hong Kong + Macao', region: 'asia', baseEur: 4.90 },
     { iso: 'east-asia', name: 'Japón, Corea y Taiwán', region: 'asia', baseEur: 5.90 },
     { iso: 'southeast-asia', name: 'Sudeste Asiático (SEA 10 Países)', region: 'asia', baseEur: 5.90 },
+    { iso: 'europe-morocco', name: 'Europa + Marruecos (36+ Países)', region: 'europe', baseEur: 4.90 },
   ];
 
   const countryMeta = [
@@ -126,7 +127,7 @@ export async function GET(request) {
     const isRegionQuery = [
       'europe', 'asia', 'north-america', 'south-america', 'caribbean',
       'africa', 'middle-east', 'oceania', 'aukus', 'china-hk-macau',
-      'east-asia', 'southeast-asia'
+      'east-asia', 'southeast-asia', 'europe-morocco'
     ].includes(targetCode);
     const displayName = COUNTRY_NAMES[targetCode]?.es || REGION_NAMES[targetCode]?.es || targetCode.toUpperCase();
     const dynamicBaseEur = 4.90;

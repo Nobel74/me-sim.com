@@ -161,6 +161,18 @@ const REGION_CARDS_DATA = [
     flags: ['th', 'my', 'sg', 'id', 'vn'],
     extraCount: '+5',
   },
+  {
+    iso: 'europe-morocco',
+    nameEs: 'Europa + Marruecos',
+    nameEn: 'Europe + Morocco',
+    descEs: 'Toda la UE y Marruecos en una sola eSIM',
+    descEn: 'All EU countries & Morocco on a single eSIM',
+    badgeEs: '36+ países',
+    badgeEn: '36+ countries',
+    priceEur: 4.90,
+    flags: ['es', 'fr', 'ma', 'de'],
+    extraCount: '+32',
+  },
 ];
 
 export default function HomePage() {
