@@ -123,7 +123,11 @@ export async function GET(request) {
 
   // Dynamic fallback generator if a specific unlisted ISO code is requested
   if (targetCode && !countryMeta.some((c) => c.iso === targetCode) && !regionMeta.some((r) => r.iso === targetCode)) {
-    const isRegionQuery = ['europe', 'asia', 'north-america', 'south-america', 'caribbean', 'africa', 'middle-east', 'oceania'].includes(targetCode);
+    const isRegionQuery = [
+      'europe', 'asia', 'north-america', 'south-america', 'caribbean',
+      'africa', 'middle-east', 'oceania', 'aukus', 'china-hk-macau',
+      'east-asia', 'southeast-asia'
+    ].includes(targetCode);
     const displayName = COUNTRY_NAMES[targetCode]?.es || REGION_NAMES[targetCode]?.es || targetCode.toUpperCase();
     const dynamicBaseEur = 4.90;
     const dynamicPlans = [];
