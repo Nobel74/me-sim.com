@@ -26,6 +26,13 @@ const barlowSemiCondensed = Barlow_Semi_Condensed({
 export const metadata = {
   title: 'eSIM Internacional para Viajar | ME-SIM',
   description: 'Conectividad móvil instantánea en más de 198 países sin roaming',
+  icons: {
+    icon: [
+      { url: '/favicon/favicon.png', type: 'image/png' }
+    ],
+    shortcut: '/favicon/favicon.png',
+    apple: '/favicon/favicon.png',
+  },
 };
 
 export default function RootLayout({ children }) {
