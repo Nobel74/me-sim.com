@@ -1,37 +1,26 @@
 import './globals.css';
-import localFont from 'next/font/local';
+import { Barlow, Barlow_Condensed, Barlow_Semi_Condensed } from 'next/font/google';
 import ClientLayout from './ClientLayout';
 
-const barlow = localFont({
-  src: [
-    { path: '../../assets/fonts/Barlow/Barlow-Regular.ttf', weight: '400', style: 'normal' },
-    { path: '../../assets/fonts/Barlow/Barlow-Medium.ttf', weight: '500', style: 'normal' },
-    { path: '../../assets/fonts/Barlow/Barlow-SemiBold.ttf', weight: '600', style: 'normal' },
-    { path: '../../assets/fonts/Barlow/Barlow-Bold.ttf', weight: '700', style: 'normal' },
-    { path: '../../assets/fonts/Barlow/Barlow-ExtraBold.ttf', weight: '800', style: 'normal' },
-  ],
+const barlow = Barlow({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
   variable: '--font-barlow',
+  display: 'swap',
 });
 
-const barlowCondensed = localFont({
-  src: [
-    { path: '../../assets/fonts/Barlow_Condensed/BarlowCondensed-Regular.ttf', weight: '400', style: 'normal' },
-    { path: '../../assets/fonts/Barlow_Condensed/BarlowCondensed-SemiBold.ttf', weight: '600', style: 'normal' },
-    { path: '../../assets/fonts/Barlow_Condensed/BarlowCondensed-Bold.ttf', weight: '700', style: 'normal' },
-    { path: '../../assets/fonts/Barlow_Condensed/BarlowCondensed-ExtraBold.ttf', weight: '800', style: 'normal' },
-    { path: '../../assets/fonts/Barlow_Condensed/BarlowCondensed-Black.ttf', weight: '900', style: 'normal' },
-  ],
+const barlowCondensed = Barlow_Condensed({
+  subsets: ['latin'],
+  weight: ['400', '600', '700', '800', '900'],
   variable: '--font-barlow-condensed',
+  display: 'swap',
 });
 
-const barlowSemiCondensed = localFont({
-  src: [
-    { path: '../../assets/fonts/Barlow_Semi_Condensed/BarlowSemiCondensed-Regular.ttf', weight: '400', style: 'normal' },
-    { path: '../../assets/fonts/Barlow_Semi_Condensed/BarlowSemiCondensed-SemiBold.ttf', weight: '600', style: 'normal' },
-    { path: '../../assets/fonts/Barlow_Semi_Condensed/BarlowSemiCondensed-Bold.ttf', weight: '700', style: 'normal' },
-    { path: '../../assets/fonts/Barlow_Semi_Condensed/BarlowSemiCondensed-ExtraBold.ttf', weight: '800', style: 'normal' },
-  ],
+const barlowSemiCondensed = Barlow_Semi_Condensed({
+  subsets: ['latin'],
+  weight: ['400', '600', '700', '800'],
   variable: '--font-barlow-semi',
+  display: 'swap',
 });
 
 export const metadata = {

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { getTranslation, getCountryName, getRegionName } from '../../../lib/i18n';
 import { convertCurrency, formatCurrency } from '../../../lib/currency';
 import FixedPlanList from '../../../components/FixedPlanList';
@@ -54,10 +54,10 @@ const ISO_SEARCH_KEYS = {
   au: ['au', 'australia'],
 };
 
-export default function DestinationPage({ params }) {
+export default function DestinationPage() {
   const router = useRouter();
-  const { iso } = params;
-  const isoCode = (iso || 'es').toLowerCase();
+  const routeParams = useParams();
+  const isoCode = (routeParams?.iso || 'es').toLowerCase();
 
   const [lang, setLang] = useState('es');
   const [currency, setCurrency] = useState('EUR');
