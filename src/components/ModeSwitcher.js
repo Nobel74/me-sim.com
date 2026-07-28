@@ -21,7 +21,7 @@ export default function ModeSwitcher({ mode = 'local', setMode, lang = 'es' }) {
             : 'text-zinc-700 hover:text-black font-medium'
         }`}
       >
-        {lang === 'en' ? 'Regional' : 'Regionales'}
+        {lang === 'en' ? 'Regions' : 'Regiones'}
       </button>
     </div>
   );

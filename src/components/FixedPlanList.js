@@ -133,7 +133,7 @@ export default function FixedPlanList({
             )}
           </div>
           <span className="text-zinc-500 font-bold text-xs flex-shrink-0 whitespace-nowrap">
-            {isMobileFiltersOpen ? (lang === 'en' ? 'Ocultar ▲' : 'Ocultar ▲') : (lang === 'en' ? 'Filtrar ▼' : 'Filtrar ▼')}
+            {isMobileFiltersOpen ? (lang === 'en' ? 'Hide ▲' : 'Ocultar ▲') : (lang === 'en' ? 'Filter ▼' : 'Filtrar ▼')}
           </span>
         </button>
       </div>
@@ -172,7 +172,7 @@ export default function FixedPlanList({
           </label>
           <div className="grid grid-cols-4 gap-2 text-xs font-bold font-sans">
             {[
-              { id: 'all', label: 'Todos' },
+              { id: 'all', label: lang === 'en' ? 'All' : 'Todos' },
               { id: '1-3', label: '1-3 GB' },
               { id: '5-10', label: '5-10 GB' },
               { id: '20+', label: '20+ GB' },
