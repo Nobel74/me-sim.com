@@ -155,7 +155,7 @@ export default function HeroSearch({ lang = 'es', currency = 'EUR', rates = {}, 
 
       {/* Dropdown Menu Floating Layer */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-3 bg-white rounded-3xl shadow-2xl border border-zinc-200 p-3 sm:p-4 text-black overflow-hidden z-50 transition-all max-h-80 sm:max-h-96 overflow-y-auto scrollbar-thin">
+        <div className="absolute top-full left-0 right-0 mt-3 bg-white rounded-3xl shadow-2xl border border-zinc-200 p-3 sm:p-4 text-black overflow-hidden z-50 transition-all max-h-80 sm:max-h-96 overflow-y-auto scrollbar-thin animate-scale-in">
           {!searchTerm.trim() ? (
             <div>
               <h4 className="text-xs font-semibold font-condensed tracking-wider text-zinc-400 uppercase mb-3 px-3">

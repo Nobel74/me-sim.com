@@ -133,7 +133,7 @@ export default function FixedPlanList({
       {/* Left Sidebar: Collapsible on Mobile, Permanent 5-cols on Desktop */}
       <div
         className={`lg:col-span-5 bg-white text-black rounded-2xl p-6 border border-zinc-200 shadow-md space-y-6 ${
-          isMobileFiltersOpen ? 'block' : 'hidden lg:block'
+          isMobileFiltersOpen ? 'block animate-slide-down' : 'hidden lg:block'
         }`}
       >
         <div className="pb-3 border-b border-zinc-100">

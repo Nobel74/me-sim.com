@@ -259,7 +259,7 @@ export default function ClientLayout({ children }) {
 
         {/* Mobile Slide-in Drawer Menu Overlay */}
         {isMenuOpen && (
-          <div className="md:hidden bg-white border-b border-zinc-200 p-6 space-y-6 shadow-2xl animate-in slide-in-from-top">
+          <div className="md:hidden bg-white border-b border-zinc-200 p-6 space-y-6 shadow-2xl animate-slide-down">
             <div className="space-y-4">
               <Link
                 href="/"
