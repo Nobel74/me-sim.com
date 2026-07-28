@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { getTranslation } from '../lib/i18n';
+import { getTranslation, detectBrowserPreferences } from '../lib/i18n';
 
 export default function ClientLayout({ children }) {
   const pathname = usePathname();
@@ -40,8 +40,9 @@ export default function ClientLayout({ children }) {
   };
 
   const syncPreferences = () => {
-    setLang(localStorage.getItem('mesim_lang') || 'es');
-    setCurrency(localStorage.getItem('mesim_curr') || 'EUR');
+    const { lang: prefLang, currency: prefCurr } = detectBrowserPreferences();
+    setLang(prefLang);
+    setCurrency(prefCurr);
     updateCartCount();
     checkUserSession();
   };
