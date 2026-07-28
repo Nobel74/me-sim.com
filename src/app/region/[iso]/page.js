@@ -18,6 +18,9 @@ const REGION_HERO_IMAGES = {
   africa: 'https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?q=80&w=1000&auto=format&fit=crop',
   oceania: 'https://images.unsplash.com/photo-1523482580672-f109ba8cb9be?q=80&w=1000&auto=format&fit=crop',
   aukus: 'https://images.unsplash.com/photo-1523482580672-f109ba8cb9be?q=80&w=1000&auto=format&fit=crop',
+  'china-hk-macau': 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?q=80&w=1000&auto=format&fit=crop',
+  'east-asia': 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=1000&auto=format&fit=crop',
+  'southeast-asia': 'https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?q=80&w=1000&auto=format&fit=crop',
 };
 
 const REGION_DESCRIPTIONS = {
@@ -56,6 +59,18 @@ const REGION_DESCRIPTIONS = {
   aukus: {
     es: 'Australia, Reino Unido y EE.UU. unidos en una sola eSIM. Cobertura directa 5G de alta velocidad en las 3 potencias aliadas.',
     en: 'Australia, United Kingdom, and USA united on a single eSIM profile. Top tier 5G connectivity across all 3 alliance nations.',
+  },
+  'china-hk-macau': {
+    es: 'Navega en China Continental, Hong Kong y Macao sin bloqueos. Conexión directa a WhatsApp, Google, Instagram y YouTube sin necesidad de instalar VPN.',
+    en: 'Connect seamlessly in Mainland China, Hong Kong, and Macau without censorship. Direct access to WhatsApp, Google, Instagram, and YouTube with zero VPN needed.',
+  },
+  'east-asia': {
+    es: 'Conexión 5G ultra rápida en Japón, Corea del Sur y Taiwán. Ideal para viajes multilaterales por Asia Oriental.',
+    en: 'Ultra fast 5G connectivity across Japan, South Korea, and Taiwan. Ideal for multi-destination trips in East Asia.',
+  },
+  'southeast-asia': {
+    es: 'Recorre Tailandia, Malasia, Singapur, Indonesia, Vietnam y Filipinas con una sola eSIM y cobertura instantánea en todas las fronteras.',
+    en: 'Explore Thailand, Malaysia, Singapore, Indonesia, Vietnam, and Philippines on a single eSIM profile with instant cross-border data.',
   },
 };
 
@@ -117,9 +132,18 @@ export default function RegionPage() {
   const heroImage = REGION_HERO_IMAGES[regionKey] || REGION_HERO_IMAGES.europe;
 
   // Filter countries belonging to this region
-  const regionCountries = regionKey === 'aukus'
-    ? ALL_WORLD_COUNTRIES.filter((c) => ['au', 'gb', 'us'].includes(c.iso))
-    : ALL_WORLD_COUNTRIES.filter((c) => c.region === regionKey);
+  let regionCountries = [];
+  if (regionKey === 'aukus') {
+    regionCountries = ALL_WORLD_COUNTRIES.filter((c) => ['au', 'gb', 'us'].includes(c.iso));
+  } else if (regionKey === 'china-hk-macau') {
+    regionCountries = ALL_WORLD_COUNTRIES.filter((c) => ['cn', 'hk', 'mo'].includes(c.iso));
+  } else if (regionKey === 'east-asia') {
+    regionCountries = ALL_WORLD_COUNTRIES.filter((c) => ['jp', 'kr', 'tw'].includes(c.iso));
+  } else if (regionKey === 'southeast-asia') {
+    regionCountries = ALL_WORLD_COUNTRIES.filter((c) => ['th', 'my', 'sg', 'id', 'vn', 'ph', 'kh', 'la', 'mm'].includes(c.iso));
+  } else {
+    regionCountries = ALL_WORLD_COUNTRIES.filter((c) => c.region === regionKey);
+  }
 
   // Find cheapest price in this region
   const minPriceEur = regionCountries.reduce((min, c) => Math.min(min, c.baseEur || 4.90), 4.90);

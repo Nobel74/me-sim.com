@@ -208,13 +208,6 @@ export function getCountryName(iso, lang = 'es', defaultName = '') {
   return defaultName || iso.toUpperCase();
 }
 
-export function getRegionName(key, lang = 'es') {
-  if (REGION_NAMES[key] && REGION_NAMES[key][lang]) {
-    return REGION_NAMES[key][lang];
-  }
-  return key;
-}
-
 export function detectBrowserPreferences() {
   if (typeof window === 'undefined') {
     return { lang: 'es', currency: 'EUR' };
@@ -579,6 +572,9 @@ export function getRegionName(regionKey = 'europe', lang = 'es') {
     africa: { es: 'África', en: 'Africa' },
     oceania: { es: 'Oceanía', en: 'Oceania' },
     aukus: { es: 'Región AUKUS (AU, UK, US)', en: 'AUKUS Region (AU, UK, US)' },
+    'china-hk-macau': { es: 'China, Hong Kong y Macao (Sin Cortafuegos)', en: 'China, Hong Kong & Macau (No Firewall)' },
+    'southeast-asia': { es: 'Sudeste Asiático (10 Países)', en: 'Southeast Asia (10 Countries)' },
+    'east-asia': { es: 'Japón, Corea del Sur y Taiwán', en: 'Japan, South Korea & Taiwan' },
   };
   return (names[regionKey] && names[regionKey][lang]) || regionKey;
 }

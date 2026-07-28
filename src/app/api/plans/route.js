@@ -68,6 +68,10 @@ export async function GET(request) {
     { iso: 'middle-east', name: 'Oriente Medio (12 Países)', region: 'middle-east', baseEur: 5.90 },
     { iso: 'australia-new-zealand', name: 'Australia y Nueva Zelanda', region: 'oceania', baseEur: 5.90 },
     { iso: 'oceania', name: 'Oceanía (8 Países)', region: 'oceania', baseEur: 6.90 },
+    { iso: 'aukus', name: 'Alianza AUKUS (AU, UK, US)', region: 'oceania', baseEur: 4.90 },
+    { iso: 'china-hk-macau', name: 'China + Hong Kong + Macao', region: 'asia', baseEur: 4.90 },
+    { iso: 'east-asia', name: 'Japón, Corea y Taiwán', region: 'asia', baseEur: 5.90 },
+    { iso: 'southeast-asia', name: 'Sudeste Asiático (SEA 10 Países)', region: 'asia', baseEur: 5.90 },
   ];
 
   const countryMeta = [

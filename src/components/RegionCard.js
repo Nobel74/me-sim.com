@@ -56,10 +56,10 @@ export default function RegionCard({ regionData, lang = 'es', currency = 'EUR', 
         </p>
       </div>
 
-      <div className="flex justify-between items-center pt-2 mt-1 border-t border-zinc-100">
-        <span className="text-xs sm:text-sm font-bold tracking-wider text-zinc-900 uppercase font-sans">{badge}</span>
-        <span className="text-xs sm:text-sm font-bold text-zinc-700 font-sans">
-          {t.fromPrice} <strong className="text-black font-bold font-sans text-xl sm:text-2xl ml-1">{formatCurrency(displayPrice, currency)}</strong>
+      <div className="flex justify-between items-center pt-2 mt-1 border-t border-zinc-100 gap-2">
+        <span className="text-[11px] sm:text-xs font-bold tracking-wider text-zinc-900 uppercase font-sans line-clamp-1 pr-1">{badge}</span>
+        <span className="text-xs sm:text-sm font-bold text-zinc-700 font-sans whitespace-nowrap flex-shrink-0">
+          {t.fromPrice} <strong className="text-black font-bold font-sans text-lg sm:text-xl ml-1">{formatCurrency(displayPrice, currency)}</strong>
         </span>
       </div>
     </div>
