@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getTranslation, ALL_WORLD_COUNTRIES, getRegionName } from '../../lib/i18n';
+import { matchesCountryQuery } from '../../lib/searchUtils';
 import CountryCard from '../../components/CountryCard';
 
 const HERO_RANDOM_BACKGROUNDS = [
@@ -93,15 +94,7 @@ export default function AllDestinationsPage() {
   }));
 
   const filteredCountries = ALL_WORLD_COUNTRIES.filter((country) => {
-    const query = searchTerm.toLowerCase().trim();
-    const name = lang === 'en' ? country.nameEn : country.nameEs;
-
-    const matchesSearch =
-      !query ||
-      name.toLowerCase().includes(query) ||
-      country.iso.toLowerCase().includes(query) ||
-      country.nameEs.toLowerCase().includes(query) ||
-      country.nameEn.toLowerCase().includes(query);
+    const matchesSearch = matchesCountryQuery(country.iso, searchTerm, lang);
 
     let matchesRegion = selectedRegion === 'all' || country.region === selectedRegion;
 

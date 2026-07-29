@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { getTranslation, getCountryName } from '../lib/i18n';
+import { getTranslation, getCountryName, ALL_WORLD_COUNTRIES } from '../lib/i18n';
 import { convertCurrency, formatCurrency } from '../lib/currency';
+import { matchesCountryQuery } from '../lib/searchUtils';
 
 const COUNTRY_ALIASES = {
   fr: ['francia', 'france', 'fr'],
@@ -75,27 +76,22 @@ export default function HeroSearch({ lang = 'es', currency = 'EUR', rates = {}, 
   });
 
   const searchSuggestions = searchTerm.trim()
-    ? Array.from(new Set(plans.map((p) => (p.iso || '').toLowerCase())))
-        .map((iso) => {
+    ? ALL_WORLD_COUNTRIES
+        .filter((country) => matchesCountryQuery(country.iso, searchTerm, lang, COUNTRY_ALIASES))
+        .map((country) => {
+          const iso = country.iso;
           const matchingPlans = plans.filter((p) => (p.iso || '').toLowerCase() === iso);
-          const minPrice = Math.min(...matchingPlans.map((p) => p.priceEur));
-          const safePrice = isFinite(minPrice) ? minPrice : 2.90;
-          const sample = matchingPlans[0];
+          let safePrice = country.baseEur || 4.90;
+          if (matchingPlans.length > 0) {
+            const minPrice = Math.min(...matchingPlans.map((p) => p.priceEur));
+            if (isFinite(minPrice)) safePrice = minPrice;
+          }
 
           return {
             iso,
-            countryName: getCountryName(iso, lang, sample?.country),
+            countryName: getCountryName(iso, lang, country.nameEs),
             minPriceEur: safePrice,
           };
-        })
-        .filter((item) => {
-          const query = searchTerm.toLowerCase().trim();
-          const aliases = COUNTRY_ALIASES[item.iso] || [];
-          return (
-            item.countryName.toLowerCase().includes(query) ||
-            item.iso.includes(query) ||
-            aliases.some((alias) => alias.toLowerCase().includes(query))
-          );
         })
         .slice(0, 8)
     : [];
@@ -213,6 +209,9 @@ export default function HeroSearch({ lang = 'es', currency = 'EUR', rates = {}, 
                             src={`/flags/${item.iso}.webp`}
                             alt={item.countryName}
                             className="w-7 h-7 sm:w-9 sm:h-9 rounded-full object-cover border border-zinc-200 shadow-sm"
+                            onError={(e) => {
+                              e.target.src = '/flags/gl.webp';
+                            }}
                           />
                           <div>
                             <span className="font-semibold font-semi text-black text-sm sm:text-lg block">
