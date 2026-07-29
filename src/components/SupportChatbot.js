@@ -400,19 +400,17 @@ export default function SupportChatbot() {
 
   const db = CHAT_DATABASE[lang] || CHAT_DATABASE.es;
 
-  // Iniciar la conversación con el saludo y las opciones sugeridas básicas
+  // Iniciar la conversación con el saludo y las opciones sugeridas básicas (se reinicia al cambiar el idioma)
   useEffect(() => {
-    if (messages.length === 0) {
-      setMessages([
-        {
-          id: 'welcome',
-          sender: 'bot',
-          text: db.welcome,
-          options: db.steps.intro.options
-        }
-      ]);
-    }
-  }, [lang, messages.length, db]);
+    setMessages([
+      {
+        id: 'welcome',
+        sender: 'bot',
+        text: db.welcome,
+        options: db.steps.intro.options
+      }
+    ]);
+  }, [lang, db]);
 
   // Hacer scroll automático al recibir nuevos mensajes
   useEffect(() => {
@@ -623,18 +621,18 @@ export default function SupportChatbot() {
               e.preventDefault();
               handleSendMessage(inputValue);
             }}
-            className="p-3 bg-white border-t border-zinc-200 flex gap-2 items-center"
+            className="p-2 sm:p-3 bg-white border-t border-zinc-200 flex gap-1.5 items-center w-full box-border"
           >
             <input
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               placeholder={db.placeholder}
-              className="flex-1 px-4 py-2.5 rounded-xl border border-zinc-300 focus:border-black text-xs sm:text-sm text-black outline-none font-medium placeholder-zinc-400 bg-zinc-50"
+              className="flex-1 min-w-0 px-3 py-2 rounded-xl border border-zinc-300 focus:border-black text-xs sm:text-sm text-black outline-none font-medium placeholder-zinc-400 bg-zinc-50"
             />
             <button
               type="submit"
-              className="bg-black hover:bg-zinc-800 text-[#ffec00] px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-md flex-shrink-0"
+              className="bg-black hover:bg-zinc-800 text-[#ffec00] px-3 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-md flex-shrink-0"
             >
               Enviar
             </button>

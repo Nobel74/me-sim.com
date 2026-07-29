@@ -7,7 +7,7 @@ export const SUPPORT_CATEGORIES = {
     desc: { es: 'Conoce cómo funciona nuestra eSIM internacional y sus ventajas para viajeros', en: 'Learn how our international eSIM works and its key travel benefits' },
     icon: (
       <svg className="w-6 h-6 text-black fill-current" viewBox="0 0 24 24">
-        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
       </svg>
     ),
     content: {
@@ -44,7 +44,7 @@ export const SUPPORT_CATEGORIES = {
     desc: { es: 'Guía rápida para comprar, recibir y preparar tu eSIM antes de volar', en: 'Quick guide to purchase, receive, and prepare your eSIM before flying' },
     icon: (
       <svg className="w-6 h-6 text-black fill-current" viewBox="0 0 24 24">
-        <path d="M13.5 2c-5.25 0-9.5 4.25-9.5 9.5 0 3.23 1.62 6.09 4.1 7.8L7 22l4.8-1.6c.4.07.8.1 1.2.1 5.25 0 9.5-4.25 9.5-9.5S18.75 2 13.5 2zm-1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/>
+        <path d="M13.5 2c-5.25 0-9.5 4.25-9.5 9.5 0 3.23 1.62 6.09 4.1 7.8L7 22l4.8-1.6c.4.07.8.1 1.2.1 5.25 0 9.5-4.25 9.5-9.5S18.75 2 13.5 2zm-1 14h-2v-2h2v2zm0-4h-2V7h2v5z" />
       </svg>
     ),
     content: {
@@ -79,7 +79,7 @@ export const SUPPORT_CATEGORIES = {
     desc: { es: 'Paso a paso para escanear y configurar la eSIM en iOS y Android', en: 'Step-by-step instructions to scan and configure eSIM on iOS & Android' },
     icon: (
       <svg className="w-6 h-6 text-black fill-current" viewBox="0 0 24 24">
-        <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+        <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
       </svg>
     ),
     content: {
@@ -124,7 +124,7 @@ export const SUPPORT_CATEGORIES = {
     desc: { es: 'Soluciona problemas frecuentes de conexión, APN e Itinerancia', en: 'Fix common connectivity issues, APN settings, and Roaming setup' },
     icon: (
       <svg className="w-6 h-6 text-black fill-current" viewBox="0 0 24 24">
-        <path d="M22.7 19l-9.1-16c-.5-.8-1.4-1.3-2.4-1.3s-1.9.5-2.4 1.3L.3 19c-.5.8-.5 1.9 0 2.7.5.8 1.4 1.3 2.4 1.3h18.2c1 0 1.9-.5 2.4-1.3.5-.8.5-1.9 0-2.7zM12 18c-.6 0-1-.4-1-1s.4-1 1-1 1 .4 1 1-.4 1-1 1zm1-4h-2V9h2v5z"/>
+        <path d="M22.7 19l-9.1-16c-.5-.8-1.4-1.3-2.4-1.3s-1.9.5-2.4 1.3L.3 19c-.5.8-.5 1.9 0 2.7.5.8 1.4 1.3 2.4 1.3h18.2c1 0 1.9-.5 2.4-1.3.5-.8.5-1.9 0-2.7zM12 18c-.6 0-1-.4-1-1s.4-1 1-1 1 .4 1 1-.4 1-1 1zm1-4h-2V9h2v5z" />
       </svg>
     ),
     content: {
@@ -157,7 +157,7 @@ export const SUPPORT_CATEGORIES = {
     desc: { es: 'Información sobre recargas desde Tu Cuenta, divisas y facturación', en: 'Details about web account top-ups, currencies, and billing' },
     icon: (
       <svg className="w-6 h-6 text-black fill-current" viewBox="0 0 24 24">
-        <path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+        <path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" />
       </svg>
     ),
     content: {
@@ -190,7 +190,7 @@ export const SUPPORT_CATEGORIES = {
     desc: { es: 'Verifica si tu modelo de móvil (iPhone, Samsung, Xiaomi, Pixel...) es compatible con eSIM', en: 'Verify if your smartphone model (iPhone, Samsung, Xiaomi, Pixel...) supports eSIM' },
     icon: (
       <svg className="w-6 h-6 text-black fill-current" viewBox="0 0 24 24">
-        <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
+        <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z" />
       </svg>
     ),
     isCompatibilityTrigger: true,
@@ -429,11 +429,305 @@ export const SUPPORT_ARTICLES = [
     content: {
       es: `
         <h2>Dispositivos Compatibles con eSIM</h2>
-        <p>Puedes consultar el listado completo y actualizado de teléfonos móviles y tablets compatibles en nuestra página especializada <a href="/soporte/dispositivos-compatibles">Dispositivos Compatibles</a>.</p>
+        <p>A continuación, detallamos el catálogo completo de terminales móviles compatibles con las eSIMs de ME-SIM.COM:</p>
+
+        <hr className="my-6 border-zinc-200" />
+
+        <h3>Apple iPhone</h3>
+        <ul className="list-disc pl-5 space-y-1 font-sans text-sm mb-6">
+          <li>iPhone XR *(Excepción: Los modelos fabricados para China continental, Hong Kong y Macao no admiten eSIM al llevar bandeja física doble nano-SIM)*</li>
+          <li>iPhone XS *(Excepción: Los modelos de China continental no admiten eSIM. Modelos de Hong Kong y Macao sí son compatibles)*</li>
+          <li>iPhone XS Max *(Excepción: Los modelos de China continental, Hong Kong y Macao no admiten eSIM)*</li>
+          <li>iPhone 11 *(Excepción: Los modelos de China continental, Hong Kong y Macao no admiten eSIM)*</li>
+          <li>iPhone 11 Pro *(Excepción: Los modelos de China continental, Hong Kong y Macao no admiten eSIM)*</li>
+          <li>iPhone 11 Pro Max *(Excepción: Los modelos de China continental, Hong Kong y Macao no admiten eSIM)*</li>
+          <li>iPhone SE 2 (2020)</li>
+          <li>iPhone 12 *(Excepción: Los modelos de China continental, Hong Kong y Macao no admiten eSIM)*</li>
+          <li>iPhone 12 Mini</li>
+          <li>iPhone 12 Pro *(Excepción: Los modelos de China continental, Hong Kong y Macao no admiten eSIM)*</li>
+          <li>iPhone 12 Pro Max *(Excepción: Los modelos de China continental, Hong Kong y Macao no admiten eSIM)*</li>
+          <li>iPhone 13 *(Permite 2 eSIMs activas a la vez. Excepción: Los modelos de China continental, Hong Kong y Macao no admiten eSIM)*</li>
+          <li>iPhone 13 Mini</li>
+          <li>iPhone 13 Pro *(Permite 2 eSIMs activas a la vez. Excepción: Los modelos de China continental, Hong Kong y Macao no admiten eSIM)*</li>
+          <li>iPhone 13 Pro Max *(Permite 2 eSIMs activas a la vez. Excepción: Los modelos de China continental, Hong Kong y Macao no admiten eSIM)*</li>
+          <li>iPhone SE 3 (2022)</li>
+          <li>iPhone 14 *(Los modelos de EE.UU. son 100% solo eSIM)*</li>
+          <li>iPhone 14 Plus *(Los modelos de EE.UU. son 100% solo eSIM)*</li>
+          <li>iPhone 14 Pro *(Los modelos de EE.UU. son 100% solo eSIM)*</li>
+          <li>iPhone 14 Pro Max *(Los modelos de EE.UU. son 100% solo eSIM)*</li>
+          <li>iPhone 15 *(Los modelos de EE.UU. son solo eSIM)*</li>
+          <li>iPhone 15 Plus *(Los modelos de EE.UU. son solo eSIM)*</li>
+          <li>iPhone 15 Pro *(Los modelos de EE.UU. son solo eSIM)*</li>
+          <li>iPhone 15 Pro Max *(Los modelos de EE.UU. son solo eSIM)*</li>
+          <li>iPhone 16</li>
+          <li>iPhone 16 Plus</li>
+          <li>iPhone 16 Pro</li>
+          <li>iPhone 16 Pro Max</li>
+          <li>iPhone 16e</li>
+          <li>iPhone 17 *(Solo eSIM en EE.UU., Canadá, Japón, México, Arabia Saudita, EAU, Qatar, Omán, Kuwait, Bahréin y Guam)*</li>
+          <li>iPhone 17 Pro *(Solo eSIM en EE.UU., Canadá, Japón, México, Arabia Saudita, EAU, Qatar, Omán, Kuwait, Bahréin y Guam)*</li>
+          <li>iPhone 17 Pro Max *(Solo eSIM en EE.UU., Canadá, Japón, México, Arabia Saudita, EAU, Qatar, Omán, Kuwait, Bahréin y Guam)*</li>
+          <li>iPhone 17e</li>
+          <li>iPhone Air *(Primer iPhone 100% Solo eSIM a nivel global)*</li>
+          <li>iPad Pro 11″, 12.9″, iPad Air, iPad Mini, iPad 10ª/11ª gen *(Únicamente versiones Cellular / 4G / 5G)*</li>
+        </ul>
+
+        <h3>Samsung Galaxy</h3>
+        <ul className="list-disc pl-5 space-y-1 font-sans text-sm mb-6">
+          <li>Galaxy S20 / S20+ / S20 Ultra *(Excepción: Versiones S20 FE, y modelos comprados en EE.UU. o Corea del Sur no admiten eSIM)*</li>
+          <li>Galaxy S21 / S21+ / S21 Ultra *(Excepción: Modelos comprados en EE.UU. o Corea del Sur no admiten eSIM)*</li>
+          <li>Galaxy S22 / S22+ / S22 Ultra *(Excepción: Modelos comprados en Corea del Sur no admiten eSIM)*</li>
+          <li>Galaxy S23 / S23+ / S23 Ultra *(Excepción: Modelos comprados en China continental suelen tener la eSIM desactivada)*</li>
+          <li>Galaxy S23 FE *(Excepción: Modelos comprados en China o Hong Kong no admiten eSIM)*</li>
+          <li>Galaxy S24 / S24+ / S24 Ultra</li>
+          <li>Galaxy S24 FE / S25 / S25+ / S25 Ultra / S25 Edge / S25 FE / S26 / S26+ / S26 Ultra</li>
+          <li>Galaxy Note 20 / Note 20 Ultra *(Excepción: Versiones de EE.UU., Hong Kong o Corea del Sur no admiten eSIM)*</li>
+          <li>Galaxy Fold / Z Fold2 a Z Fold7 *(Excepción: Modelos comprados en Corea del Sur, EE.UU. o HK en las primeras generaciones no admiten eSIM)*</li>
+          <li>Galaxy Z Flip / Z Flip3 a Z Flip7 / Z Flip7 FE</li>
+          <li>Galaxy A54 / A55 5G / A35 / A56 / A36 / A27 *(Excepción: Consultar compatibilidad según operador local)*</li>
+        </ul>
+
+        <h3>Google Pixel</h3>
+        <ul className="list-disc pl-5 space-y-1 font-sans text-sm mb-6">
+          <li>Google Pixel 2 *(Excepción: Solo compatibles si se adquirieron con el servicio Google Fi)*</li>
+          <li>Pixel 3 / 3 XL *(Excepción: No compatibles en modelos de Australia, Taiwán o Japón; ni si fueron vendidos en Hong Kong)*</li>
+          <li>Pixel 3a / 3a XL *(Excepción: No compatibles en modelos de Japón, Sudeste Asiático o Verizon)*</li>
+          <li>Pixel 4 / 4a / 4 XL *(Excepción: No compatibles si fueron vendidos en Hong Kong)*</li>
+          <li>Google Pixel 9 / 9 Pro / 9 Pro XL / Pixel Fold / Pixel 10 / 10 Pro / 10 Pro XL / 10a</li>
+        </ul>
+
+        <h3>Xiaomi / Redmi / POCO</h3>
+        <ul className="list-disc pl-5 space-y-1 font-sans text-sm mb-6">
+          <li>Xiaomi 12T Pro *(Excepción: Solo la versión Pro admite eSIM, el 12T estándar no)*</li>
+          <li>Xiaomi 13 / 13 Lite / 13 Pro / 13T / 13T Pro / 14 / 14 Pro / 14T / 14T Pro</li>
+          <li>Xiaomi 15 / 15 Ultra / 15T / 15T Pro / 17 / 17 Ultra</li>
+          <li>Xiaomi Redmi Note 13 Pro+ / Note 14 Pro / Note 14 Pro+ / Note 15 Pro / Note 15 Pro+</li>
+          <li>Xiaomi Poco X7 / Poco X8 Pro Max</li>
+        </ul>
+
+        <h3>Motorola</h3>
+        <ul className="list-disc pl-5 space-y-1 font-sans text-sm mb-6">
+          <li>Motorola Razr 2019 / Razr 2022 / Razr 5G / Razr 40 / Razr 40 Ultra / Razr+ / Razr+ 2024 / Razr 2024 / Razr 60 / Razr 60 Ultra / Razr 70 / Razr 70+ / Razr 70 Ultra</li>
+          <li>Motorola Edge 2022 / Edge 2023 / Edge+ (2023) / Edge 40 / Edge 40 Pro / Edge 40 Neo / Edge 50 Pro / Edge 50 Ultra / Edge 50 Fusion / Edge 60 / Edge 60 Pro / Edge 60 Fusion / Edge 60 Stylus / Edge 70 / Edge 70 Ultra / Edge 70 Fusion / Edge 70 Fusion+ / Edge 70 Pro</li>
+          <li>Motorola Moto G Power 5G / G52J 5G / G52J 5G II / G53J 5G / Moto G54 5G / G84 / G34 / Moto G53 / Moto G54 / Moto G Stylus 5G / Moto G35</li>
+        </ul>
+
+        <h3>Huawei</h3>
+        <ul className="list-disc pl-5 space-y-1 font-sans text-sm mb-6">
+          <li>Huawei P40 / P40 Pro / Mate 40 Pro / Pura 70 Pro *(Excepción: Las versiones P40 Pro+ y P50 Pro no son compatibles; en el caso del P40 Pro+ debido a su cuerpo de cerámica)*</li>
+        </ul>
+
+        <h3>Oppo</h3>
+        <ul className="list-disc pl-5 space-y-1 font-sans text-sm mb-6">
+          <li>Oppo Find X3 / X3 Pro / Find N2 Flip / Find N3 / Find N3 Flip / Find X5 / X5 Pro / Find X8 / X8 Pro / Find X9 / X9 Pro / X9 Ultra</li>
+          <li>Oppo Reno 5A / Reno 6 Pro 5G / Reno 9A / Reno14 / Reno14 Pro / Reno 15 / Reno 15 Pro / Oppo A55s 5G</li>
+        </ul>
+
+        <h3>Honor</h3>
+        <ul className="list-disc pl-5 space-y-1 font-sans text-sm mb-6">
+          <li>Honor Magic 4 Pro / Magic 5 Pro / Magic 6 Pro / Magic 7 Pro / Magic 8 Pro / Magic V2 / Magic V3 / Magic V5 / Magic V6 / Honor 90 / Honor X8 / Honor 200 Pro / Honor 400 Lite</li>
+        </ul>
+
+        <h3>Sony</h3>
+        <ul className="list-disc pl-5 space-y-1 font-sans text-sm mb-6">
+          <li>Sony Xperia 10 III Lite / 10 IV / 10 V / 10 VI / 10 VII / Xperia 1 IV / Xperia 5 IV / Xperia 1 V / Xperia Ace III / Xperia 5 V / Xperia 1 VI / Xperia 1 VII / Xperia 1 VIII</li>
+        </ul>
+
+        <h3>OnePlus</h3>
+        <ul className="list-disc pl-5 space-y-1 font-sans text-sm mb-6">
+          <li>OnePlus Open / OnePlus 11 / OnePlus 12 / OnePlus 13 / OnePlus 13R / OnePlus 13T / OnePlus 15</li>
+        </ul>
+
+        <h3>Otras marcas (Sharp, Rakuten, Vivo, Fairphone, DOOGEE, HAMMER, Nokia, myPhone, OUKITEL, Nuu, ZTE, TCL, Asus, Realme, Nothing, Infinix, Tecno)</h3>
+        <ul className="list-disc pl-5 space-y-1 font-sans text-sm mb-6">
+          <li>Sharp AQUOS sense4 lite / sense6s / sense 7 / sense 7plus / Wish / wish 2 SHG08 / wish3 / zero 6 / Simple Sumaho6 / R7 / R8 / R8 Pro / sense8</li>
+          <li>Rakuten Mini / Big-S / Big / Hand / Hand 5G</li>
+          <li>Vivo X80 Pro / X90 Pro / X100 Pro / V29 / V29 Lite / V29 Lite 5G *(Excepción: V29 Lite 5G solo versiones europeas)* / V40 / V40 lite / V40 SE / X200 / X200s / X200 Pro / X200 FE / X300 / X300 Pro / X300 FE</li>
+          <li>Fairphone 4 / Fairphone 5 / DOOGEE V30 / Nuu X5 / ZTE Nubia Flip</li>
+          <li>HAMMER Blade 3 / Explorer PRO / Blade 5G / myPhone NOW eSIM</li>
+          <li>Nokia XR21 / Nokia X30 / Nokia G60 5G / OUKITEL WP30 Pro / OUKITEL WP33 Pro</li>
+          <li>TCL 50 5G / 50 Pro NxtPaper / 60 XE NxtPaper / NxtPaper 60 Ultra / NxtPaper 70 Pro</li>
+          <li>Asus ROG Phone 9 / 9 Pro / Zenfone 12 Ultra</li>
+          <li>Realme 14 Pro+ / GT 7 / GT 8 Pro / Nothing Phone 3 / 3a Pro / 4a Pro</li>
+          <li>Infinix Note 60 Pro / Note 60 Ultra / Tecno Camon 50 Ultra / Planet Computers Gemini PDA</li>
+        </ul>
+
+        <hr className="my-6 border-zinc-200" />
+
+        <h2>Tablets Compatibles con eSIM</h2>
+        <ul className="list-disc pl-5 space-y-1 font-sans text-sm mb-6">
+          <li>Apple iPad Pro 11″ (A2068, 2020) *(Requiere versión Cellular liberada)*</li>
+          <li>Apple iPad Pro 12.9″ (A2069, 2020) *(Requiere versión Cellular liberada)*</li>
+          <li>Apple iPad Air (A2123, 2019) *(Requiere versión Cellular liberada)*</li>
+          <li>Apple iPad (A2198, 2019) *(Requiere versión Cellular liberada)*</li>
+          <li>Apple iPad Mini (A2124, 2019) *(Requiere versión Cellular liberada)*</li>
+          <li>Apple iPad 10ª generación (2022) *(Requiere versión Cellular/5G liberada)*</li>
+          <li>Apple iPad 11ª generación (2025) *(Requiere versión Cellular/5G liberada)*</li>
+        </ul>
+
+        <hr className="my-6 border-zinc-200" />
+
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-amber-900 shadow-2xs my-4">
+          <strong>⚠️ Requisitos Críticos de Compatibilidad:</strong>
+          <ol className="list-decimal pl-5 mt-2 space-y-1">
+            <li><strong>Teléfono Libre:</strong> Tu terminal debe ser libre de fábrica (unlocked).</li>
+            <li><strong>Método EID rápido:</strong> Marca <strong>*#06#</strong> en tu teclado de llamadas. Si se muestra el código EID de 32 dígitos, tu móvil soporta eSIM.</li>
+          </ol>
+        </div>
       `,
       en: `
         <h2>eSIM Compatible Devices</h2>
-        <p>You can check the full updated list of supported smartphones and tablets in our dedicated <a href="/soporte/dispositivos-compatibles">Compatible Devices</a> page.</p>
+        <p>Find the complete list of devices compatible with ME-SIM.COM eSIM profiles, sorted by brand and device category (smartphones and tablets):</p>
+
+        <hr className="my-6 border-zinc-200" />
+
+        <h2>📱 Compatible Smartphones</h2>
+
+        <h3>Apple iPhone</h3>
+        <ul className="list-disc pl-5 space-y-1 font-sans text-sm mb-6">
+          <li>iPhone XR *(Exception: Models purchased in mainland China, Hong Kong, and Macau do not support eSIM due to dual-physical SIM slots)*</li>
+          <li>iPhone XS *(Exception: Mainland China models do not support eSIM. HK and Macau models are compatible)*</li>
+          <li>iPhone XS Max *(Exception: Models from mainland China, Hong Kong, and Macau do not support eSIM)*</li>
+          <li>iPhone 11 *(Exception: Models from mainland China, Hong Kong, and Macau do not support eSIM)*</li>
+          <li>iPhone 11 Pro *(Exception: Models from mainland China, Hong Kong, and Macau do not support eSIM)*</li>
+          <li>iPhone 11 Pro Max *(Exception: Models from mainland China, Hong Kong, and Macau do not support eSIM)*</li>
+          <li>iPhone SE 2 (2020)</li>
+          <li>iPhone 12 *(Exception: Models from mainland China, Hong Kong, and Macau do not support eSIM)*</li>
+          <li>iPhone 12 Mini</li>
+          <li>iPhone 12 Pro *(Exception: Models from mainland China, Hong Kong, and Macau do not support eSIM)*</li>
+          <li>iPhone 12 Pro Max *(Exception: Models from mainland China, Hong Kong, and Macau do not support eSIM)*</li>
+          <li>iPhone 13 *(Allows 2 active eSIMs. Exception: Models from mainland China, Hong Kong, and Macau do not support eSIM)*</li>
+          <li>iPhone 13 Mini</li>
+          <li>iPhone 13 Pro *(Allows 2 active eSIMs. Exception: Models from mainland China, Hong Kong, and Macau do not support eSIM)*</li>
+          <li>iPhone 13 Pro Max *(Allows 2 active eSIMs. Exception: Models from mainland China, Hong Kong, and Macau do not support eSIM)*</li>
+          <li>iPhone SE 3 (2022)</li>
+          <li>iPhone 14 *(US models are 100% eSIM-only)*</li>
+          <li>iPhone 14 Plus *(US models are 100% eSIM-only)*</li>
+          <li>iPhone 14 Pro *(US models are 100% eSIM-only)*</li>
+          <li>iPhone 14 Pro Max *(US models are 100% eSIM-only)*</li>
+          <li>iPhone 15 *(US models are eSIM-only)*</li>
+          <li>iPhone 15 Plus *(US models are eSIM-only)*</li>
+          <li>iPhone 15 Pro *(US models are eSIM-only)*</li>
+          <li>iPhone 15 Pro Max *(US models are eSIM-only)*</li>
+          <li>iPhone 16</li>
+          <li>iPhone 16 Plus</li>
+          <li>iPhone 16 Pro</li>
+          <li>iPhone 16 Pro Max</li>
+          <li>iPhone 16e</li>
+          <li>iPhone 17 *(eSIM-only in USA, Canada, Japan, Mexico, Saudi Arabia, UAE, Qatar, Oman, Kuwait, Bahrain, and Guam)*</li>
+          <li>iPhone 17 Pro *(eSIM-only in USA, Canada, Japan, Mexico, Saudi Arabia, UAE, Qatar, Oman, Kuwait, Bahrain, and Guam)*</li>
+          <li>iPhone 17 Pro Max *(eSIM-only in USA, Canada, Japan, Mexico, Saudi Arabia, UAE, Qatar, Oman, Kuwait, Bahrain, and Guam)*</li>
+          <li>iPhone 17e</li>
+          <li>iPhone Air *(Apple’s first globally eSIM-only iPhone)*</li>
+          <li>iPad Pro 11″, 12.9″, iPad Air, iPad Mini, iPad 10th/11th Gen *(Cellular / 4G / 5G versions only)*</li>
+        </ul>
+
+        <h3>📱 Samsung Galaxy</h3>
+        <ul className="list-disc pl-5 space-y-1 font-sans text-sm mb-6">
+          <li>Galaxy S20 / S20+ / S20 Ultra *(Exception: S20 FE, and versions sold in the US or South Korea do not support eSIM)*</li>
+          <li>Galaxy S21 / S21+ / S21 Ultra *(Exception: Versions sold in the US or South Korea do not support eSIM)*</li>
+          <li>Galaxy S22 / S22+ / S22 Ultra *(Exception: Models bought in South Korea do not support eSIM)*</li>
+          <li>Galaxy S23 / S23+ / S23 Ultra *(Exception: Mainland China models usually ship with eSIM disabled)*</li>
+          <li>Galaxy S23 FE *(Exception: Models bought in China or Hong Kong do not support eSIM)*</li>
+          <li>Galaxy S24 / S24+ / S24 Ultra</li>
+          <li>Galaxy S24 FE / S25 / S25+ / S25 Ultra / S25 Edge / S25 FE / S26 / S26+ / S26 Ultra</li>
+          <li>Galaxy Note 20 / Note 20 Ultra *(Exception: Versions sold in the US, Hong Kong, or South Korea do not support eSIM)*</li>
+          <li>Galaxy Fold / Z Fold2 to Z Fold7 *(Exception: Early gen models bought in South Korea, US or HK do not support eSIM)*</li>
+          <li>Galaxy Z Flip / Z Flip3 to Z Flip7 / Z Flip7 FE</li>
+          <li>Galaxy A54 / A55 5G / A35 / A56 / A36 / A27 *(Exception: Please check availability with your local carrier)*</li>
+        </ul>
+
+        <h3>Google Pixel</h3>
+        <ul className="list-disc pl-5 space-y-1 font-sans text-sm mb-6">
+          <li>Google Pixel 2 *(Exception: Only compatible with Google Fi service)*</li>
+          <li>Google Pixel 2 XL *(Exception: Pixel phones sold in Hong Kong are incompatible with eSIM)*</li>
+          <li>Google Pixel 3 *(Exception: Not compatible in models from Australia, Taiwan, or Japan; nor if sold in Hong Kong. In US/Canada only works with Google Fi or Sprint)*</li>
+          <li>Google Pixel 3 XL *(Exception: Not compatible in models from Australia, Taiwan, or Japan)*</li>
+          <li>Google Pixel 3a *(Exception: Not compatible in models bought in Japan, South East Asia, or Verizon)*</li>
+          <li>Google Pixel 3a XL *(Exception: Not compatible in South East Asia models or Verizon)*</li>
+          <li>Google Pixel 4 / 4a / 4 XL *(Exception: Incompatible if sold in Hong Kong)*</li>
+          <li>Google Pixel 5 / 5a / 6 / 6a / 6 Pro / 7 / 7a / 7 Pro / 8 / 8a / 8 Pro / Pixel Fold</li>
+          <li>Google Pixel 9 / 9 Pro / 9 Pro XL / Pixel 10 / 10 Pro / 10 Pro XL / 10a</li>
+        </ul>
+
+        <h3>Xiaomi / Redmi / POCO</h3>
+        <ul className="list-disc pl-5 space-y-1 font-sans text-sm mb-6">
+          <li>Xiaomi 12T Pro *(Exception: Only 12T Pro supports eSIM, standard 12T does not)*</li>
+          <li>Xiaomi 13 / 13 Lite / 13 Pro / 13T / 13T Pro / 14 / 14 Pro / 14T / 14T Pro</li>
+          <li>Xiaomi 15 / 15 Ultra / 15T / 15T Pro / 17 / 17 Ultra</li>
+          <li>Xiaomi Redmi Note 13 Pro+ / Note 14 Pro / Note 14 Pro+ / Note 15 Pro / Note 15 Pro+</li>
+          <li>Xiaomi Poco X7 / Poco X8 Pro Max</li>
+        </ul>
+
+        <h3>Motorola</h3>
+        <ul className="list-disc pl-5 space-y-1 font-sans text-sm mb-6">
+          <li>Motorola Razr 2019 / Razr 2022 / Razr 5G / Razr 40 / Razr 40 Ultra / Razr+ / Razr+ 2024 / Razr 2024 / Razr 60 / Razr 60 Ultra / Razr 70 / Razr 70+ / Razr 70 Ultra</li>
+          <li>Motorola Edge 2022 / Edge 2023 / Edge+ (2023) / Edge 40 / Edge 40 Pro / Edge 40 Neo / Edge 50 Pro / Edge 50 Ultra / Edge 50 Fusion / Edge 60 / Edge 60 Pro / Edge 60 Fusion / Edge 60 Stylus / Edge 70 / Edge 70 Ultra / Edge 70 Fusion / Edge 70 Fusion+ / Edge 70 Pro</li>
+          <li>Motorola Moto G Power 5G / G52J 5G / G52J 5G II / G53J 5G / Moto G54 5G / G84 / G34 / Moto G53 / Moto G54 / Moto G Stylus 5G / Moto G35</li>
+        </ul>
+
+        <h3>Huawei</h3>
+        <ul className="list-disc pl-5 space-y-1 font-sans text-sm mb-6">
+          <li>Huawei P40 / P40 Pro / Mate 40 Pro / Pura 70 Pro *(Exception: P40 Pro+ and P50 Pro versions are not compatible; P40 Pro+ due to ceramic body)*</li>
+        </ul>
+
+        <h3>Oppo</h3>
+        <ul className="list-disc pl-5 space-y-1 font-sans text-sm mb-6">
+          <li>Oppo Find X3 / X3 Pro / Find N2 Flip / Find N3 / Find N3 Flip / Find X5 / X5 Pro / Find X8 / X8 Pro / Find X9 / X9 Pro / X9 Ultra</li>
+          <li>Oppo Reno 5A / Reno 6 Pro 5G / Reno 9A / Reno14 / Reno14 Pro / Reno 15 / Reno 15 Pro / Oppo A55s 5G</li>
+        </ul>
+
+        <h3>Honor</h3>
+        <ul className="list-disc pl-5 space-y-1 font-sans text-sm mb-6">
+          <li>Honor Magic 4 Pro / Magic 5 Pro / Magic 6 Pro / Magic 7 Pro / Magic 8 Pro / Magic V2 / Magic V3 / Magic V5 / Magic V6 / Honor 90 / Honor X8 / Honor 200 Pro / Honor 400 Lite</li>
+        </ul>
+
+        <h3>Sony</h3>
+        <ul className="list-disc pl-5 space-y-1 font-sans text-sm mb-6">
+          <li>Sony Xperia 10 III Lite / 10 IV / 10 V / 10 VI / 10 VII / Xperia 1 IV / Xperia 5 IV / Xperia 1 V / Xperia Ace III / Xperia 5 V / Xperia 1 VI / Xperia 1 VII / Xperia 1 VIII</li>
+        </ul>
+
+        <h3>OnePlus</h3>
+        <ul className="list-disc pl-5 space-y-1 font-sans text-sm mb-6">
+          <li>OnePlus Open / OnePlus 11 / OnePlus 12 / OnePlus 13 / OnePlus 13R / OnePlus 13T / OnePlus 15</li>
+        </ul>
+
+        <h3>Other Brands (Sharp, Rakuten, Vivo, Fairphone, DOOGEE, HAMMER, Nokia, myPhone, OUKITEL, Nuu, ZTE, TCL, Asus, Realme, Nothing, Infinix, Tecno)</h3>
+        <ul className="list-disc pl-5 space-y-1 font-sans text-sm mb-6">
+          <li>Sharp AQUOS sense4 lite / sense6s / sense 7 / sense 7plus / Wish / wish 2 SHG08 / wish3 / zero 6 / Simple Sumaho6 / R7 / R8 / R8 Pro / sense8</li>
+          <li>Rakuten Mini / Big-S / Big / Hand / Hand 5G</li>
+          <li>Vivo X80 Pro / X90 Pro / X100 Pro / V29 / V29 Lite / V29 Lite 5G *(Exception: V29 Lite 5G European variants only)* / V40 / V40 lite / V40 SE / X200 / X200s / X200 Pro / X200 FE / X300 / X300 Pro / X300 FE</li>
+          <li>Fairphone 4 / Fairphone 5 / DOOGEE V30 / Nuu X5 / ZTE Nubia Flip</li>
+          <li>HAMMER Blade 3 / Explorer PRO / Blade 5G / myPhone NOW eSIM</li>
+          <li>Nokia XR21 / Nokia X30 / Nokia G60 5G / OUKITEL WP30 Pro / OUKITEL WP33 Pro</li>
+          <li>TCL 50 5G / 50 Pro NxtPaper / 60 XE NxtPaper / NxtPaper 60 Ultra / NxtPaper 70 Pro</li>
+          <li>Asus ROG Phone 9 / 9 Pro / Zenfone 12 Ultra</li>
+          <li>Realme 14 Pro+ / GT 7 / GT 8 Pro / Nothing Phone 3 / 3a Pro / 4a Pro</li>
+          <li>Infinix Note 60 Pro / Note 60 Ultra / Tecno Camon 50 Ultra / Planet Computers Gemini PDA</li>
+        </ul>
+
+        <hr className="my-6 border-zinc-200" />
+
+        <h2>📁 Compatible Tablets</h2>
+        <ul className="list-disc pl-5 space-y-1 font-sans text-sm mb-6">
+          <li>Apple iPad Pro 11″ (A2068, 2020) *(Requires Cellular unlocked version)*</li>
+          <li>Apple iPad Pro 12.9″ (A2069, 2020) *(Requires Cellular unlocked version)*</li>
+          <li>Apple iPad Air (A2123, 2019) *(Requires Cellular unlocked version)*</li>
+          <li>Apple iPad (A2198, 2019) *(Requires Cellular unlocked version)*</li>
+          <li>Apple iPad Mini (A2124, 2019) *(Requires Cellular unlocked version)*</li>
+          <li>Apple iPad 10th Gen (2022) *(Requires Cellular/5G unlocked version)*</li>
+          <li>Apple iPad 11th Gen (2025) *(Requires Cellular/5G unlocked version)*</li>
+        </ul>
+
+        <hr className="my-6 border-zinc-200" />
+
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-amber-900 shadow-2xs my-4">
+          <strong>⚠️ Critical Compatibility Requirements:</strong>
+          <ol className="list-decimal pl-5 mt-2 space-y-1">
+            <li><strong>Carrier Unlocked:</strong> Your phone must be carrier unlocked to load travel eSIM profiles.</li>
+            <li><strong>Quick EID Check:</strong> Dial <strong>*#06#</strong> on your phone dialer. If a 32-digit EID code appears, your device supports eSIM.</li>
+          </ol>
+        </div>
       `
     }
   }
