@@ -1,6 +1,7 @@
 import './globals.css';
 import { Barlow, Barlow_Condensed, Barlow_Semi_Condensed } from 'next/font/google';
 import ClientLayout from './ClientLayout';
+import SeoMeta from '../components/SeoMeta';
 
 const barlow = Barlow({
   subsets: ['latin'],
@@ -36,9 +37,22 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }) {
+  const defaultWebsiteSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "ME-SIM",
+    "url": "https://me-sim.com",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://me-sim.com/?search={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  };
+
   return (
     <html lang="es" className={`${barlow.variable} ${barlowCondensed.variable} ${barlowSemiCondensed.variable}`}>
       <body className="font-sans antialiased text-slate-900 bg-slate-50">
+        <SeoMeta path="/" schemaJson={defaultWebsiteSchema} />
         <ClientLayout>{children}</ClientLayout>
       </body>
     </html>

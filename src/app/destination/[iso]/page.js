@@ -8,6 +8,7 @@ import { convertCurrency, formatCurrency } from '../../../lib/currency';
 import FixedPlanList from '../../../components/FixedPlanList';
 import SingleCalendar from '../../../components/SingleCalendar';
 import CompatibilityModal from '../../../components/CompatibilityModal';
+import SeoMeta from '../../../components/SeoMeta';
 
 const DESTINATION_IMAGES = {
   es: 'https://images.unsplash.com/photo-1543783207-ec64e4d95325?q=80&w=1000&auto=format&fit=crop',
@@ -272,8 +273,26 @@ export default function DestinationPage() {
   const [infoTab, setInfoTab] = useState('features');
   const [isCompModalOpen, setIsCompModalOpen] = useState(false);
 
+  const productSchema = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": `eSIM ${countryName} - ME-SIM`,
+    "image": heroImage,
+    "description": lang === 'en'
+      ? `High-Speed mobile data connection in ${countryName}. Get unlimited data or fixed GB packages instantly.`
+      : `Conexión de datos móviles de alta velocidad en ${countryName}. Consigue datos ilimitados o paquetes de gigas fijos al instante.`,
+    "offers": {
+      "@type": "Offer",
+      "price": minPriceEur,
+      "priceCurrency": "EUR",
+      "availability": "https://schema.org/InStock",
+      "url": `https://me-sim.com/destination/${isoCode}`
+    }
+  };
+
   return (
     <div className="container-naked max-w-5xl font-sans pb-16 space-y-12">
+      <SeoMeta path={`/destination/${isoCode}`} schemaJson={productSchema} />
       {/* Breadcrumbs */}
       <nav className="text-xs font-semibold text-zinc-500 flex items-center gap-2">
         <Link href="/" className="hover:text-black transition-colors">Home</Link>

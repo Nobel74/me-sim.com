@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { getTranslation, detectBrowserPreferences } from '../lib/i18n';
+import SupportChatbot from '../components/SupportChatbot';
 
 export default function ClientLayout({ children }) {
   const pathname = usePathname();
@@ -439,6 +440,7 @@ export default function ClientLayout({ children }) {
           </div>
         </div>
       </footer>
+      <SupportChatbot />
     </>
   );
 }
