@@ -93,42 +93,84 @@ export default function LoginPage() {
     }
   };
 
+  const [showLostPasswordModal, setShowLostPasswordModal] = useState(false);
+  const [lostPasswordEmail, setLostPasswordEmail] = useState('');
+  const [lostPasswordLoading, setLostPasswordLoading] = useState(false);
+
+  const handleLostPasswordSubmit = async (e) => {
+    e.preventDefault();
+    if (!lostPasswordEmail || !lostPasswordEmail.includes('@')) {
+      setStatusMessage({ type: 'error', text: lang === 'en' ? 'Please enter a valid email address.' : 'Introduce un correo electrónico válido.' });
+      return;
+    }
+
+    setLostPasswordLoading(true);
+    setStatusMessage(null);
+
+    try {
+      const res = await fetch('/api/auth/lost-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: lostPasswordEmail, lang }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setShowLostPasswordModal(false);
+        setStatusMessage({ type: 'success', text: data.message });
+      } else {
+        setStatusMessage({ type: 'error', text: data.message });
+      }
+    } catch {
+      setStatusMessage({ type: 'error', text: lang === 'en' ? 'Error contacting server.' : 'Error al conectar con el servidor.' });
+    } finally {
+      setLostPasswordLoading(false);
+    }
+  };
+
   return (
     <div className="container-naked max-w-md font-sans py-10">
       {/* Clean White Login Card matching reference screenshot */}
       <div className="bg-white rounded-3xl border border-zinc-200 p-8 md:p-10 shadow-xl">
         <div className="mb-8 text-left">
-          <p className="text-sm font-medium text-zinc-500 mb-1">
-            {lang === 'en' ? 'Please enter your details' : 'Por favor introduce tus datos'}
-          </p>
-          <h1 className="text-3xl md:text-4xl font-extrabold font-semi text-black tracking-tight">
-            {lang === 'en' ? 'Welcome back' : 'Bienvenido de nuevo'}
+          <h1 className="text-3xl font-semibold font-semi text-black mb-1">
+            {lang === 'en' ? 'Welcome Back' : 'Iniciar Sesión'}
           </h1>
+          <p className="text-sm text-zinc-500 font-normal">
+            {lang === 'en'
+              ? 'Sign in to access your active eSIMs, QR codes, and data usage'
+              : 'Accede a tus eSIMs activas, códigos QR de instalación y consumo de datos'}
+          </p>
         </div>
 
-        {/* Option Toggle */}
-        <div className="flex gap-4 text-xs font-semibold font-condensed uppercase tracking-wider mb-6 pb-3 border-b border-zinc-100">
+        {/* Auth Mode Tabs */}
+        <div className="flex bg-zinc-100 p-1 rounded-2xl mb-6 border border-zinc-200">
           <button
+            type="button"
             onClick={() => {
               setAuthMode('password');
               setStatusMessage(null);
             }}
-            className={`pb-1 transition-colors ${authMode === 'password' ? 'text-black border-b-2 border-black font-semibold' : 'text-zinc-400 hover:text-zinc-600'}`}
+            className={`flex-1 py-2.5 px-3 text-xs sm:text-sm font-semibold font-condensed tracking-wider uppercase rounded-xl transition-all ${
+              authMode === 'password' ? 'bg-black text-[#ffec00] shadow-md' : 'text-zinc-600 hover:text-black font-medium'
+            }`}
           >
-            🔒 {lang === 'en' ? 'Password' : 'Contraseña'}
+            {lang === 'en' ? 'Password' : 'Contraseña'}
           </button>
           <button
+            type="button"
             onClick={() => {
               setAuthMode('magic');
               setStatusMessage(null);
             }}
-            className={`pb-1 transition-colors ${authMode === 'magic' ? 'text-black border-b-2 border-black font-semibold' : 'text-zinc-400 hover:text-zinc-600'}`}
+            className={`flex-1 py-2.5 px-3 text-xs sm:text-sm font-semibold font-condensed tracking-wider uppercase rounded-xl transition-all ${
+              authMode === 'magic' ? 'bg-black text-[#ffec00] shadow-md' : 'text-zinc-600 hover:text-black font-medium'
+            }`}
           >
-            ✉️ {lang === 'en' ? 'Email Code' : 'Código por Email'}
+            📩 {lang === 'en' ? 'Magic Code (OTP)' : 'Código de Acceso'}
           </button>
         </div>
 
-        {/* Login Form */}
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <input
@@ -136,7 +178,7 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder={lang === 'en' ? 'Email address' : 'Correo electrónico'}
+              placeholder={lang === 'en' ? 'Email address' : 'Correo Electrónico'}
               className="w-full px-4 py-3.5 rounded-2xl border border-zinc-200 text-black placeholder-zinc-400 text-base outline-none focus:border-black focus:ring-2 focus:ring-black/10 transition-all font-sans"
             />
           </div>
@@ -195,10 +237,13 @@ export default function LoginPage() {
             </label>
             <button
               type="button"
-              onClick={() => alert(lang === 'en' ? 'Password reset link sent to your email.' : 'Enlace de restablecimiento enviado a tu correo.')}
+              onClick={() => {
+                setLostPasswordEmail(email);
+                setShowLostPasswordModal(true);
+              }}
               className="text-zinc-600 hover:text-black font-medium underline"
             >
-              {lang === 'en' ? 'Forgot password' : '¿Olvidaste tu contraseña?'}
+              {lang === 'en' ? 'Forgot password?' : '¿Olvidaste tu contraseña?'}
             </button>
           </div>
 
@@ -234,6 +279,64 @@ export default function LoginPage() {
           </p>
         </div>
       </div>
+
+      {/* Lost Password Modal */}
+      {showLostPasswordModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full border border-zinc-200 shadow-2xl relative animate-scale-in">
+            <button
+              onClick={() => setShowLostPasswordModal(false)}
+              className="absolute top-4 right-4 text-zinc-400 hover:text-black font-bold text-lg"
+            >
+              ✕
+            </button>
+
+            <h3 className="text-2xl font-bold text-black mb-2">
+              {lang === 'en' ? 'Reset Password' : 'Recuperar Contraseña'}
+            </h3>
+            <p className="text-xs sm:text-sm text-zinc-600 mb-6 leading-relaxed">
+              {lang === 'en'
+                ? 'Enter your account email to receive a password reset link or verification code.'
+                : 'Introduce el correo de tu cuenta para recibir un enlace o código de recuperación.'}
+            </p>
+
+            <form onSubmit={handleLostPasswordSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-zinc-700 uppercase mb-1.5">
+                  {lang === 'en' ? 'Email Address' : 'Correo Electrónico'}
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={lostPasswordEmail}
+                  onChange={(e) => setLostPasswordEmail(e.target.value)}
+                  placeholder="ejemplo@email.com"
+                  className="w-full px-4 py-3 rounded-2xl border border-zinc-300 text-black text-sm outline-none focus:border-black font-sans"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowLostPasswordModal(false)}
+                  className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-bold py-3 rounded-2xl text-xs uppercase tracking-wider transition-all"
+                >
+                  {lang === 'en' ? 'Cancel' : 'Cancelar'}
+                </button>
+                <button
+                  type="submit"
+                  disabled={lostPasswordLoading}
+                  className="flex-1 bg-black hover:bg-zinc-800 text-[#ffec00] font-bold py-3 rounded-2xl text-xs uppercase tracking-wider transition-all shadow-md"
+                >
+                  {lostPasswordLoading
+                    ? (lang === 'en' ? 'Sending...' : 'Enviando...')
+                    : (lang === 'en' ? 'Send Link' : 'Enviar Enlace')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -80,6 +80,27 @@ export default function ClientLayout({ children }) {
     setLang(newLang);
     localStorage.setItem('mesim_lang', newLang);
     window.dispatchEvent(new Event('mesim_lang_changed'));
+
+    // Automatic route redirect for localized static pages
+    if (pathname.includes('/pollitica-de-privacidad') || pathname.includes('/privacy-policy')) {
+      if (newLang === 'en') {
+        router.push('/en/privacy-policy/');
+      } else {
+        router.push('/pollitica-de-privacidad/');
+      }
+    } else if (pathname.includes('/condiciones-de-servicio') || pathname.includes('/terms-and-conditions')) {
+      if (newLang === 'en') {
+        router.push('/en/terms-and-conditions/');
+      } else {
+        router.push('/condiciones-de-servicio/');
+      }
+    } else if (pathname.includes('/politica-de-reembolso') || pathname.includes('/refund-policy')) {
+      if (newLang === 'en') {
+        router.push('/en/refund-policy/');
+      } else {
+        router.push('/politica-de-reembolso/');
+      }
+    }
   };
 
   const handleCurrChange = (newCurr) => {
@@ -180,6 +201,9 @@ export default function ClientLayout({ children }) {
             <Link href="/" className="hover:text-black hover:underline underline-offset-4 decoration-[#ffec00] decoration-4 transition-all">
               {t.navCatalog}
             </Link>
+            <Link href="/soporte" className="hover:text-black hover:underline underline-offset-4 decoration-[#ffec00] decoration-4 transition-all flex items-center gap-1.5">
+              <span>{t.navSupport || (lang === 'en' ? 'Support' : 'Soporte')}</span>
+            </Link>
 
             {currentUser ? (
               <div className="flex items-center gap-7">
@@ -269,6 +293,14 @@ export default function ClientLayout({ children }) {
                 {t.navCatalog}
               </Link>
 
+              <Link
+                href="/soporte"
+                onClick={() => setIsMenuOpen(false)}
+                className="block font-semibold text-lg text-black py-2 border-b border-zinc-100"
+              >
+                💬 {t.navSupport || (lang === 'en' ? 'Support' : 'Soporte')}
+              </Link>
+
               {currentUser ? (
                 <>
                   <Link
@@ -352,14 +384,44 @@ export default function ClientLayout({ children }) {
       <footer className="bg-black text-zinc-400 py-12 text-base border-t border-zinc-800 font-sans relative overflow-hidden">
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-[#ffec00]/10 rounded-full blur-3xl pointer-events-none"></div>
         <div className="container-naked flex flex-col md:flex-row justify-between items-center gap-6 relative z-10">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-center gap-4">
             <img src="/logos/Logo-me-sim-Header.svg" alt="ME-SIM" className="h-8 w-auto" />
-            <div className="h-5 w-px bg-zinc-800"></div>
-            <p className="text-sm text-zinc-400 font-sans">{t.footerTagline}</p>
+            <div className="hidden sm:block h-5 w-px bg-zinc-800"></div>
+            <p className="text-sm text-zinc-400 font-sans text-center sm:text-left">{t.footerTagline}</p>
           </div>
-          <div className="text-sm text-right text-zinc-400">
-            <p>© {new Date().getFullYear()} ME-SIM. {t.footerRights}</p>
-            <p className="mt-1 text-[#ffec00] font-condensed font-semibold tracking-wider">{t.footerCurrencyNote}</p>
+          <div className="flex flex-col sm:flex-row items-center gap-4 text-sm text-center sm:text-right text-zinc-400">
+            <Link
+              href="/soporte"
+              className="hover:text-[#ffec00] transition-colors underline font-medium"
+            >
+              {t.navSupport || (lang === 'en' ? 'Support' : 'Soporte')}
+            </Link>
+            <div className="hidden sm:block h-4 w-px bg-zinc-800"></div>
+            <Link
+              href={lang === 'en' ? '/en/privacy-policy/' : '/pollitica-de-privacidad/'}
+              className="hover:text-[#ffec00] transition-colors underline font-medium"
+            >
+              {t.privacyPolicy}
+            </Link>
+            <div className="hidden sm:block h-4 w-px bg-zinc-800"></div>
+            <Link
+              href={lang === 'en' ? '/en/terms-and-conditions/' : '/condiciones-de-servicio/'}
+              className="hover:text-[#ffec00] transition-colors underline font-medium"
+            >
+              {t.termsAndConditions}
+            </Link>
+            <div className="hidden sm:block h-4 w-px bg-zinc-800"></div>
+            <Link
+              href={lang === 'en' ? '/en/refund-policy/' : '/politica-de-reembolso/'}
+              className="hover:text-[#ffec00] transition-colors underline font-medium"
+            >
+              {t.refundPolicy}
+            </Link>
+            <div className="hidden sm:block h-4 w-px bg-zinc-800"></div>
+            <div>
+              <p>© {new Date().getFullYear()} ME-SIM. {t.footerRights}</p>
+              <p className="mt-1 text-[#ffec00] font-condensed font-semibold tracking-wider">{t.footerCurrencyNote}</p>
+            </div>
           </div>
         </div>
       </footer>

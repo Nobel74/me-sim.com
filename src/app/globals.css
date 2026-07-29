@@ -74,6 +74,19 @@ body {
   animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+@keyframes fillProgressBar {
+  0% {
+    width: 0%;
+  }
+  100% {
+    width: var(--target-width, 100%);
+  }
+}
+
+.animate-fill-bar {
+  animation: fillProgressBar 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 /* Smooth Accordion Height Grid Wrapper */
 .accordion-grid {
   display: grid;
@@ -113,5 +126,83 @@ body {
 * {
   scrollbar-width: thin;
   scrollbar-color: #a1a1aa rgba(0, 0, 0, 0.03);
+}
+
+/* WordPress HTML Content Styling */
+.wp-content h2 {
+  font-size: 1.5rem;
+  line-height: 2rem;
+  font-weight: 700;
+  color: #000;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e4e4e7;
+}
+
+@media (min-width: 640px) {
+  .wp-content h2 {
+    font-size: 1.75rem;
+    line-height: 2.25rem;
+  }
+}
+
+.wp-content h3 {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  font-weight: 700;
+  color: #18181b;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.wp-content h4 {
+  font-size: 1.125rem;
+  line-height: 1.5rem;
+  font-weight: 600;
+  color: #27272a;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.wp-content p {
+  margin-bottom: 1.25rem;
+  line-height: 1.75;
+  color: #3f3f46;
+}
+
+.wp-content ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-bottom: 1.25rem;
+  space-y: 0.5rem;
+}
+
+.wp-content ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin-bottom: 1.25rem;
+  space-y: 0.5rem;
+}
+
+.wp-content li {
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+  color: #3f3f46;
+}
+
+.wp-content strong {
+  color: #000;
+  font-weight: 600;
+}
+
+.wp-content blockquote {
+  border-left: 4px solid #ffec00;
+  background-color: #f4f4f5;
+  padding: 1rem 1.25rem;
+  border-radius: 0.75rem;
+  margin: 1.5rem 0;
+  font-style: italic;
+  color: #27272a;
 }
 

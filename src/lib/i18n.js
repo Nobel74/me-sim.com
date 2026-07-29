@@ -251,6 +251,7 @@ export const dictionary = {
     searchButton: "Buscar",
     fromPrice: "desde",
     viewAllPlans: "Ver todos los planes",
+    navSupport: "Soporte",
     allCountries: "Todos los Países",
     allRegions: "Todas las Regiones",
     unlimitedData: "Datos Ilimitados",
@@ -277,6 +278,9 @@ export const dictionary = {
     navCatalog: "Catálogo",
     navDashboard: "Mi Cuenta",
     navCart: "Carrito",
+    privacyPolicy: "Política de Privacidad",
+    termsAndConditions: "Condiciones de Servicio",
+    refundPolicy: "Política de Reembolso",
     footerTagline: "Powered by ME-SIM.COM",
     footerRights: "Todos los derechos reservados.",
     footerCurrencyNote: "Divisas actualizadas dinámicamente cada 24 horas",
@@ -323,6 +327,9 @@ export const dictionary = {
     navCatalog: "Catalog",
     navDashboard: "My Account",
     navCart: "Cart",
+    privacyPolicy: "Privacy Policy",
+    termsAndConditions: "Terms & Conditions",
+    refundPolicy: "Refund Policy",
     footerTagline: "Powered by ME-SIM.COM",
     footerRights: "All rights reserved.",
     footerCurrencyNote: "Currencies updated dynamically every 24 hours",
@@ -419,32 +426,58 @@ export const faqData = {
         isSpecialList: true,
         brands: [
           {
-            brand: "Apple",
+            brand: "Apple (iPhone)",
             icon: "🍎",
-            models: "iPhone XS, XR, 11, 12, 13, 14, 15 (incluyendo todas sus variantes Pro, Max y Plus), y iPhone SE (2ª gen en adelante)."
+            models: "iPhone XR, XS, XS Max, iPhone 11, 11 Pro, 11 Pro Max, iPhone SE (2ª y 3ª gen), iPhone 12, 12 Mini, 12 Pro, 12 Pro Max, iPhone 13, 13 Mini, 13 Pro, 13 Pro Max, iPhone 14, 14 Plus, 14 Pro, 14 Pro Max, iPhone 15, 15 Plus, 15 Pro, 15 Pro Max, iPhone 16 y series posteriores."
           },
           {
             brand: "Samsung",
             icon: "📱",
-            models: "Galaxy S20, S21, S22, S23, S24 (incluyendo variantes Plus y Ultra), y toda la gama Galaxy Z Fold y Z Flip."
+            models: "Galaxy S20, S20+, S20 Ultra, S21, S21+ 5G, S21 Ultra 5G, S22, S22+, S22 Ultra, S23, S23+, S23 Ultra, S24, S24+, S24 Ultra, Note 20, Note 20 Ultra, Galaxy Fold, Z Fold2, Z Fold3, Z Fold4, Z Fold5, Z Fold6, Z Flip, Z Flip3, Z Flip4, Z Flip5, Z Flip6, y modelos A54 5G, A55 5G."
           },
           {
-            brand: "Google",
+            brand: "Google Pixel",
             icon: "🌐",
-            models: "Pixel 3, 4, 5, 6, 7, 8 (incluyendo variantes 'a' y Pro)."
+            models: "Pixel 3, 3 XL, 3a, 3a XL, Pixel 4, 4a, 4 XL, Pixel 5, 5a, Pixel 6, 6a, 6 Pro, Pixel 7, 7a, 7 Pro, Pixel 8, 8a, 8 Pro, Pixel 9, Pixel Fold y series posteriores."
           },
           {
-            brand: "Otras marcas",
+            brand: "Xiaomi & Redmi",
             icon: "⚡",
-            models: "Modelos recientes de gama alta de Motorola (familia Edge/Razr), OnePlus y Xiaomi que especifican compatibilidad con eSIM."
+            models: "Xiaomi 12T Pro, Xiaomi 13, 13 Lite, 13 Pro, 13 Ultra, Xiaomi 14, 14 Pro, 14 Ultra, Xiaomi 14T, 14T Pro, Redmi Note 13 Pro 5G, Redmi Note 13 Pro+ 5G."
+          },
+          {
+            brand: "Motorola",
+            icon: "📱",
+            models: "Razr 2019, Razr 5G, Razr 40, Razr 40 Ultra, Razr 50, Edge 40, Edge 40 Pro, Edge 40 Neo, Edge 50 Pro, Edge 50 Ultra, Moto G54 5G, Moto G84 5G, Moto G85 5G."
+          },
+          {
+            brand: "Huawei",
+            icon: "📱",
+            models: "P40, P40 Pro (excluye P40 Pro+), Mate 40 Pro, P50 Pro, P60 Pro."
+          },
+          {
+            brand: "Oppo & Honor",
+            icon: "📱",
+            models: "Oppo Find X3 Pro, Find X5, Find X5 Pro, Find N2 Flip, Reno 6 Pro 5G; Honor Magic3, Magic4 Pro, Magic5 Pro, Magic6 Pro, Magic V2."
+          },
+          {
+            brand: "Sony & OnePlus",
+            icon: "📱",
+            models: "Sony Xperia 1 IV, Xperia 1 V, Xperia 5 IV, Xperia 10 III Lite, Xperia 10 IV, Xperia 10 V; OnePlus 11, OnePlus 12, OnePlus 13, OnePlus Open."
+          },
+          {
+            brand: "Otras Marcas (Nokia, Fairphone, Vivo, ZTE)",
+            icon: "⚡",
+            models: "Nokia G60 5G, X30 5G, XR21; Fairphone 4, Fairphone 5; Vivo X90 Pro, X100 Pro; Nuu Mobile X5; Rakuten Mini, Big; ZTE Nubia Flip 5G."
           }
         ],
         noteTitle: "Nota importante",
-        noteText: "Comprueba siempre las especificaciones de tu teléfono. Los modelos fabricados para ciertos mercados (como China, Hong Kong o Macao) suelen tener doble SIM física y no admiten eSIM."
+        noteText: "Comprueba siempre las especificaciones de tu teléfono marcando *#06# (debe aparecer una clave EID de 32 dígitos). Los modelos fabricados para el mercado de China continental, Hong Kong o Macao suelen llevar doble ranura SIM física y no admiten eSIM."
       }
     ]
   },
   en: {
+    navSupport: "Support",
     sectionTitle: "Frequently Asked Questions",
     sectionSubtitle: "Find answers to all your questions about using, setting up, and benefiting from ME-SIM eSIMs",
     categories: [
@@ -526,28 +559,53 @@ export const faqData = {
         isSpecialList: true,
         brands: [
           {
-            brand: "Apple",
+            brand: "Apple (iPhone)",
             icon: "🍎",
-            models: "iPhone XS, XR, 11, 12, 13, 14, 15 (including all Pro, Max, and Plus variants), and iPhone SE (2nd gen onwards)."
+            models: "iPhone XR, XS, XS Max, iPhone 11, 11 Pro, 11 Pro Max, iPhone SE (2nd & 3rd gen), iPhone 12, 12 Mini, 12 Pro, 12 Pro Max, iPhone 13, 13 Mini, 13 Pro, 13 Pro Max, iPhone 14, 14 Plus, 14 Pro, 14 Pro Max, iPhone 15, 15 Plus, 15 Pro, 15 Pro Max, iPhone 16 and newer series."
           },
           {
             brand: "Samsung",
             icon: "📱",
-            models: "Galaxy S20, S21, S22, S23, S24 (including Plus and Ultra variants), and the entire Galaxy Z Fold and Z Flip range."
+            models: "Galaxy S20, S20+, S20 Ultra, S21, S21+ 5G, S21 Ultra 5G, S22, S22+, S22 Ultra, S23, S23+, S23 Ultra, S24, S24+, S24 Ultra, Note 20, Note 20 Ultra, Galaxy Fold, Z Fold2, Z Fold3, Z Fold4, Z Fold5, Z Fold6, Z Flip, Z Flip3, Z Flip4, Z Flip5, Z Flip6, and A54 5G, A55 5G."
           },
           {
-            brand: "Google",
+            brand: "Google Pixel",
             icon: "🌐",
-            models: "Pixel 3, 4, 5, 6, 7, 8 (including 'a' and Pro variants)."
+            models: "Pixel 3, 3 XL, 3a, 3a XL, Pixel 4, 4a, 4 XL, Pixel 5, 5a, Pixel 6, 6a, 6 Pro, Pixel 7, 7a, 7 Pro, Pixel 8, 8a, 8 Pro, Pixel 9, Pixel Fold and newer series."
           },
           {
-            brand: "Other brands",
+            brand: "Xiaomi & Redmi",
             icon: "⚡",
-            models: "Recent flagship models from Motorola (Edge/Razr family), OnePlus, and Xiaomi that specify eSIM support."
+            models: "Xiaomi 12T Pro, Xiaomi 13, 13 Lite, 13 Pro, 13 Ultra, Xiaomi 14, 14 Pro, 14 Ultra, Xiaomi 14T, 14T Pro, Redmi Note 13 Pro 5G, Redmi Note 13 Pro+ 5G."
+          },
+          {
+            brand: "Motorola",
+            icon: "📱",
+            models: "Razr 2019, Razr 5G, Razr 40, Razr 40 Ultra, Razr 50, Edge 40, Edge 40 Pro, Edge 40 Neo, Edge 50 Pro, Edge 50 Ultra, Moto G54 5G, Moto G84 5G, Moto G85 5G."
+          },
+          {
+            brand: "Huawei",
+            icon: "📱",
+            models: "P40, P40 Pro (excludes P40 Pro+), Mate 40 Pro, P50 Pro, P60 Pro."
+          },
+          {
+            brand: "Oppo & Honor",
+            icon: "📱",
+            models: "Oppo Find X3 Pro, Find X5, Find X5 Pro, Find N2 Flip, Reno 6 Pro 5G; Honor Magic3, Magic4 Pro, Magic5 Pro, Magic6 Pro, Magic V2."
+          },
+          {
+            brand: "Sony & OnePlus",
+            icon: "📱",
+            models: "Sony Xperia 1 IV, Xperia 1 V, Xperia 5 IV, Xperia 10 III Lite, Xperia 10 IV, Xperia 10 V; OnePlus 11, OnePlus 12, OnePlus 13, OnePlus Open."
+          },
+          {
+            brand: "Other Brands (Nokia, Fairphone, Vivo, ZTE)",
+            icon: "⚡",
+            models: "Nokia G60 5G, X30 5G, XR21; Fairphone 4, Fairphone 5; Vivo X90 Pro, X100 Pro; Nuu Mobile X5; Rakuten Mini, Big; ZTE Nubia Flip 5G."
           }
         ],
         noteTitle: "Important note",
-        noteText: "Always check your exact device specifications. Models manufactured for certain markets (such as China, Hong Kong, or Macau) often feature dual physical SIMs and do not support eSIM."
+        noteText: "Always check your device specs by dialing *#06# (a 32-digit EID code must appear). Devices manufactured for mainland China, Hong Kong, or Macau usually feature dual physical SIM slots and do not support eSIM."
       }
     ]
   }
@@ -563,6 +621,7 @@ export function getFaqData(lang = 'es') {
 
 export function getRegionName(regionKey = 'europe', lang = 'es') {
   const names = {
+    all: { es: 'Todos', en: 'All' },
     europe: { es: 'Europa', en: 'Europe' },
     asia: { es: 'Asia', en: 'Asia' },
     'middle-east': { es: 'Oriente Medio (GCC)', en: 'Middle East (GCC)' },
@@ -571,10 +630,10 @@ export function getRegionName(regionKey = 'europe', lang = 'es') {
     caribbean: { es: 'Caribe', en: 'Caribbean' },
     africa: { es: 'África', en: 'Africa' },
     oceania: { es: 'Oceanía', en: 'Oceania' },
-    aukus: { es: 'Región AUKUS (AU, UK, US)', en: 'AUKUS Region (AU, UK, US)' },
-    'china-hk-macau': { es: 'China, Hong Kong y Macao (Sin Cortafuegos)', en: 'China, Hong Kong & Macau (No Firewall)' },
-    'southeast-asia': { es: 'Sudeste Asiático (10 Países)', en: 'Southeast Asia (10 Countries)' },
-    'east-asia': { es: 'Japón, Corea del Sur y Taiwán', en: 'Japan, South Korea & Taiwan' },
+    aukus: { es: 'Alianza AUKUS (AU, UK, US)', en: 'AUKUS Alliance (AU, UK, US)' },
+    'china-hk-macau': { es: 'China, HK y Macao', en: 'China, HK & Macau' },
+    'southeast-asia': { es: 'Sudeste Asiático (SEA)', en: 'Southeast Asia (SEA)' },
+    'east-asia': { es: 'Japón, Corea y Taiwán', en: 'Japan, S. Korea & Taiwan' },
     'europe-morocco': { es: 'Europa + Marruecos', en: 'Europe + Morocco' },
   };
   return (names[regionKey] && names[regionKey][lang]) || regionKey;

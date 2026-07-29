@@ -134,7 +134,8 @@ export default function RegionPage() {
   const t = getTranslation(lang);
   const regionName = getRegionName(regionKey, lang);
   const regionDesc = REGION_DESCRIPTIONS[regionKey] ? REGION_DESCRIPTIONS[regionKey][lang] : '';
-  const heroImage = REGION_HERO_IMAGES[regionKey] || REGION_HERO_IMAGES.europe;
+  const apiImage = plans.find((p) => p.image || p.imageUrl || p.bannerUrl)?.image || plans.find((p) => p.image || p.imageUrl || p.bannerUrl)?.imageUrl || plans.find((p) => p.image || p.imageUrl || p.bannerUrl)?.bannerUrl;
+  const heroImage = apiImage || REGION_HERO_IMAGES[regionKey] || REGION_HERO_IMAGES.europe;
 
   // Filter countries belonging to this region
   let regionCountries = [];
