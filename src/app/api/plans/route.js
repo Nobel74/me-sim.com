@@ -20,7 +20,24 @@ export async function GET(request) {
       const data = await response.json();
       const livePlans = data.plans || data.data || (Array.isArray(data) ? data : []);
       if (livePlans && livePlans.length > 0) {
-        return NextResponse.json({ success: true, plans: livePlans, count: livePlans.length });
+        // Deduplicate live api plans
+        const uniqueMap = new Map();
+        livePlans.forEach((p) => {
+          const pIso = (p.iso || p.isoCode || '').toLowerCase();
+          const key = `${pIso}-${p.dataAmount || p.data}-${p.days}`;
+          if (!uniqueMap.has(key)) {
+            uniqueMap.set(key, p);
+          } else {
+            const existing = uniqueMap.get(key);
+            const pPrice = parseFloat(p.priceEur || p.price || 9999);
+            const extPrice = parseFloat(existing.priceEur || existing.price || 9999);
+            if (pPrice < extPrice) {
+              uniqueMap.set(key, p);
+            }
+          }
+        });
+        const finalLive = Array.from(uniqueMap.values());
+        return NextResponse.json({ success: true, plans: finalLive, count: finalLive.length });
       }
     }
   } catch (error) {
@@ -34,6 +51,7 @@ export async function GET(request) {
     { dataAmount: '2 GB / Día', days: 7, mult: 1.0 },
     { dataAmount: '1 GB Total', days: 7, mult: 1.0 },
     { dataAmount: '2 GB Total', days: 15, mult: 1.6 },
+    { dataAmount: '3 GB Total', days: 15, mult: 2.0 },
     { dataAmount: '3 GB Total', days: 30, mult: 2.1 },
     { dataAmount: '5 GB Total', days: 30, mult: 2.8 },
     { dataAmount: '10 GB Total', days: 30, mult: 4.2 },
@@ -122,6 +140,23 @@ export async function GET(request) {
 
   const targetCode = country || region;
 
+  // Helper to deduplicate plans
+  const deduplicatePlans = (plansList) => {
+    const uniqueMap = new Map();
+    plansList.forEach((p) => {
+      const key = `${p.iso}-${p.dataAmount}-${p.days}`;
+      if (!uniqueMap.has(key)) {
+        uniqueMap.set(key, p);
+      } else {
+        const existing = uniqueMap.get(key);
+        if (p.priceEur < existing.priceEur) {
+          uniqueMap.set(key, p);
+        }
+      }
+    });
+    return Array.from(uniqueMap.values());
+  };
+
   // Dynamic fallback generator if a specific unlisted ISO code is requested
   if (targetCode && !countryMeta.some((c) => c.iso === targetCode) && !regionMeta.some((r) => r.iso === targetCode)) {
     const isRegionQuery = [
@@ -164,7 +199,8 @@ export async function GET(request) {
       isUnlimited: true,
     });
 
-    return NextResponse.json({ success: true, plans: dynamicPlans, count: dynamicPlans.length });
+    const finalDyn = deduplicatePlans(dynamicPlans);
+    return NextResponse.json({ success: true, plans: finalDyn, count: finalDyn.length });
   }
 
   const fallbackPlans = [];
@@ -233,5 +269,6 @@ export async function GET(request) {
     });
   });
 
-  return NextResponse.json({ success: true, plans: fallbackPlans, count: fallbackPlans.length });
+  const finalFallback = deduplicatePlans(fallbackPlans);
+  return NextResponse.json({ success: true, plans: finalFallback, count: finalFallback.length });
 }
