@@ -337,10 +337,10 @@ export default function DashboardPage() {
                 const pct = Math.min(100, Math.round((used / total) * 100));
 
                 return (
-                  <div key={order.orderId} className="bg-white rounded-3xl border border-zinc-200 p-6 md:p-8 shadow-xl w-full">
+                  <div key={order.orderId} className="bg-white rounded-3xl border border-zinc-200 p-4 sm:p-6 md:p-8 shadow-xl w-full">
                     {/* Header Row: Title, Order ID, Status & Action Button */}
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-zinc-100">
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-4 w-full md:w-auto">
                         <img src={`/flags/${(order.iso || 'es').toLowerCase()}.webp`} alt={order.country} className="w-12 h-12 rounded-full border border-zinc-200 object-cover shadow-sm flex-shrink-0" />
                         <div>
                           <h2 className="text-xl md:text-2xl font-bold text-black tracking-tight">{cleanTitle}</h2>
@@ -350,8 +350,8 @@ export default function DashboardPage() {
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-2.5">
-                        <span className="bg-emerald-100 text-emerald-800 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider border border-emerald-200">
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full md:w-auto">
+                        <span className="bg-emerald-100 text-emerald-800 text-xs font-semibold px-3 py-2 rounded-full uppercase tracking-wider border border-emerald-200 text-center w-full md:w-auto">
                           ● {lang === 'en' ? 'ACTIVE & OPERATIONAL' : 'ACTIVA Y OPERATIVA'}
                         </span>
                         
@@ -359,7 +359,7 @@ export default function DashboardPage() {
                         {!isUnlimited ? (
                           <button
                             onClick={() => handleBuyAgain(order)}
-                            className="bg-black hover:bg-zinc-800 text-[#ffec00] font-bold font-condensed tracking-wider uppercase px-4 py-1.5 rounded-full text-xs transition-all shadow-xs flex items-center gap-1.5"
+                            className="bg-black hover:bg-zinc-800 text-[#ffec00] font-bold font-condensed tracking-wider uppercase px-4 py-2.5 rounded-full text-xs transition-all shadow-xs flex items-center justify-center gap-1.5 w-full md:w-auto"
                           >
                             <svg className="w-3.5 h-3.5 fill-current text-[#ffec00]" viewBox="0 0 24 24">
                               <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
@@ -369,7 +369,7 @@ export default function DashboardPage() {
                         ) : (
                           <Link
                             href={`/destination/${order.iso || 'es'}?tab=unlimited#plan-selector-switch`}
-                            className="bg-black hover:bg-zinc-800 text-[#ffec00] font-bold font-condensed tracking-wider uppercase px-4 py-1.5 rounded-full text-xs transition-all shadow-xs flex items-center gap-1.5"
+                            className="bg-black hover:bg-zinc-800 text-[#ffec00] font-bold font-condensed tracking-wider uppercase px-4 py-2.5 rounded-full text-xs transition-all shadow-xs flex items-center justify-center gap-1.5 w-full md:w-auto text-center"
                           >
                             <svg className="w-3.5 h-3.5 fill-current text-[#ffec00]" viewBox="0 0 24 24">
                               <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z" />
@@ -383,14 +383,14 @@ export default function DashboardPage() {
                     {/* Card Content Top Row: 2 Balanced Columns (Left: Data Usage | Right: SIM Details) */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 pb-6 border-b border-zinc-100">
                       {/* Left Column: Data Usage */}
-                      <div className="bg-zinc-50 p-4 sm:p-5 rounded-2xl border border-zinc-200 flex flex-col justify-between space-y-3">
+                      <div className="bg-zinc-50 p-3.5 sm:p-5 rounded-2xl border border-zinc-200 flex flex-col justify-between space-y-3">
                         {!isUnlimited ? (
                           <>
-                            <div className="flex justify-between text-xs font-semibold items-center">
-                              <span className="text-zinc-700 font-sans flex items-center gap-1.5">
-                                <span className="font-bold text-black uppercase text-[11px] tracking-wide">
-                                  {lang === 'en' ? 'Data Usage:' : 'Consumo de datos:'}
-                                </span>
+                            <div className="flex flex-col text-xs font-semibold items-start gap-2.5 w-full">
+                              <span className="font-bold text-black uppercase text-[11px] tracking-wide block">
+                                {lang === 'en' ? 'Data Usage:' : 'Consumo de datos:'}
+                              </span>
+                              <div className="flex items-center gap-2 w-full flex-wrap">
                                 <span
                                   className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
                                     pct < 40
@@ -401,13 +401,13 @@ export default function DashboardPage() {
                                   }`}
                                 >
                                   {pct < 40
-                                    ? (lang === 'en' ? 'Low Usage' : 'Consumo bajo')
+                                    ? (lang === 'en' ? 'Low' : 'Bajo')
                                     : pct < 75
-                                    ? (lang === 'en' ? 'Moderate Usage' : 'Consumo medio')
-                                    : (lang === 'en' ? 'High Usage' : 'Consumo alto')}
+                                    ? (lang === 'en' ? 'Moderate' : 'Medio')
+                                    : (lang === 'en' ? 'High' : 'Alto')}
                                 </span>
-                              </span>
-                              <span className="text-black font-mono font-bold text-xs sm:text-sm">{used} GB / {total} GB ({pct}%)</span>
+                                <span className="text-black font-mono font-bold text-xs sm:text-sm">{used}GB/{total}GB({pct}%)</span>
+                              </div>
                             </div>
 
                             {/* Animated Progress Bar */}

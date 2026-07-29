@@ -279,38 +279,38 @@ export default function HomePage() {
           <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-black/25"></div>
         </div>
 
-        <div className="relative z-10 p-6 sm:p-10 md:p-12 w-full">
-          <div className="flex flex-wrap items-center gap-2.5 mb-4">
-            <div className="bg-black/80 backdrop-blur-md text-white text-xs font-bold tracking-wide px-3.5 py-1 rounded-full flex items-center gap-1.5 border border-white/20 shadow-sm">
-              <svg className="w-3.5 h-3.5 text-[#ffec00] fill-current" viewBox="0 0 24 24">
+        <div className="relative z-10 p-4 sm:p-10 md:p-12 w-full flex flex-col items-center sm:items-start text-center sm:text-left">
+          <div className="flex flex-wrap justify-center sm:justify-start items-center gap-2 mb-3.5">
+            <div className="bg-black/80 backdrop-blur-md text-white text-[11px] sm:text-xs font-bold tracking-wide px-3 py-1 rounded-full flex items-center gap-1.5 border border-white/20 shadow-sm leading-tight">
+              <svg className="w-3.5 h-3.5 text-[#ffec00] fill-current flex-shrink-0" viewBox="0 0 24 24">
                 <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5-2.5-1.12 2.5-2.5 2.5z" />
               </svg>
               <span>{lang === 'en' ? `Global Coverage (198+ Countries) • ${heroBg.nameEn}` : `Conectividad Global (198+ Países) • ${heroBg.nameEs}`}</span>
             </div>
 
-            <span className="bg-[#ffec00] text-black text-xs font-bold px-3.5 py-1 rounded-full uppercase tracking-wider shadow-sm">
-              🟢 {lang === 'en' ? 'Instant delivery • Activate within 180 days' : 'Entrega instantánea • Activa en 180 días'}
+            <span className="bg-[#ffec00] text-black text-[11px] sm:text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
+              🟢 {lang === 'en' ? 'Instant delivery • Activate in 180 days' : 'Entrega instantánea • Activa en 180 días'}
             </span>
           </div>
 
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold font-sans tracking-tight mb-3 text-white leading-tight">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold font-sans tracking-tight mb-2.5 text-white leading-tight">
             {lang === 'en' ? 'eSIM for Travel Worldwide' : 'eSIM para Viajar por todo el Mundo'}
           </h1>
 
-          <p className="text-zinc-100 font-sans text-base sm:text-lg md:text-xl font-medium leading-relaxed mb-6">
+          <p className="text-zinc-100 font-sans text-sm sm:text-lg md:text-xl font-medium leading-relaxed mb-5">
             {lang === 'en'
               ? 'High-speed 4G/5G data from the second you land. Instant QR code delivery, zero roaming fees, no SIM swap.'
               : 'Datos de alta velocidad 4G/5G desde que aterrizas. Entrega de código QR instantánea, sin cargos de roaming y sin cambiar de SIM.'}
           </p>
 
           {/* Quick Search Bar */}
-          <div className="mb-6 w-full">
+          <div className="mb-5 w-full">
             <HeroSearch lang={lang} currency={currency} rates={rates} plans={plans} />
           </div>
 
           {/* Glassmorphism Feature Highlight Card */}
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 p-4 sm:p-5 rounded-2xl flex flex-col gap-3.5 shadow-xl w-full">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 p-3.5 sm:p-5 rounded-2xl flex flex-col items-center sm:items-stretch gap-3 shadow-xl w-full text-center sm:text-left">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 w-full">
               <span className="w-full sm:w-auto bg-[#ffec00] text-black text-xs sm:text-sm font-bold px-3 py-1.5 rounded-full uppercase tracking-wider shadow-xs text-center flex items-center justify-center gap-1.5">
                 <svg className="w-3.5 h-3.5 fill-current text-black flex-shrink-0" viewBox="0 0 24 24">
                   <path d="M7 2v11h3v9l7-12h-4l4-8z" />
@@ -322,8 +322,8 @@ export default function HomePage() {
               </span>
             </div>
 
-            <div>
-              <strong className="text-lg sm:text-xl md:text-2xl font-bold text-white block mb-2 leading-tight">
+            <div className="w-full">
+              <strong className="text-base sm:text-xl md:text-2xl font-bold text-white block mb-2 leading-tight">
                 {lang === 'en' ? 'High-Speed 4G/5G eSIM for 198+ Destinations' : 'eSIM 4G/5G Alta Velocidad para más de 198 Destinos'}
               </strong>
 
@@ -338,23 +338,23 @@ export default function HomePage() {
               </button>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-300 font-medium pt-2 border-t border-white/10">
+            <div className="flex flex-wrap justify-center sm:justify-start items-center gap-2.5 text-xs text-zinc-300 font-medium pt-2 border-t border-white/10 w-full">
               <span className="flex items-center gap-1.5">
-                <svg className="w-4 h-4 text-[#ffec00] fill-current" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5 text-[#ffec00] fill-current" viewBox="0 0 24 24">
                   <path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm13-2h3v2h-3v-2zm-3 2h2v3h-2v-3zm3 3h3v3h-3v-3zm-3 2h2v2h-2v-2z" />
                 </svg>
                 {lang === 'en' ? 'QR in seconds' : 'QR en segundos'}
               </span>
               <span>•</span>
               <span className="flex items-center gap-1.5">
-                <svg className="w-4 h-4 text-[#ffec00] fill-current" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5 text-[#ffec00] fill-current" viewBox="0 0 24 24">
                   <path d="M12 18c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-4c-2.21 0-4.21.9-5.66 2.34l1.42 1.42C8.9 16.63 10.37 16 12 16s3.1.63 4.24 1.76l1.42-1.42C16.21 14.9 14.21 14 12 14zm0-4c-3.87 0-7.37 1.57-9.9 4.1l1.42 1.42C5.76 13.27 8.68 12 12 12s6.24 1.27 8.48 3.52l1.42-1.42C19.37 11.57 15.87 10 12 10z" />
                 </svg>
                 {lang === 'en' ? 'Hotspot included' : 'Hotspot incluido'}
               </span>
               <span>•</span>
               <span className="flex items-center gap-1.5">
-                <svg className="w-4 h-4 text-[#ffec00] fill-current" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5 text-[#ffec00] fill-current" viewBox="0 0 24 24">
                   <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM8 12c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm4 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm4 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z" />
                 </svg>
                 {lang === 'en' ? 'WhatsApp intact' : 'WhatsApp intacto'}

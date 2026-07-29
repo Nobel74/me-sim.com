@@ -99,12 +99,12 @@ export default function HeroSearch({ lang = 'es', currency = 'EUR', rates = {}, 
   return (
     <div ref={searchContainerRef} className="mt-6 md:mt-8 max-w-2xl w-full relative z-50">
       <div
-        className={`flex items-center bg-white rounded-full p-1 sm:p-1.5 pl-4 sm:pl-6 shadow-2xl border-2 transition-all ${
+        className={`flex items-center bg-white rounded-full p-1 sm:p-1.5 pl-2.5 sm:pl-6 shadow-2xl border-2 transition-all ${
           isOpen ? 'border-[#ffec00] ring-4 ring-[#ffec00]/30' : 'border-white/20 hover:border-[#ffec00]'
         }`}
       >
         <svg
-          className="w-4 h-4 sm:w-6 sm:h-6 text-black flex-shrink-0 mr-2 sm:mr-3"
+          className="w-4 h-4 sm:w-6 sm:h-6 text-black flex-shrink-0 mr-1.5 sm:mr-3"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"

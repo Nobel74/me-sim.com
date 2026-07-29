@@ -288,17 +288,25 @@ export default function ClientLayout({ children }) {
               <Link
                 href="/"
                 onClick={() => setIsMenuOpen(false)}
-                className="block font-semibold text-lg text-black py-2 border-b border-zinc-100"
+                className="font-semibold text-lg text-black py-2.5 border-b border-zinc-100 flex items-center gap-2.5"
               >
-                {t.navCatalog}
+                <svg className="w-5 h-5 fill-current text-zinc-950 flex-shrink-0" viewBox="0 0 24 24">
+                  <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0-2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z" />
+                </svg>
+                <span>{t.navCatalog}</span>
               </Link>
 
               <Link
                 href="/soporte"
                 onClick={() => setIsMenuOpen(false)}
-                className="block font-semibold text-lg text-black py-2 border-b border-zinc-100"
+                className="font-semibold text-lg text-black py-2.5 border-b border-zinc-100 flex items-center gap-2.5"
               >
-                💬 {t.navSupport || (lang === 'en' ? 'Support' : 'Soporte')}
+                <svg className="w-5 h-5 flex-shrink-0 text-zinc-950" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+                <span>{t.navSupport || (lang === 'en' ? 'Support' : 'Soporte')}</span>
               </Link>
 
               {currentUser ? (
@@ -306,15 +314,18 @@ export default function ClientLayout({ children }) {
                   <Link
                     href="/dashboard"
                     onClick={() => setIsMenuOpen(false)}
-                    className="block font-semibold text-lg text-black py-2 border-b border-zinc-100"
+                    className="font-semibold text-lg text-black py-2.5 border-b border-zinc-100 flex items-center gap-2.5"
                   >
-                    {t.navDashboard}
+                    <svg className="w-5 h-5 fill-current text-zinc-950 flex-shrink-0" viewBox="0 0 24 24">
+                      <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                    </svg>
+                    <span>{t.navDashboard}</span>
                   </Link>
                   <button
                     onClick={handleLogout}
-                    className="w-full text-left font-semibold text-lg text-red-600 py-2 border-b border-zinc-100 flex items-center gap-2"
+                    className="w-full text-left font-semibold text-lg text-red-600 py-2.5 border-b border-zinc-100 flex items-center gap-2.5"
                   >
-                    <svg className="w-5 h-5 fill-current text-red-600" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 fill-current text-red-600 flex-shrink-0" viewBox="0 0 24 24">
                       <path d="M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42C17.99 7.86 19 9.81 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7c0-2.19 1.01-4.14 2.58-5.42L6.17 5.17C4.23 6.82 3 9.26 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.74-1.23-5.18-3.17-6.83z" />
                     </svg>
                     <span>{lang === 'en' ? 'Sign Out' : 'Cerrar Sesión'}</span>
@@ -324,9 +335,12 @@ export default function ClientLayout({ children }) {
                 <Link
                   href="/login"
                   onClick={() => setIsMenuOpen(false)}
-                  className="block font-semibold text-lg text-black py-2 border-b border-zinc-100"
+                  className="font-semibold text-lg text-black py-2.5 border-b border-zinc-100 flex items-center gap-2.5"
                 >
-                  {lang === 'en' ? 'Sign In' : 'Iniciar Sesión'}
+                  <svg className="w-5 h-5 fill-current text-zinc-950 flex-shrink-0" viewBox="0 0 24 24">
+                    <path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v2h2v-2h2v-2h-8.35zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z" />
+                  </svg>
+                  <span>{lang === 'en' ? 'Sign In' : 'Iniciar Sesión'}</span>
                 </Link>
               )}
             </div>

@@ -183,22 +183,22 @@ export default function RegionPage() {
           <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-black/25"></div>
         </div>
 
-        <div className="relative z-10 p-6 sm:p-10 md:p-12 w-full">
-          <span className="bg-[#ffec00] text-black text-xs font-bold px-3.5 py-1 rounded-full uppercase tracking-wider mb-4 inline-block shadow-sm">
-            ⚡ {lang === 'en' ? 'Regional eSIM Hub' : 'eSIM Cobertura Regional Multi-País'}
+        <div className="relative z-10 p-4 sm:p-10 md:p-12 w-full flex flex-col items-center sm:items-start text-center sm:text-left">
+          <span className="bg-[#ffec00] text-black text-[11px] sm:text-xs font-bold px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full uppercase tracking-wider mb-3 sm:mb-4 inline-block shadow-sm">
+            {lang === 'en' ? 'Regional eSIM Hub' : 'eSIM Cobertura Regional Multi-País'}
           </span>
 
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold font-sans tracking-tight mb-3 text-white leading-tight">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold font-sans tracking-tight mb-3 text-white leading-tight">
             {lang === 'en' ? `eSIM for ${regionName}` : `eSIM para viajar a ${regionName}`}
           </h1>
 
-          <p className="text-zinc-100 font-sans text-base sm:text-lg md:text-xl font-medium leading-relaxed mb-8">
+          <p className="text-zinc-100 font-sans text-sm sm:text-lg md:text-xl font-medium leading-relaxed mb-6 sm:mb-8">
             {regionDesc}
           </p>
 
           {/* Option A: Regional All-in-One eSIM Card */}
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
-            <div>
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 p-3.5 sm:p-5 rounded-2xl flex flex-col sm:flex-row items-center sm:items-center justify-between gap-4 shadow-lg w-full text-center sm:text-left">
+            <div className="flex flex-col items-center sm:items-start">
               <span className="text-[10px] sm:text-xs font-bold text-[#ffec00] uppercase tracking-wider block mb-0.5">
                 {lang === 'en' ? 'Multi-Country eSIM' : 'Plan Global Multipaís'}
               </span>

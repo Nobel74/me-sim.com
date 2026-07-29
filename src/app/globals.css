@@ -25,7 +25,13 @@ body {
 .container-naked {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 16px;
+  padding: 0 10px;
+}
+
+@media (min-width: 640px) {
+  .container-naked {
+    padding: 0 16px;
+  }
 }
 
 /* Custom Smooth Transition Animations */

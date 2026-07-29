@@ -293,38 +293,37 @@ export default function DestinationPage() {
           />
           <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-black/25"></div>
         </div>
-
-        <div className="relative z-10 p-6 sm:p-10 md:p-12 w-full">
-          <div className="flex flex-wrap items-center gap-2.5 mb-4">
+        <div className="relative z-10 p-4 sm:p-10 md:p-12 w-full flex flex-col items-center sm:items-start text-center sm:text-left">
+          <div className="flex flex-wrap justify-center sm:justify-start items-center gap-2 mb-3.5">
             <img
               src={`/flags/${isoCode}.webp`}
               alt={countryName}
               className="w-9 h-9 sm:w-11 sm:h-11 rounded-full object-cover border-2 border-white/30 shadow-md flex-shrink-0"
             />
-            <div className="bg-black/80 backdrop-blur-md text-white text-xs font-bold tracking-wide px-3.5 py-1 rounded-full flex items-center gap-1.5 border border-white/20 shadow-sm">
+            <div className="bg-black/80 backdrop-blur-md text-white text-[11px] sm:text-xs font-bold tracking-wide px-3 py-1 rounded-full flex items-center gap-1.5 border border-white/20 shadow-sm leading-tight">
               <svg className="w-3.5 h-3.5 text-[#ffec00] fill-current" viewBox="0 0 24 24">
-                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5-2.5-1.12 2.5-2.5 2.5z" />
               </svg>
               <span>{landmarkName}</span>
             </div>
-            <span className="bg-[#ffec00] text-black text-xs font-bold px-3.5 py-1 rounded-full uppercase tracking-wider shadow-sm">
+            <span className="bg-[#ffec00] text-black text-[11px] sm:text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
               🟢 {lang === 'en' ? 'Instant delivery • Activate within 180 days' : 'Entrega instantánea • Activa en 180 días'}
             </span>
           </div>
 
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold font-sans tracking-tight mb-3 text-white leading-tight">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold font-sans tracking-tight mb-2.5 text-white leading-tight">
             {lang === 'en' ? `eSIM for ${countryName}` : `eSIM para ${countryName}`}
           </h1>
 
-          <p className="text-zinc-100 font-sans text-base sm:text-lg md:text-xl font-medium leading-relaxed mb-6">
+          <p className="text-zinc-100 font-sans text-sm sm:text-lg md:text-xl font-medium leading-relaxed mb-5">
             {lang === 'en'
               ? `Fast 4G/5G data from the second you land. Plans for ${countryName} from ${formattedMinPrice} or Unlimited for your travel dates. No roaming, no SIM swap.`
               : `Datos de alta velocidad 4G/5G desde que aterrizas. Planes para ${countryName} desde ${formattedMinPrice} o Datos Ilimitados para las fechas de tu viaje. Sin roaming, sin cambiar de SIM.`}
           </p>
 
           {/* Glassmorphism Feature Highlight Card */}
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 p-4 sm:p-5 rounded-2xl flex flex-col gap-3.5 shadow-xl">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 p-3.5 sm:p-5 rounded-2xl flex flex-col items-center sm:items-stretch gap-3 shadow-xl w-full text-center sm:text-left">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 w-full">
               <span className="w-full sm:w-auto bg-[#ffec00] text-black text-xs sm:text-sm font-bold px-3 py-1.5 rounded-full uppercase tracking-wider shadow-xs text-center flex items-center justify-center gap-1.5">
                 <svg className="w-3.5 h-3.5 fill-current text-black flex-shrink-0" viewBox="0 0 24 24">
                   <path d="M7 2v11h3v9l7-12h-4l4-8z" />
@@ -336,8 +335,8 @@ export default function DestinationPage() {
               </span>
             </div>
 
-            <div>
-              <strong className="text-lg sm:text-xl md:text-2xl font-bold text-white block mb-2 leading-tight">
+            <div className="w-full">
+              <strong className="text-base sm:text-xl md:text-2xl font-bold text-white block mb-2 leading-tight">
                 {lang === 'en' ? `High-Speed 4G/5G eSIM for ${countryName}` : `eSIM 4G/5G Alta Velocidad para ${countryName}`}
               </strong>
 
@@ -352,23 +351,23 @@ export default function DestinationPage() {
               </button>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-300 font-medium pt-2 border-t border-white/10">
+            <div className="flex flex-wrap justify-center sm:justify-start items-center gap-2.5 text-xs text-zinc-300 font-medium pt-2 border-t border-white/10 w-full">
               <span className="flex items-center gap-1.5">
-                <svg className="w-4 h-4 text-[#ffec00] fill-current" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5 text-[#ffec00] fill-current" viewBox="0 0 24 24">
                   <path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm13-2h3v2h-3v-2zm-3 2h2v3h-2v-3zm3 3h3v3h-3v-3zm-3 2h2v2h-2v-2z" />
                 </svg>
                 {lang === 'en' ? 'QR in seconds' : 'QR en segundos'}
               </span>
               <span>•</span>
               <span className="flex items-center gap-1.5">
-                <svg className="w-4 h-4 text-[#ffec00] fill-current" viewBox="0 2 24 24">
-                  <path d="M12 18c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-4c-2.21 0-4.21.9-5.66 2.34l1.42 1.42C8.9 16.63 10.37 16 12 16s3.1.63 4.24 1.76l1.42-1.42C16.21 14.9 14.21 14 12 14zm0-4c-3.87 0-7.37 1.57-9.9 4.1l1.42 1.42C5.76 13.27 8.68 12 12 12s6.24 1.27 8.48 3.52l1.42-1.42C19.37 11.57 15.87 10 12 10z" />
+                <svg className="w-3.5 h-3.5 text-[#ffec00] fill-current" viewBox="0 0 24 24">
+                  <path d="M12 18c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-4c-2.21 0-4.21.9-5.66 2.34l1.42 1.42C8.9 16.63 10.37 16 12 16s3.1.63 4.24 1.76l1.42-1.42C16.21 14.9 14.21 14 12 14zm0-4c-3.87 0-7.37 1.57-9.9 4.1l1.42 1.42C5.76 13.27 8.68 12 12 12s6.24 1.27 8.48 3.52l1.42-1.42C19.37 11.57 15.87 10 10 12v10z" />
                 </svg>
                 {lang === 'en' ? 'Hotspot included' : 'Hotspot incluido'}
               </span>
               <span>•</span>
               <span className="flex items-center gap-1.5">
-                <svg className="w-4 h-4 text-[#ffec00] fill-current" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5 text-[#ffec00] fill-current" viewBox="0 0 24 24">
                   <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM8 12c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm4 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm4 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z" />
                 </svg>
                 {lang === 'en' ? 'WhatsApp intact' : 'WhatsApp intacto'}
@@ -380,10 +379,10 @@ export default function DestinationPage() {
 
       {/* Plan Selector Section */}
       <div id="plan-selector-switch" className="scroll-mt-24 w-full bg-white rounded-3xl border border-zinc-200 p-3.5 sm:p-6 md:p-8 shadow-2xl">
-        <div className="flex bg-zinc-100 p-1 sm:p-1.5 rounded-full mb-6 sm:mb-8 max-w-md mx-auto border border-zinc-200 gap-1">
+        <div className="flex bg-zinc-100 p-1 rounded-full mb-6 sm:mb-8 max-w-md mx-auto border border-zinc-200 gap-1 w-full">
           <button
             onClick={() => setActiveTab('fixed')}
-            className={`flex-1 py-2.5 px-3 text-xs sm:text-sm font-bold font-condensed tracking-wider uppercase rounded-full transition-all whitespace-nowrap text-center ${
+            className={`flex-1 py-2 px-1.5 sm:py-2.5 sm:px-3 text-[11px] xs:text-xs sm:text-sm font-bold font-condensed tracking-tight sm:tracking-wider uppercase rounded-full transition-all whitespace-nowrap text-center ${
               activeTab === 'fixed' ? 'bg-black text-[#ffec00] shadow-md' : 'text-zinc-900 hover:text-black font-bold'
             }`}
           >
@@ -393,12 +392,12 @@ export default function DestinationPage() {
           {/* Unlimited Data Tab */}
           <button
             onClick={() => setActiveTab('unlimited')}
-            className={`flex-1 py-2.5 px-3 text-xs sm:text-sm font-bold font-condensed tracking-wider uppercase rounded-full transition-all flex items-center justify-center gap-1.5 whitespace-nowrap text-center ${
+            className={`flex-1 py-2 px-1.5 sm:py-2.5 sm:px-3 text-[11px] xs:text-xs sm:text-sm font-bold font-condensed tracking-tight sm:tracking-wider uppercase rounded-full transition-all flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap text-center ${
               activeTab === 'unlimited' ? 'bg-black text-[#ffec00] shadow-md' : 'text-zinc-900 hover:text-black font-bold'
             }`}
           >
             <svg
-              className={`w-4 h-4 sm:w-5 sm:h-5 fill-current flex-shrink-0 transition-colors ${
+              className={`w-3.5 h-3.5 sm:w-5 sm:h-5 fill-current flex-shrink-0 transition-colors ${
                 activeTab === 'unlimited' ? 'text-[#ffec00]' : 'text-zinc-900 group-hover:text-black'
               }`}
               viewBox="0 0 24 24"
@@ -681,24 +680,24 @@ export default function DestinationPage() {
       </div>
 
       {/* How to get an eSIM Section (3 Steps, Zero Stress) */}
-      <div className="bg-white rounded-3xl border border-zinc-200 p-6 sm:p-10 shadow-xl text-center space-y-8">
+      <div className="bg-white rounded-3xl border border-zinc-200 p-4 sm:p-10 shadow-xl text-center space-y-6 sm:space-y-8">
         <div>
           <span className="text-xs sm:text-sm font-extrabold uppercase tracking-widest text-zinc-500 font-condensed">
             {lang === 'en' ? 'THREE STEPS, ZERO STRESS' : 'TRES PASOS, CERO ESTRÉS'}
           </span>
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-black tracking-tight mt-1">
+          <h2 className="text-xl sm:text-3xl md:text-4xl font-bold text-black tracking-tight mt-1">
             {lang === 'en' ? `How to get an eSIM for ${countryName}` : `Cómo instalar tu eSIM para ${countryName}`}
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 text-center sm:text-left">
           {/* Step 1 */}
-          <div className="bg-zinc-50 p-6 sm:p-8 rounded-2xl border border-zinc-200 space-y-3">
+          <div className="bg-zinc-50 p-5 sm:p-8 rounded-2xl border border-zinc-200 flex flex-col items-center sm:items-start space-y-3">
             <div className="w-10 h-10 rounded-2xl bg-black text-[#ffec00] font-bold flex items-center justify-center text-base shadow-md">
               1
             </div>
-            <h3 className="font-bold text-black text-xl">{lang === 'en' ? 'Choose your plan' : 'Elige tu plan'}</h3>
-            <p className="text-base text-zinc-600 leading-relaxed font-sans">
+            <h3 className="font-bold text-black text-lg sm:text-xl">{lang === 'en' ? 'Choose your plan' : 'Elige tu plan'}</h3>
+            <p className="text-sm sm:text-base text-zinc-600 leading-relaxed font-sans">
               {lang === 'en'
                 ? `Pick a fixed data pack or Unlimited for your ${countryName} travel dates. Checkout takes about a minute.`
                 : `Selecciona un plan fijo o Datos Ilimitados para los días de tu viaje a ${countryName}. El proceso dura 1 minuto.`}
@@ -706,12 +705,12 @@ export default function DestinationPage() {
           </div>
 
           {/* Step 2 */}
-          <div className="bg-zinc-50 p-6 sm:p-8 rounded-2xl border border-zinc-200 space-y-3">
+          <div className="bg-zinc-50 p-5 sm:p-8 rounded-2xl border border-zinc-200 flex flex-col items-center sm:items-start space-y-3">
             <div className="w-10 h-10 rounded-2xl bg-black text-[#ffec00] font-bold flex items-center justify-center text-base shadow-md">
               2
             </div>
-            <h3 className="font-bold text-black text-xl">{lang === 'en' ? 'Scan the QR code' : 'Escanea el código QR'}</h3>
-            <p className="text-base text-zinc-600 leading-relaxed font-sans">
+            <h3 className="font-bold text-black text-lg sm:text-xl">{lang === 'en' ? 'Scan the QR code' : 'Escanea el código QR'}</h3>
+            <p className="text-sm sm:text-base text-zinc-600 leading-relaxed font-sans">
               {lang === 'en'
                 ? 'We email it instantly. Scan it in your phone settings and the eSIM installs itself. No shop, no queue.'
                 : 'Te lo enviamos al instante por email. Escanéalo en los ajustes de tu móvil y la eSIM se instala sola.'}
@@ -719,12 +718,12 @@ export default function DestinationPage() {
           </div>
 
           {/* Step 3 */}
-          <div className="bg-zinc-50 p-6 sm:p-8 rounded-2xl border border-zinc-200 space-y-3">
+          <div className="bg-zinc-50 p-5 sm:p-8 rounded-2xl border border-zinc-200 flex flex-col items-center sm:items-start space-y-3">
             <div className="w-10 h-10 rounded-2xl bg-black text-[#ffec00] font-bold flex items-center justify-center text-base shadow-md">
               3
             </div>
-            <h3 className="font-bold text-black text-xl">{lang === 'en' ? 'Land and connect' : 'Aterriza y navega'}</h3>
-            <p className="text-base text-zinc-600 leading-relaxed font-sans">
+            <h3 className="font-bold text-black text-lg sm:text-xl">{lang === 'en' ? 'Land and connect' : 'Aterriza y navega'}</h3>
+            <p className="text-sm sm:text-base text-zinc-600 leading-relaxed font-sans">
               {lang === 'en'
                 ? `Turn on the eSIM line when you arrive in ${countryName}. Data starts flowing before baggage claim does.`
                 : `Activa la línea eSIM al llegar a ${countryName}. Tendrás conexión antes incluso de recoger tu equipaje.`}
@@ -734,26 +733,26 @@ export default function DestinationPage() {
       </div>
 
       {/* Why ME-SIM Section */}
-      <div className="bg-white rounded-3xl border border-zinc-200 p-6 sm:p-10 shadow-xl space-y-8">
+      <div className="bg-white rounded-3xl border border-zinc-200 p-4 sm:p-10 shadow-xl space-y-6 sm:space-y-8 text-center">
         <div>
           <span className="text-xs sm:text-sm font-extrabold uppercase tracking-widest text-zinc-500 font-condensed">
             {lang === 'en' ? 'WHY ME-SIM.COM' : 'POR QUÉ ME-SIM.COM'}
           </span>
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-black tracking-tight mt-1">
+          <h2 className="text-xl sm:text-3xl md:text-4xl font-bold text-black tracking-tight mt-1">
             {lang === 'en' ? `Why get a ME-SIM eSIM for ${countryName}` : `Por qué elegir una eSIM de ME-SIM para ${countryName}`}
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 text-center sm:text-left">
           {/* Card 1: Fast Online */}
-          <div className="bg-zinc-50 p-6 sm:p-8 rounded-2xl border border-zinc-200 space-y-3">
+          <div className="bg-zinc-50 p-5 sm:p-8 rounded-2xl border border-zinc-200 flex flex-col items-center sm:items-start space-y-3">
             <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 font-bold flex items-center justify-center border border-blue-100 shadow-2xs">
               <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
                 <path d="M7 2v11h3v9l7-12h-4l4-8z" />
               </svg>
             </div>
-            <h3 className="font-bold text-black text-xl">{lang === 'en' ? 'Online in about 2 minutes' : 'Conectado en 2 minutos'}</h3>
-            <p className="text-base text-zinc-600 leading-relaxed font-sans">
+            <h3 className="font-bold text-black text-lg sm:text-xl">{lang === 'en' ? 'Online in about 2 minutes' : 'Conectado en 2 minutos'}</h3>
+            <p className="text-sm sm:text-base text-zinc-600 leading-relaxed font-sans">
               {lang === 'en'
                 ? `Buy, scan, done. Your ${countryName} eSIM installs faster than the seatbelt sign turns off, connecting automatically when you land.`
                 : `Compra, escanea y listo. Tu eSIM para ${countryName} se instala antes de que se apague el aviso del cinturón y se conecta automáticamente al aterrizar.`}
@@ -761,14 +760,14 @@ export default function DestinationPage() {
           </div>
 
           {/* Card 2: Flat prices */}
-          <div className="bg-zinc-50 p-6 sm:p-8 rounded-2xl border border-zinc-200 space-y-3">
+          <div className="bg-zinc-50 p-5 sm:p-8 rounded-2xl border border-zinc-200 flex flex-col items-center sm:items-start space-y-3">
             <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 font-bold flex items-center justify-center border border-blue-100 shadow-2xs">
               <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
                 <path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7z" />
               </svg>
             </div>
-            <h3 className="font-bold text-black text-xl">{lang === 'en' ? 'Flat prices, zero surprises' : 'Precios fijos, cero sorpresas'}</h3>
-            <p className="text-base text-zinc-600 leading-relaxed font-sans">
+            <h3 className="font-bold text-black text-lg sm:text-xl">{lang === 'en' ? 'Flat prices, zero surprises' : 'Precios fijos, cero sorpresas'}</h3>
+            <p className="text-sm sm:text-base text-zinc-600 leading-relaxed font-sans">
               {lang === 'en'
                 ? `From ${formattedMinPrice}, paid upfront. No roaming invoice waiting at home like a bad souvenir.`
                 : `Desde ${formattedMinPrice}, pago único sin permanencia. Sin facturas de roaming sorpresivas al volver de tus vacaciones.`}
@@ -776,14 +775,14 @@ export default function DestinationPage() {
           </div>
 
           {/* Card 3: Keep number */}
-          <div className="bg-zinc-50 p-6 sm:p-8 rounded-2xl border border-zinc-200 space-y-3">
+          <div className="bg-zinc-50 p-5 sm:p-8 rounded-2xl border border-zinc-200 flex flex-col items-center sm:items-start space-y-3">
             <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 font-bold flex items-center justify-center border border-blue-100 shadow-2xs">
               <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
                 <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z" />
               </svg>
             </div>
-            <h3 className="font-bold text-black text-xl">{lang === 'en' ? 'Keep your own number' : 'Mantén tu número habitual'}</h3>
-            <p className="text-base text-zinc-600 leading-relaxed font-sans">
+            <h3 className="font-bold text-black text-lg sm:text-xl">{lang === 'en' ? 'Keep your own number' : 'Mantén tu número habitual'}</h3>
+            <p className="text-sm sm:text-base text-zinc-600 leading-relaxed font-sans">
               {lang === 'en'
                 ? `Your home SIM keeps handling calls and texts while me-sim.com carries the data. Two SIMs, one phone, no juggling.`
                 : `Tu SIM habitual sigue recibiendo llamadas y mensajes mientras me-sim.com gestiona tus datos móviles. Dos SIMs, un solo móvil.`}
@@ -791,14 +790,14 @@ export default function DestinationPage() {
           </div>
 
           {/* Card 4: Local 4G 5G */}
-          <div className="bg-zinc-50 p-6 sm:p-8 rounded-2xl border border-zinc-200 space-y-3">
+          <div className="bg-zinc-50 p-5 sm:p-8 rounded-2xl border border-zinc-200 flex flex-col items-center sm:items-start space-y-3">
             <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 font-bold flex items-center justify-center border border-blue-100 shadow-2xs">
               <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
                 <path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 19.2c-.2.2-.2.51 0 .71.2.2.51.2.71 0l1.63-1.63C8.21 19.38 10.03 20 12 20c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 15c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z" />
               </svg>
             </div>
-            <h3 className="font-bold text-black text-xl">{lang === 'en' ? 'Real local 4G and 5G' : 'Conexión 4G y 5G local real'}</h3>
-            <p className="text-base text-zinc-600 leading-relaxed font-sans">
+            <h3 className="font-bold text-black text-lg sm:text-xl">{lang === 'en' ? 'Real local 4G and 5G' : 'Conexión 4G y 5G local real'}</h3>
+            <p className="text-sm sm:text-base text-zinc-600 leading-relaxed font-sans">
               {lang === 'en'
                 ? `We put you on leading ${countryName} networks, the same ones locals use. Maps, calls, and videos, all at full speed.`
                 : `Te conectamos directamente a las principales redes de ${countryName}, las mismas que usan los residentes. Mapas y vídeo a máxima velocidad.`}
@@ -806,14 +805,14 @@ export default function DestinationPage() {
           </div>
 
           {/* Card 5: Top up */}
-          <div className="bg-zinc-50 p-6 sm:p-8 rounded-2xl border border-zinc-200 space-y-3">
+          <div className="bg-zinc-50 p-5 sm:p-8 rounded-2xl border border-zinc-200 flex flex-col items-center sm:items-start space-y-3">
             <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 font-bold flex items-center justify-center border border-blue-100 shadow-2xs">
               <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
                 <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
               </svg>
             </div>
-            <h3 className="font-bold text-black text-xl">{lang === 'en' ? 'Top up in seconds' : 'Recargas en segundos'}</h3>
-            <p className="text-base text-zinc-600 leading-relaxed font-sans">
+            <h3 className="font-bold text-black text-lg sm:text-xl">{lang === 'en' ? 'Top up in seconds' : 'Recargas en segundos'}</h3>
+            <p className="text-sm sm:text-base text-zinc-600 leading-relaxed font-sans">
               {lang === 'en'
                 ? 'Running low mid trip? Add data from your customer dashboard in a few taps. No store visits, no paperwork.'
                 : '¿Te quedas sin datos durante el viaje? Añade más gigas desde tu panel de usuario en 1 clic. Sin visitar tiendas ni trámites.'}
@@ -821,14 +820,14 @@ export default function DestinationPage() {
           </div>
 
           {/* Card 6: Support */}
-          <div className="bg-zinc-50 p-6 sm:p-8 rounded-2xl border border-zinc-200 space-y-3">
+          <div className="bg-zinc-50 p-5 sm:p-8 rounded-2xl border border-zinc-200 flex flex-col items-center sm:items-start space-y-3">
             <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 font-bold flex items-center justify-center border border-blue-100 shadow-2xs">
               <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
                 <path d="M12 1c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9z" />
               </svg>
             </div>
-            <h3 className="font-bold text-black text-xl">{lang === 'en' ? 'Humans on support, 24/7' : 'Soporte humano 24/7'}</h3>
-            <p className="text-base text-zinc-600 leading-relaxed font-sans">
+            <h3 className="font-bold text-black text-lg sm:text-xl">{lang === 'en' ? 'Humans on support, 24/7' : 'Soporte humano 24/7'}</h3>
+            <p className="text-sm sm:text-base text-zinc-600 leading-relaxed font-sans">
               {lang === 'en'
                 ? 'Real people, around the clock, in the rare case something needs fixing. Average first reply is measured in minutes.'
                 : 'Atención personalizada por personas reales las 24 horas del día. Respuestas rápidas en minutos para resolver cualquier duda.'}

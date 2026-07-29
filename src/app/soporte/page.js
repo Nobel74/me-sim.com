@@ -41,39 +41,39 @@ export default function SupportMainPage() {
       </nav>
 
       {/* Dark Hero Header Mobile First */}
-      <div className="relative rounded-3xl bg-zinc-900 text-white p-6 sm:p-10 md:p-12 mb-10 shadow-2xl overflow-hidden border border-zinc-800">
+      <div className="relative rounded-3xl bg-zinc-900 text-white p-4 sm:p-10 md:p-12 mb-8 sm:mb-10 shadow-2xl overflow-hidden border border-zinc-800">
         <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/75 to-black/40 z-10"></div>
         <div className="absolute top-0 right-0 w-96 h-96 bg-[#ffec00]/15 rounded-full blur-3xl pointer-events-none"></div>
 
-        <div className="relative z-20 max-w-3xl">
-          <span className="bg-[#ffec00] text-black text-xs font-bold px-3.5 py-1.5 rounded-full uppercase tracking-wider mb-4 inline-block shadow-xs">
-            💬 {lang === 'en' ? 'ME-SIM 24/7 Support Center' : 'Centro de Soporte ME-SIM 24/7'}
+        <div className="relative z-20 max-w-3xl flex flex-col items-center sm:items-start text-center sm:text-left">
+          <span className="bg-[#ffec00] text-black text-[11px] sm:text-xs font-bold px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full uppercase tracking-wider mb-3 sm:mb-4 inline-flex items-center gap-1.5 shadow-xs whitespace-normal max-w-full leading-tight">
+            {lang === 'en' ? 'ME-SIM 24/7 Support Center' : 'Centro de Soporte ME-SIM 24/7'}
           </span>
 
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white mb-4 leading-tight">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white mb-3 sm:mb-4 leading-tight">
             {lang === 'en' ? 'How can we help you today?' : '¿En qué podemos ayudarte hoy?'}
           </h1>
-          <p className="text-zinc-300 text-base sm:text-lg mb-8 leading-relaxed font-sans">
+          <p className="text-zinc-300 text-sm sm:text-lg mb-6 sm:mb-8 leading-relaxed font-sans">
             {lang === 'en'
               ? 'Find quick answers for activation, device compatibility, APN setup, and web account management.'
               : 'Encuentra respuestas rápidas sobre instalación, activación de datos, compatibilidad y gestión desde Tu Cuenta.'}
           </p>
 
           {/* Search Bar inside Hero */}
-          <div className="relative max-w-xl">
-            <div className="flex items-center bg-white rounded-full p-2 pl-5 shadow-2xl border-2 border-white/20 hover:border-[#ffec00] transition-all">
-              <svg className="w-5 h-5 text-zinc-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="relative w-full max-w-xl">
+            <div className="flex items-center bg-white rounded-full p-1.5 sm:p-2 pl-3 sm:pl-5 shadow-2xl border-2 border-white/20 hover:border-[#ffec00] transition-all">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-zinc-400 ml-1 mr-1.5 sm:mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={lang === 'en' ? 'Search help articles (e.g. installation, WhatsApp, APN)...' : 'Buscar artículos de ayuda (ej. instalación, WhatsApp, recargas)...'}
-                className="w-full text-black font-semibold text-sm sm:text-base outline-none bg-transparent placeholder-zinc-400"
+                placeholder={lang === 'en' ? 'Search help articles...' : 'Buscar artículos de ayuda...'}
+                className="w-full text-black font-semibold text-xs sm:text-base outline-none bg-transparent placeholder-zinc-400"
               />
               {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="text-zinc-400 hover:text-black px-2">
+                <button onClick={() => setSearchQuery('')} className="text-zinc-400 hover:text-black px-1.5 sm:px-2 text-xs sm:text-sm">
                   ✕
                 </button>
               )}
@@ -110,7 +110,7 @@ export default function SupportMainPage() {
       )}
 
       {/* Main 6 Support Categories Grid */}
-      <h2 className="text-2xl sm:text-3xl font-bold text-black mb-6">
+      <h2 className="text-2xl sm:text-3xl font-bold text-black mb-6 text-center sm:text-left">
         {lang === 'en' ? 'Support Categories' : 'Categorías de Soporte'}
       </h2>
 
@@ -122,16 +122,19 @@ export default function SupportMainPage() {
                 key={cat.slug}
                 onClick={() => setIsCompModalOpen(true)}
                 type="button"
-                className="bg-white rounded-3xl border border-zinc-200 hover:border-black p-6 flex flex-col justify-between hover:shadow-xl transition-all group text-left w-full"
+                className="bg-white rounded-3xl border border-zinc-200 hover:border-black p-5 sm:p-6 flex flex-col items-center sm:items-stretch justify-between hover:shadow-xl transition-all group text-center sm:text-left w-full"
               >
-                <div>
-                  <div className="w-12 h-12 rounded-2xl bg-zinc-100 group-hover:bg-[#ffec00] flex items-center justify-center mb-4 transition-colors">
-                    {cat.icon}
+                <div className="flex flex-col items-center sm:items-start w-full">
+                  <div className="w-12 h-12 rounded-2xl bg-zinc-100/90 group-hover:bg-[#ffec00] flex items-center justify-center mb-4 transition-colors">
+                    {/* SVG Icono Plano */}
+                    <div className="text-black flex items-center justify-center">
+                      {cat.icon}
+                    </div>
                   </div>
                   <h3 className="text-xl font-bold text-black mb-2">{cat.title[lang] || cat.title.es}</h3>
                   <p className="text-zinc-600 text-sm leading-relaxed mb-4">{cat.desc[lang] || cat.desc.es}</p>
                 </div>
-                <span className="text-xs font-bold uppercase tracking-wider text-black group-hover:translate-x-1 transition-transform flex items-center gap-1">
+                <span className="text-xs font-bold uppercase tracking-wider text-black group-hover:translate-x-1 transition-transform flex items-center justify-center sm:justify-start gap-1 w-full">
                   {lang === 'en' ? 'Check Phone ➔' : 'Comprobar Móvil ➔'}
                 </span>
               </button>
@@ -142,16 +145,19 @@ export default function SupportMainPage() {
             <Link
               key={cat.slug}
               href={`/soporte/${cat.slug}`}
-              className="bg-white rounded-3xl border border-zinc-200 hover:border-black p-6 flex flex-col justify-between hover:shadow-xl transition-all group"
+              className="bg-white rounded-3xl border border-zinc-200 hover:border-black p-5 sm:p-6 flex flex-col items-center sm:items-stretch justify-between hover:shadow-xl transition-all group text-center sm:text-left"
             >
-              <div>
-                <div className="w-12 h-12 rounded-2xl bg-zinc-100 group-hover:bg-[#ffec00] flex items-center justify-center mb-4 transition-colors">
-                  {cat.icon}
+              <div className="flex flex-col items-center sm:items-start w-full">
+                <div className="w-12 h-12 rounded-2xl bg-zinc-100/90 group-hover:bg-[#ffec00] flex items-center justify-center mb-4 transition-colors">
+                  {/* SVG Icono Plano */}
+                  <div className="text-black flex items-center justify-center">
+                    {cat.icon}
+                  </div>
                 </div>
                 <h3 className="text-xl font-bold text-black mb-2">{cat.title[lang] || cat.title.es}</h3>
                 <p className="text-zinc-600 text-sm leading-relaxed mb-4">{cat.desc[lang] || cat.desc.es}</p>
               </div>
-              <span className="text-xs font-bold uppercase tracking-wider text-black group-hover:translate-x-1 transition-transform flex items-center gap-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-black group-hover:translate-x-1 transition-transform flex items-center justify-center sm:justify-start gap-1 w-full">
                 {lang === 'en' ? 'Explore Category ➔' : 'Ver Categoría ➔'}
               </span>
             </Link>
@@ -160,7 +166,7 @@ export default function SupportMainPage() {
       </div>
 
       {/* Human Assistance Contact Banner */}
-      <div className="relative rounded-3xl bg-zinc-900 text-white p-8 sm:p-10 text-center mb-14 shadow-2xl overflow-hidden border border-zinc-800">
+      <div className="relative rounded-3xl bg-zinc-900 text-white p-4 sm:p-10 text-center mb-10 sm:mb-14 shadow-2xl overflow-hidden border border-zinc-800">
         <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/80 to-black/50 z-10"></div>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-[#ffec00]/10 rounded-full blur-3xl pointer-events-none"></div>
 
@@ -175,32 +181,32 @@ export default function SupportMainPage() {
               : 'Si necesitas asistencia adicional, nuestro equipo de soporte humano está activo ahora mismo. Escríbenos y lo resolveremos juntos en pocos minutos.'}
           </p>
 
-          <div className="pt-2 flex justify-center items-center">
+          <div className="pt-2 flex justify-center items-center w-full">
             <a
               href="mailto:info@me-sim.com"
-              className="inline-flex items-center gap-2.5 bg-white/10 hover:bg-[#ffec00] text-white hover:text-black border border-white/20 hover:border-[#ffec00] font-semibold font-condensed tracking-wider uppercase px-6 py-3.5 rounded-full text-sm sm:text-base transition-all shadow-lg backdrop-blur-md group"
+              className="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-[#ffec00] text-white hover:text-black border border-white/20 hover:border-[#ffec00] font-semibold font-condensed tracking-wider uppercase py-3 px-4 sm:py-3.5 sm:px-6 rounded-full text-xs sm:text-base transition-all shadow-lg backdrop-blur-md group max-w-full"
             >
-              <svg className="w-5 h-5 fill-current flex-shrink-0 group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 fill-current flex-shrink-0 group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
                 <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
               </svg>
-              <span>Email info@me-sim.com</span>
+              <span className="truncate sm:whitespace-nowrap select-all font-bold">info@me-sim.com</span>
             </a>
           </div>
         </div>
       </div>
 
       {/* Subsection: Frequently Asked Questions (Articles List) */}
-      <div className="bg-white rounded-3xl border border-zinc-200 p-6 sm:p-10 shadow-xl">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6 pb-4 border-b border-zinc-100">
-          <div>
+      <div className="bg-white rounded-3xl border border-zinc-200 p-4 sm:p-10 shadow-xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-zinc-100 text-center sm:text-left">
+          <div className="flex flex-col items-center sm:items-start">
             <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest block mb-1">
               {lang === 'en' ? 'POPULAR GUIDES' : 'GUÍAS MÁS BUSCADAS'}
             </span>
-            <h2 className="text-2xl sm:text-3xl font-bold text-black">
+            <h2 className="text-xl sm:text-3xl font-bold text-black">
               {lang === 'en' ? 'Frequently Asked Questions' : 'Preguntas Frecuentes'}
             </h2>
           </div>
-          <span className="bg-[#ffec00] text-black text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider self-start sm:self-center">
+          <span className="bg-[#ffec00] text-black text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider self-center">
             {SUPPORT_ARTICLES.length} {lang === 'en' ? 'Articles' : 'Artículos'}
           </span>
         </div>
@@ -210,9 +216,9 @@ export default function SupportMainPage() {
             <Link
               key={art.slug}
               href={`/soporte/articles/${art.slug}`}
-              className="p-5 rounded-2xl bg-zinc-50/80 hover:bg-zinc-100 border border-zinc-200/80 hover:border-black transition-all group flex flex-col justify-between"
+              className="p-5 rounded-2xl bg-zinc-50/80 hover:bg-zinc-100 border border-zinc-200/80 hover:border-black transition-all group flex flex-col items-center sm:items-stretch justify-between text-center sm:text-left"
             >
-              <div>
+              <div className="flex flex-col items-center sm:items-start w-full">
                 <h3 className="font-bold text-black text-base sm:text-lg mb-2 group-hover:text-black leading-tight">
                   {art.title[lang] || art.title.es}
                 </h3>
@@ -220,7 +226,7 @@ export default function SupportMainPage() {
                   {art.desc[lang] || art.desc.es}
                 </p>
               </div>
-              <span className="text-xs font-bold text-black uppercase tracking-wider group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+              <span className="text-xs font-bold text-black uppercase tracking-wider group-hover:translate-x-1 transition-transform inline-flex items-center justify-center sm:justify-start gap-1 w-full">
                 {lang === 'en' ? 'Read Guide' : 'Leer Guía'} ➔
               </span>
             </Link>

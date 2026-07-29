@@ -366,7 +366,7 @@ export default function CompatibilityModal({ isOpen, onClose, lang = 'es' }) {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-3xl p-6 sm:p-8 max-w-xl w-full shadow-2xl space-y-6 relative border border-zinc-200 max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-3xl p-4 sm:p-8 max-w-xl w-full shadow-2xl space-y-4 sm:space-y-6 relative border border-zinc-200 max-h-[90vh] overflow-y-auto"
       >
         <button
           onClick={onClose}
@@ -456,20 +456,23 @@ export default function CompatibilityModal({ isOpen, onClose, lang = 'es' }) {
                 key={idx}
                 className="bg-zinc-50 hover:bg-zinc-100/90 py-2 px-3 rounded-xl border border-zinc-200 flex items-center justify-between gap-2.5 transition-colors"
               >
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-bold font-mono px-1.5 py-0.5 rounded bg-zinc-200/80 text-zinc-700 uppercase">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="hidden sm:inline-block text-[11px] font-bold font-mono px-1.5 py-0.5 rounded bg-zinc-200/80 text-zinc-700 uppercase flex-shrink-0">
                     {d.brand}
                   </span>
-                  <span className="font-bold text-black text-sm sm:text-base leading-tight">{d.model}</span>
+                  <span className="font-bold text-black text-sm sm:text-base leading-tight truncate">{d.model}</span>
                 </div>
 
                 <button
                   onClick={() => setSelectedDevice(d)}
                   type="button"
-                  className="bg-black hover:bg-zinc-800 text-[#ffec00] font-bold text-xs py-1 px-2.5 rounded-lg transition-all shadow-2xs whitespace-nowrap flex items-center gap-1 flex-shrink-0"
+                  aria-label={`Ver compatibilidad ${d.model}`}
+                  className="bg-black hover:bg-zinc-800 text-[#ffec00] font-bold text-xs p-1.25 w-8 h-8 sm:w-auto sm:h-auto sm:py-1 sm:px-2.5 rounded-full sm:rounded-lg transition-all shadow-2xs whitespace-nowrap flex items-center justify-center gap-1 flex-shrink-0 aspect-square sm:aspect-auto"
                 >
-                  <span>{lang === 'en' ? 'Check' : 'Ver compatibilidad'}</span>
-                  <span>➔</span>
+                  <span className="hidden sm:inline">{lang === 'en' ? 'Check' : 'Ver compatibilidad'}</span>
+                  <span className="text-[#ffec00] text-xs font-bold sm:ml-0.5 flex items-center justify-center">
+                    ➔
+                  </span>
                 </button>
               </div>
             ))
