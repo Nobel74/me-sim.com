@@ -7,19 +7,6 @@ export async function GET(request) {
   const country = (searchParams.get('country') || '').toLowerCase();
   const region = (searchParams.get('region') || '').toLowerCase();
 
-  // Multiplies all base provider prices by 1.8928 to cover margins + taxes
-  const applyMarkup = (plansList) => {
-    return plansList.map((p) => {
-      const rawPrice = parseFloat(p.priceEur || p.price || 0);
-      const markedUp = parseFloat((rawPrice * 1.8928).toFixed(2));
-      return {
-        ...p,
-        priceEur: markedUp,
-        price: markedUp,
-      };
-    });
-  };
-
   try {
     let endpoint = '/plans-v2';
     if (country) {
@@ -162,6 +149,62 @@ export async function GET(request) {
     { iso: 'cw', name: 'Curazao', region: 'caribbean', baseEur: 5.90 },
     { iso: 'jm', name: 'Jamaica', region: 'caribbean', baseEur: 5.90 },
   ];
+
+  // Dynamic regional markup calculations
+  const applyMarkup = (plansList) => {
+    const REGION_MARKUPS = {
+      'europe': 2.10,
+      'europe-morocco': 2.05,
+      'north-america': 1.95,
+      'aukus': 1.95,
+      'china-hk-macau': 1.90,
+      'east-asia': 1.85,
+      'southeast-asia': 1.85,
+      'asia': 1.80,
+      'middle-east': 1.80,
+      'australia-new-zealand': 1.80,
+      'africa': 1.65,
+      'south-america': 1.60,
+      'caribbean': 1.50,
+      'oceania': 1.70, // general oceania fallback
+    };
+
+    return plansList.map((p) => {
+      let planRegion = (p.region || '').toLowerCase();
+      const pIso = (p.iso || '').toLowerCase();
+
+      // Detect region by comparing keys
+      if (p.is_region && REGION_MARKUPS[pIso]) {
+        planRegion = pIso;
+      } else {
+        const matchingCountry = countryMeta.find((c) => c.iso === pIso);
+        if (matchingCountry) {
+          planRegion = matchingCountry.region;
+        }
+      }
+
+      // Special sub-region override rules
+      if (pIso === 'jp' || pIso === 'kr' || pIso === 'tw') {
+        planRegion = 'east-asia';
+      }
+      if (pIso === 'th' || pIso === 'vn' || pIso === 'sg' || pIso === 'id' || pIso === 'my') {
+        planRegion = 'southeast-asia';
+      }
+      if (pIso === 'au' || pIso === 'nz') {
+        planRegion = 'australia-new-zealand';
+      }
+
+      const multiplier = REGION_MARKUPS[planRegion] || 1.8928;
+      const rawPrice = parseFloat(p.priceEur || p.price || 0);
+      const markedUp = parseFloat((rawPrice * multiplier).toFixed(2));
+
+      return {
+        ...p,
+        priceEur: markedUp,
+        price: markedUp,
+      };
+    });
+  };
 
   const targetCode = country || region;
 
