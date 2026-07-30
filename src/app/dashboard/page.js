@@ -321,17 +321,25 @@ export default function DashboardPage() {
                 const qrUrl = order.qrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(lpaString)}`;
 
                 const rawTitle = order.title || 'eSIM España 10 GB (30 días)';
-                const isUnlimited = rawTitle.toLowerCase().includes('ilimitado') ||
-                                    rawTitle.toLowerCase().includes('unlimited') ||
-                                    rawTitle.toLowerCase().includes('/ día') ||
+                const isDaily = rawTitle.toLowerCase().includes('/ día') ||
+                                    rawTitle.toLowerCase().includes('/ dia') ||
                                     rawTitle.toLowerCase().includes('/ day');
+                const isUnlimited = (rawTitle.toLowerCase().includes('ilimitado') ||
+                                    rawTitle.toLowerCase().includes('unlimited')) && !isDaily;
 
                 // Formatted clean title display
-                const cleanTitle = isUnlimited
-                  ? (lang === 'en' ? `eSIM ${order.country || 'Spain'} Unlimited Data (${order.days || 7} days)` : (rawTitle.toLowerCase().includes('ilimitado') ? rawTitle : `eSIM ${order.country || 'España'} Datos Ilimitados (${order.days || 7} días)`))
-                  : (lang === 'en'
-                      ? rawTitle.replace(/Día/g, 'Day').replace(/Ilimitados/g, 'Unlimited').replace(/\s*1\s*Days$/i, '').replace(/Days/g, 'Days')
-                      : rawTitle.replace(/Day/g, 'Día').replace(/Unlimited/g, 'Ilimitados').replace(/\s*1\s*(Days|Días)$/i, '').replace(/Days/g, 'Días'));
+                let cleanTitle = rawTitle;
+                if (isUnlimited) {
+                  cleanTitle = lang === 'en'
+                    ? `eSIM ${order.country || 'Spain'} Unlimited Data (${order.days || 7} days)`
+                    : `eSIM ${order.country || 'España'} Datos Ilimitados (${order.days || 7} días)`;
+                } else if (isDaily) {
+                  cleanTitle = rawTitle;
+                } else {
+                  cleanTitle = lang === 'en'
+                    ? rawTitle.replace(/Día/g, 'Day').replace(/Ilimitados/g, 'Unlimited').replace(/\s*1\s*Days$/i, '').replace(/Days/g, 'Days')
+                    : rawTitle.replace(/Day/g, 'Día').replace(/Unlimited/g, 'Ilimitados').replace(/\s*1\s*(Days|Días)$/i, '').replace(/Days/g, 'Días');
+                }
 
                 // Fixed GB calculation
                 const used = order.usedGb || 8.0;
@@ -386,7 +394,7 @@ export default function DashboardPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 pb-6 border-b border-zinc-100">
                       {/* Left Column: Data Usage */}
                       <div className="bg-zinc-50 p-3.5 sm:p-5 rounded-2xl border border-zinc-200 flex flex-col justify-between space-y-3">
-                        {!isUnlimited ? (
+                        {!isUnlimited && !isDaily ? (
                           <>
                             <div className="flex flex-col text-xs font-semibold items-start gap-2.5 w-full">
                               <span className="font-bold text-black uppercase text-[11px] tracking-wide block">
@@ -408,28 +416,48 @@ export default function DashboardPage() {
                                     ? (lang === 'en' ? 'Moderate' : 'Medio')
                                     : (lang === 'en' ? 'High' : 'Alto')}
                                 </span>
-                                <span className="text-black font-mono font-bold text-xs sm:text-sm">{used}GB/{total}GB({pct}%)</span>
+                                <span className="text-black font-mono font-bold text-xs sm:text-sm">{used}GB/{total}GB ({pct}%)</span>
                               </div>
                             </div>
 
                             {/* Animated Progress Bar */}
                             <div className="w-full bg-zinc-200/70 h-6 rounded-full overflow-hidden border border-zinc-300/60 shadow-inner relative flex items-center p-0.5">
                               <div
-                                className="h-full rounded-full transition-all animate-fill-bar shadow-sm flex items-center justify-center px-2 overflow-hidden"
-                                style={{
-                                  '--target-width': `${pct}%`,
-                                  background:
-                                    pct < 40
-                                      ? 'linear-gradient(90deg, #10b981 0%, #34d399 100%)'
-                                      : pct < 75
-                                      ? 'linear-gradient(90deg, #10b981 0%, #f59e0b 100%)'
-                                      : 'linear-gradient(90deg, #10b981 0%, #f59e0b 50%, #ef4444 100%)',
-                                }}
+                                  className="h-full rounded-full transition-all animate-fill-bar shadow-sm flex items-center justify-center px-2 overflow-hidden"
+                                  style={{
+                                    '--target-width': `${pct}%`,
+                                    background:
+                                      pct < 40
+                                        ? 'linear-gradient(90deg, #10b981 0%, #34d399 100%)'
+                                        : pct < 75
+                                        ? 'linear-gradient(90deg, #10b981 0%, #f59e0b 100%)'
+                                        : 'linear-gradient(90deg, #10b981 0%, #f59e0b 50%, #ef4444 100%)',
+                                  }}
                               >
                                 <span className="text-[11px] font-black text-white font-mono leading-none flex items-center justify-center h-full drop-shadow-md tracking-tight">
                                   {pct}%
                                 </span>
                               </div>
+                            </div>
+                          </>
+                        ) : isDaily ? (
+                          <>
+                            <div className="flex items-center justify-between text-xs font-semibold">
+                              <span className="text-zinc-700 font-sans flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse flex-shrink-0"></span>
+                                <span className="font-bold text-black uppercase text-[11px] tracking-wide">
+                                  {lang === 'en' ? 'Daily Allowance:' : 'Límite Diario:'}
+                                </span>
+                              </span>
+                              <span className="text-amber-600 font-mono font-bold text-xs">
+                                {order.dataAmount || '500 MB'} / {lang === 'en' ? 'Day' : 'Día'}
+                              </span>
+                            </div>
+
+                            <div className="w-full bg-[#ffec00] h-6 rounded-full overflow-hidden border border-amber-500 shadow-sm flex items-center justify-center p-0.5">
+                              <span className="text-[11px] font-black text-black font-mono leading-none tracking-wider uppercase">
+                                {order.dataAmount || '500 MB'} / {lang === 'en' ? 'Day High-Speed' : 'Día Alta Velocidad'}
+                              </span>
                             </div>
                           </>
                         ) : (
