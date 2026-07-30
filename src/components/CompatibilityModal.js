@@ -366,7 +366,7 @@ export default function CompatibilityModal({ isOpen, onClose, lang = 'es' }) {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-t-[2.5rem] sm:rounded-3xl p-6 sm:p-8 max-w-xl w-full shadow-2xl space-y-4 sm:space-y-6 relative border-t border-x border-zinc-200 sm:border h-[85vh] sm:h-auto max-h-[85vh] sm:max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-t-[2.5rem] sm:rounded-3xl px-3.5 py-6 sm:p-8 max-w-xl w-full shadow-2xl space-y-4 sm:space-y-6 relative border-t border-x border-zinc-200 sm:border h-[85vh] sm:h-auto max-h-[85vh] sm:max-h-[90vh] overflow-y-auto"
       >
         <button
           onClick={onClose}
@@ -382,7 +382,7 @@ export default function CompatibilityModal({ isOpen, onClose, lang = 'es' }) {
             </svg>
           </div>
           <div>
-            <h3 className="text-xl font-bold text-black tracking-tight">
+            <h3 className="text-xl font-bold text-black tracking-tight leading-[1.15rem] sm:leading-snug">
               {lang === 'en' ? 'Is your phone compatible?' : '¿Es tu teléfono compatible?'}
             </h3>
             <p className="text-base text-zinc-500 font-medium">
