@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getTranslation, ALL_WORLD_COUNTRIES, getRegionName } from '../../lib/i18n';
+import { formatCurrency, convertCurrency } from '../../lib/currency';
 import { matchesCountryQuery } from '../../lib/searchUtils';
 import CountryCard from '../../components/CountryCard';
 
@@ -31,6 +32,7 @@ export default function AllDestinationsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRegion, setSelectedRegion] = useState('all');
   const [heroBg, setHeroBg] = useState(HERO_RANDOM_BACKGROUNDS[0]);
+  const [plans, setPlans] = useState([]);
 
   const t = getTranslation(lang);
 
@@ -65,11 +67,28 @@ export default function AllDestinationsPage() {
       })
       .catch(() => {});
 
+    fetch('/api/plans')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.plans) {
+          setPlans(data.plans);
+        }
+      })
+      .catch(() => {});
+
     return () => {
       window.removeEventListener('mesim_currency_changed', handleCurrencyChange);
       window.removeEventListener('mesim_lang_changed', handleLangChange);
     };
   }, []);
+
+  const getMinPriceDisplay = () => {
+    if (!plans || plans.length === 0) return currency === 'EUR' ? '2.90 €' : '£2.89';
+    const minEur = Math.min(...plans.map((p) => p.priceEur || p.price || 999));
+    if (minEur === 999) return currency === 'EUR' ? '2.90 €' : '£2.89';
+    const converted = convertCurrency(minEur, currency, rates);
+    return formatCurrency(converted, currency);
+  };
 
   const regionKeys = [
     'all',
@@ -200,7 +219,7 @@ export default function AllDestinationsPage() {
                 <span>{lang === 'en' ? 'Best Local Value' : 'Mejor Cobertura Local'}</span>
               </span>
               <span className="w-full sm:w-auto text-xs sm:text-sm text-white font-bold tracking-wide bg-black/60 px-3 py-1.5 rounded-full border border-white/10 shadow-xs text-center flex items-center justify-center">
-                {lang === 'en' ? 'Plans from 2.89 €' : 'Planes desde 2.89 €'}
+                {lang === 'en' ? `Plans from ${getMinPriceDisplay()}` : `Planes desde ${getMinPriceDisplay()}`}
               </span>
             </div>
 

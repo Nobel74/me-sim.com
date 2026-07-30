@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getTranslation, getCountryName } from '../../lib/i18n';
+import { formatCurrency, convertCurrency } from '../../lib/currency';
 import HeroSearch from '../../components/HeroSearch';
 import CountryCard from '../../components/CountryCard';
 import RegionCard from '../../components/RegionCard';
@@ -248,6 +249,14 @@ export default function HomePreviewPage() {
     };
   }, []);
 
+  const getMinPriceDisplay = () => {
+    if (!plans || plans.length === 0) return currency === 'EUR' ? '2.90 €' : '£2.89';
+    const minEur = Math.min(...plans.map((p) => p.priceEur || p.price || 999));
+    if (minEur === 999) return currency === 'EUR' ? '2.90 €' : '£2.89';
+    const converted = convertCurrency(minEur, currency, rates);
+    return formatCurrency(converted, currency);
+  };
+
   const localPlansMap = new Map();
   plans.forEach((plan) => {
     if (plan.iso && !plan.is_region && !localPlansMap.has(plan.iso)) {
@@ -317,7 +326,7 @@ export default function HomePreviewPage() {
                 <span>{lang === 'en' ? 'Best Local Value' : 'Mejor Cobertura Local'}</span>
               </span>
               <span className="w-full sm:w-auto text-xs sm:text-sm text-white font-bold tracking-wide bg-black/60 px-3 py-1.5 rounded-full border border-white/10 shadow-xs text-center flex items-center justify-center">
-                {lang === 'en' ? 'Plans from €2.89' : 'Planes desde 2.89 €'}
+                {lang === 'en' ? `Plans from ${getMinPriceDisplay()}` : `Planes desde ${getMinPriceDisplay()}`}
               </span>
             </div>
 
