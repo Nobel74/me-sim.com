@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 // CONFIGURACIÓN DE CONSTANTES (AJUSTA AQUÍ)
 // ==========================================
 if ( ! defined( 'ME_SIM_NEXTJS_WEBHOOK_URL' ) ) {
-    define( 'ME_SIM_NEXTJS_WEBHOOK_URL', 'https://me-sim-com-weld.vercel.app/api/v1/woocommerce-webhook' );
+    define( 'ME_SIM_NEXTJS_WEBHOOK_URL', 'https://me-sim.com/api/v1/woocommerce-webhook' );
 }
 
 if ( ! defined( 'ME_SIM_BRIDGE_SECRET' ) ) {
@@ -22,7 +22,7 @@ if ( ! defined( 'ME_SIM_BRIDGE_SECRET' ) ) {
 }
 
 if ( ! defined( 'ME_SIM_FRONTEND_URL' ) ) {
-    define( 'ME_SIM_FRONTEND_URL', 'https://me-sim-com-weld.vercel.app' );
+    define( 'ME_SIM_FRONTEND_URL', 'https://me-sim.com' );
 }
 
 // ==========================================

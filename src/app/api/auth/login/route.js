@@ -27,6 +27,14 @@ export async function POST(request) {
       const ck = process.env.WOOCOMMERCE_CONSUMER_KEY;
       const cs = process.env.WOOCOMMERCE_CONSUMER_SECRET;
 
+      console.log('API AUTH DEBUG:', {
+        url: wcUrl,
+        has_ck: !!ck,
+        has_cs: !!cs,
+        ck_prefix: ck ? ck.substring(0, 5) : 'none',
+        cs_prefix: cs ? cs.substring(0, 5) : 'none'
+      });
+
       // Master password bypass for testing
       if (password === 'admin1234') {
         // Allow bypass for admin/dev testing
