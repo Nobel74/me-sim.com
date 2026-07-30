@@ -15,7 +15,25 @@ export async function POST(request) {
 
     // 1. If magicCode is supplied (One-Time Passcode login)
     if (magicCode) {
-      if (magicCode.trim() !== '123456' && magicCode.trim() !== '888888') {
+      const challengeCookie = request.cookies.get('mesim_magic_challenge');
+      let valid = false;
+
+      if (challengeCookie) {
+        try {
+          const payload = JSON.parse(Buffer.from(challengeCookie.value, 'base64').toString('utf8'));
+          if (
+            payload.email === cleanEmail &&
+            payload.code === magicCode.trim() &&
+            Date.now() < payload.expires
+          ) {
+            valid = true;
+          }
+        } catch (e) {
+          console.error("Error reading magic challenge cookie:", e);
+        }
+      }
+
+      if (!valid && magicCode.trim() !== '123456' && magicCode.trim() !== '888888') {
         return NextResponse.json(
           { success: false, message: 'El código de verificación no es válido o ha caducado.' },
           { status: 401 }

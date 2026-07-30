@@ -18,6 +18,56 @@ export async function POST(request) {
         const firstName = names[0] || 'Traveler';
         const lastName = names.slice(1).join(' ') || '';
 
+        // Search for existing WooCommerce customer by email
+        let customerId = 0;
+        let isNewCustomer = false;
+        let generatedPassword = '';
+
+        try {
+          const searchRes = await fetch(`${wcUrl}/wp-json/wc/v3/customers?email=${encodeURIComponent(customerEmail)}`, {
+            headers: {
+              Authorization: 'Basic ' + Buffer.from(`${ck}:${cs}`).toString('base64'),
+            },
+          });
+          if (searchRes.ok) {
+            const customers = await searchRes.json();
+            if (Array.isArray(customers) && customers.length > 0) {
+              customerId = customers[0].id;
+            }
+          }
+        } catch (searchErr) {
+          console.error('Error searching WooCommerce customer:', searchErr);
+        }
+
+        // If customer does not exist, create them
+        if (customerId === 0) {
+          isNewCustomer = true;
+          generatedPassword = 'MS-' + Math.floor(100000 + Math.random() * 900000).toString();
+          try {
+            const createCustRes = await fetch(`${wcUrl}/wp-json/wc/v3/customers`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: 'Basic ' + Buffer.from(`${ck}:${cs}`).toString('base64'),
+              },
+              body: JSON.stringify({
+                email: customerEmail,
+                first_name: firstName,
+                last_name: lastName,
+                username: customerEmail,
+                password: generatedPassword,
+              }),
+            });
+            if (createCustRes.ok) {
+              const customerData = await createCustRes.json();
+              customerId = customerData.id;
+              console.log(`Created new WooCommerce customer #${customerId} for ${customerEmail}`);
+            }
+          } catch (createErr) {
+            console.error('Error creating WooCommerce customer:', createErr);
+          }
+        }
+
         const wcRes = await fetch(`${wcUrl}/wp-json/wc/v3/orders`, {
           method: 'POST',
           headers: {
@@ -29,6 +79,7 @@ export async function POST(request) {
             payment_method_title: 'Stripe',
             set_paid: true,
             transaction_id: paymentIntentId || '',
+            customer_id: customerId, // Linked to real customer ID!
             billing: {
               first_name: firstName,
               last_name: lastName,
@@ -55,6 +106,25 @@ export async function POST(request) {
           if (wcData && wcData.id) {
             wcOrderId = String(wcData.id);
             console.log(`WooCommerce order created successfully: #${wcOrderId}`);
+
+            // Send welcome credentials email to new customers
+            if (isNewCustomer && generatedPassword) {
+              try {
+                await fetch(new URL('/api/email/send', request.url).toString(), {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    email: customerEmail,
+                    type: 'welcome_credentials',
+                    customPassword: generatedPassword,
+                    lang: 'es',
+                  }),
+                });
+                console.log(`Welcome credentials email sent to ${customerEmail}`);
+              } catch (mailErr) {
+                console.error('Error sending welcome email to new customer:', mailErr);
+              }
+            }
           }
         } else {
           const errText = await wcRes.text();

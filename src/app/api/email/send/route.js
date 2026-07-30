@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
-import { sendEmail, generateMagicCodeHtml } from '../../../../lib/email';
+import { sendEmail, generateMagicCodeHtml, generateWelcomeCredentialsHtml } from '../../../../lib/email';
 
 export async function POST(request) {
   try {
-    const { email, type, lang = 'es' } = await request.json();
+    const body = await request.json();
+    const { email, type, lang = 'es', customCode, customPassword } = body;
 
     if (!email || !email.includes('@')) {
       return NextResponse.json(
@@ -15,7 +16,8 @@ export async function POST(request) {
     const cleanEmail = email.trim().toLowerCase();
 
     if (type === 'magic_code') {
-      const code = '123456'; // Generate code
+      // Generate a real random 6-digit verification code if customCode is not passed
+      const code = customCode || Math.floor(100000 + Math.random() * 900000).toString();
       const htmlText = generateMagicCodeHtml(code, lang);
       const result = await sendEmail({
         to: cleanEmail,
@@ -25,11 +27,42 @@ export async function POST(request) {
         data: { code },
       });
 
-      return NextResponse.json({
+      const response = NextResponse.json({
         success: true,
         message: result.simulated
-          ? (lang === 'en' ? `[DEMO EMAIL SENT] Verification code: 123456 sent to ${cleanEmail}` : `[CORREO ENVIADO A TU INBOX] Código enviado a ${cleanEmail} (Código demo: 123456)`)
+          ? (lang === 'en' ? `[DEMO EMAIL SENT] Verification code: ${code} sent to ${cleanEmail}` : `[CORREO ENVIADO A TU INBOX] Código enviado a ${cleanEmail} (Código demo: ${code})`)
           : (lang === 'en' ? `Verification code sent to ${cleanEmail}` : `Código de verificación enviado a ${cleanEmail}`),
+      });
+
+      // Save challenge in secure HttpOnly cookie (valid for 10 minutes)
+      const challengePayload = Buffer.from(JSON.stringify({ email: cleanEmail, code, expires: Date.now() + 10 * 60 * 1000 })).toString('base64');
+      response.cookies.set({
+        name: 'mesim_magic_challenge',
+        value: challengePayload,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        path: '/',
+        maxAge: 600, // 10 minutes
+      });
+
+      return response;
+    }
+
+    if (type === 'welcome_credentials') {
+      const password = customPassword || 'MS-123456';
+      const htmlText = generateWelcomeCredentialsHtml(cleanEmail, password, lang);
+      const result = await sendEmail({
+        to: cleanEmail,
+        subject: lang === 'en' ? '⚡ Your ME-SIM Account Has Been Created' : '⚡ Tu Cuenta de ME-SIM Ha Sido Creada',
+        htmlText,
+        type: 'welcome_credentials',
+        data: { email: cleanEmail, password },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Welcome credentials email processed successfully.',
       });
     }
 
@@ -38,6 +71,7 @@ export async function POST(request) {
       { status: 400 }
     );
   } catch (error) {
+    console.error('Email send endpoint error:', error);
     return NextResponse.json(
       { success: false, message: 'Error al enviar el email.', error: error.message },
       { status: 500 }

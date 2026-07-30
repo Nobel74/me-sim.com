@@ -163,3 +163,42 @@ export function generatePaymentFailedHtml(orderData, lang = 'es') {
     </html>
   `;
 }
+
+export function generateWelcomeCredentialsHtml(email, password, lang = 'es') {
+  const isEn = lang === 'en';
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f5; color: #0f0f0f; margin: 0; padding: 40px 20px;">
+      <div style="max-width: 540px; margin: 0 auto; background: #ffffff; border: 1px solid #e4e4e7; border-radius: 24px; padding: 40px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
+        <h1 style="color: #000000; font-size: 28px; font-weight: 800; margin-bottom: 4px;">⚡ ME-SIM</h1>
+        <h2 style="color: #18181b; font-size: 20px; font-weight: 700; margin-bottom: 16px;">
+          ${isEn ? 'Your Account Has Been Created!' : '¡Tu cuenta ha sido creada con éxito!'}
+        </h2>
+        
+        <p style="color: #52525b; font-size: 15px; line-height: 1.6; margin-bottom: 24px; text-align: left;">
+          ${isEn 
+            ? 'Thank you for your purchase. We have automatically created a customer account for you. Use the credentials below to log in, view your active eSIMs, and track your data usage.' 
+            : 'Gracias por tu compra. Hemos registrado una cuenta de cliente para ti automáticamente. Utiliza las siguientes credenciales para acceder a tu panel, ver tus eSIMs activas y consultar tus consumos:'}
+        </p>
+
+        <div style="background: #f4f4f5; border: 1px solid #e4e4e7; border-radius: 16px; padding: 20px; text-align: left; margin-bottom: 28px; font-size: 14px; color: #27272a;">
+          <p style="margin: 0 0 10px;"><strong>${isEn ? 'Username / Email:' : 'Usuario / Email:'}</strong> ${email}</p>
+          <p style="margin: 0;"><strong>${isEn ? 'Temporary Password:' : 'Contraseña Temporal:'}</strong> <code style="background: #e4e4e7; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${password}</code></p>
+        </div>
+
+        <a href="https://me-sim.com/login" style="background: #ffec00; color: #000000; font-weight: 800; font-size: 15px; padding: 14px 28px; border-radius: 12px; text-decoration: none; display: inline-block; border: 1px solid rgba(0,0,0,0.1); margin-bottom: 20px;">
+          ${isEn ? 'Access My Account ➔' : 'Acceder a Mi Cuenta ➔'}
+        </a>
+
+        <p style="color: #71717a; font-size: 12px; margin-top: 20px;">
+          ${isEn 
+            ? 'For security reasons, we recommend changing this password from your account profile settings after logging in.' 
+            : 'Por razones de seguridad, te recomendamos cambiar esta contraseña temporal desde la configuración de tu cuenta después de iniciar sesión.'}
+        </p>
+      </div>
+    </body>
+    </html>
+  `;
+}
