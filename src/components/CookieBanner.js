@@ -14,23 +14,40 @@ export default function CookieBanner() {
   });
 
   useEffect(() => {
-    // Detect language
-    const currentLang = localStorage.getItem('mesim_lang') || 'es';
+    // Detect language safely
+    let currentLang = 'es';
+    try {
+      currentLang = localStorage.getItem('mesim_lang') || 'es';
+    } catch (e) {
+      console.warn("localStorage is blocked:", e);
+    }
     setLang(currentLang);
 
     const handleLangChange = () => {
-      setLang(localStorage.getItem('mesim_lang') || 'es');
+      try {
+        setLang(localStorage.getItem('mesim_lang') || 'es');
+      } catch (e) {}
     };
     window.addEventListener('mesim_lang_changed', handleLangChange);
 
-    // Check existing consent
-    const savedConsent = localStorage.getItem('mesim_cookie_consent');
+    // Check existing consent safely
+    let savedConsent = null;
+    try {
+      savedConsent = localStorage.getItem('mesim_cookie_consent');
+    } catch (e) {
+      console.warn("localStorage is blocked:", e);
+    }
+
     if (!savedConsent) {
       setShowBanner(true);
     } else {
-      const parsed = JSON.parse(savedConsent);
-      setPreferences(parsed);
-      loadScripts(parsed);
+      try {
+        const parsed = JSON.parse(savedConsent);
+        setPreferences(parsed);
+        loadScripts(parsed);
+      } catch (e) {
+        setShowBanner(true);
+      }
     }
 
     return () => {
@@ -81,7 +98,11 @@ export default function CookieBanner() {
   };
 
   const saveConsent = (newPreferences) => {
-    localStorage.setItem('mesim_cookie_consent', JSON.stringify(newPreferences));
+    try {
+      localStorage.setItem('mesim_cookie_consent', JSON.stringify(newPreferences));
+    } catch (e) {
+      console.warn("localStorage is blocked, choices won't persist:", e);
+    }
     setPreferences(newPreferences);
     loadScripts(newPreferences);
     setShowBanner(false);
