@@ -18,11 +18,27 @@ export default function CartPage() {
 
   const t = getTranslation(lang);
 
+  const sanitizeCartItems = (items) => {
+    return items.map(item => {
+      const dataAmt = (item.dataAmount || '').toLowerCase();
+      const titleText = (item.title || '').toLowerCase();
+      if (dataAmt.includes('/ día') || dataAmt.includes('/ dia') || dataAmt.includes('/ day') || titleText.includes('/ día') || titleText.includes('/ dia') || titleText.includes('/ day')) {
+        item.days = 1;
+        if (item.title) {
+          item.title = item.title.replace(/\s*\d+\s*(days|días|días de validez|days validity|d|day)$/i, '');
+        }
+      }
+      return item;
+    });
+  };
+
   const syncPreferences = () => {
     setLang(localStorage.getItem('mesim_lang') || 'es');
     setCurrency(localStorage.getItem('mesim_curr') || 'EUR');
     const savedCart = JSON.parse(localStorage.getItem('mesim_cart') || '[]');
-    setCart(savedCart);
+    const sanitizedCart = sanitizeCartItems(savedCart);
+    setCart(sanitizedCart);
+    localStorage.setItem('mesim_cart', JSON.stringify(sanitizedCart));
 
     const savedCoupon = JSON.parse(localStorage.getItem('mesim_coupon') || 'null');
     if (savedCoupon) {
@@ -37,7 +53,9 @@ export default function CartPage() {
     const handleLangChange = () => syncPreferences();
     const handleCartChange = () => {
       const savedCart = JSON.parse(localStorage.getItem('mesim_cart') || '[]');
-      setCart(savedCart);
+      const sanitizedCart = sanitizeCartItems(savedCart);
+      setCart(sanitizedCart);
+      localStorage.setItem('mesim_cart', JSON.stringify(sanitizedCart));
     };
 
     window.addEventListener('mesim_currency_changed', handleCurrencyChange);
@@ -137,7 +155,7 @@ export default function CartPage() {
                       <p className="text-[0.85rem] text-zinc-500 font-medium mt-0.5">
                         {lang === 'en'
                           ? item.dataAmount.replace(/Día/g, 'Day').replace(/Ilimitados/g, 'Unlimited')
-                          : item.dataAmount.replace(/Day/g, 'Día').replace(/Unlimited/g, 'Ilimitados')} • {item.days} {lang === 'en' ? 'days validity' : 'días de validez'}
+                          : item.dataAmount.replace(/Day/g, 'Día').replace(/Unlimited/g, 'Ilimitados')} • {item.days} {lang === 'en' ? (item.days === 1 ? 'day validity' : 'days validity') : (item.days === 1 ? 'día de validez' : 'días de validez')}
                       </p>
                     </div>
                   </div>

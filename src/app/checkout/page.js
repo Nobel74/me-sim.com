@@ -41,7 +41,19 @@ export default function CheckoutPage() {
     window.addEventListener('mesim_lang_changed', handleLangChange);
 
     const savedCart = JSON.parse(localStorage.getItem('mesim_cart') || '[]');
-    setCart(savedCart);
+    const sanitizedCart = savedCart.map(item => {
+      const dataAmt = (item.dataAmount || '').toLowerCase();
+      const titleText = (item.title || '').toLowerCase();
+      if (dataAmt.includes('/ día') || dataAmt.includes('/ dia') || dataAmt.includes('/ day') || titleText.includes('/ día') || titleText.includes('/ dia') || titleText.includes('/ day')) {
+        item.days = 1;
+        if (item.title) {
+          item.title = item.title.replace(/\s*\d+\s*(days|días|días de validez|days validity|d|day)$/i, '');
+        }
+      }
+      return item;
+    });
+    setCart(sanitizedCart);
+    localStorage.setItem('mesim_cart', JSON.stringify(sanitizedCart));
 
     const savedCoupon = JSON.parse(localStorage.getItem('mesim_coupon') || 'null');
     setAppliedCoupon(savedCoupon);
@@ -149,7 +161,7 @@ export default function CheckoutPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Contact & Billing Form */}
-        <div className="bg-white rounded-3xl border border-zinc-200 p-6 md:p-8 shadow-xl">
+        <div className="bg-white rounded-3xl border border-zinc-200 px-2 py-4 sm:p-6 md:p-8 shadow-xl">
           <h2 className="text-2xl font-semibold font-semi text-black mb-2">
             1. {lang === 'en' ? 'Buyer Information' : 'Datos del Comprador'}
           </h2>
@@ -201,19 +213,19 @@ export default function CheckoutPage() {
 
             {/* Stripe Card Integration Form */}
             <div className="pt-4 border-t border-zinc-100">
-              <h3 className="text-base font-semibold font-semi text-black mb-3">
+              <h3 className="text-base font-semibold font-semi text-black mb-3 leading-[1.15rem]">
                 2. {lang === 'en' ? 'Payment Method (Encrypted Stripe)' : 'Método de Pago (Pasarela Segura Stripe)'}
               </h3>
 
-              <div className="bg-zinc-50 border border-zinc-200 p-4 rounded-2xl space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-black flex items-center gap-1.5 font-sans">
-                    <svg className="w-4 h-4 fill-current text-black" viewBox="0 0 24 24">
+              <div className="bg-zinc-50 border border-zinc-200 px-2 py-3.5 sm:p-4 rounded-2xl space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <span className="text-xs font-bold text-black flex items-center justify-center sm:justify-start gap-1.5 font-sans w-full sm:w-auto">
+                    <svg className="w-4 h-4 fill-current text-black flex-shrink-0" viewBox="0 0 24 24">
                       <path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z" />
                     </svg>
                     Stripe Payments
                   </span>
-                  <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full font-sans">
+                  <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full font-sans w-full text-center sm:w-auto">
                     PCI-DSS Cifrado 256-bit
                   </span>
                 </div>
@@ -267,16 +279,16 @@ export default function CheckoutPage() {
         </div>
 
         {/* Summary Card */}
-        <div className="bg-black text-white rounded-3xl p-6 md:p-8 h-fit shadow-2xl relative overflow-hidden border border-zinc-800">
+        <div className="bg-black text-white rounded-3xl p-3 sm:p-6 md:p-8 h-fit shadow-2xl relative overflow-hidden border border-zinc-800">
           <h2 className="text-2xl font-semibold font-semi mb-4 pb-3 border-b border-zinc-800 text-[#ffec00]">
             {lang === 'en' ? 'eSIM Order Summary' : 'Resumen de tu eSIM'}
           </h2>
 
           <div className="space-y-4 mb-6">
             {cart.map((item) => (
-              <div key={item.cartId} className="flex justify-between items-center text-sm border-b border-zinc-800 pb-3">
-                <div>
-                  <p className="font-semibold font-semi text-[#ffec00] text-lg">
+              <div key={item.cartId} className="flex justify-between items-center text-sm border-b border-zinc-800 pb-3 gap-2">
+                <div className="flex-1 min-w-0 pr-1">
+                  <p className="font-semibold font-semi text-[#ffec00] text-sm sm:text-lg leading-[1.15rem] sm:leading-snug break-words">
                     {lang === 'en'
                       ? item.title.replace(/Día/g, 'Day').replace(/Ilimitados/g, 'Unlimited').replace(/\s*1\s*Days$/i, '').replace(/Days/g, 'Days')
                       : item.title.replace(/Day/g, 'Día').replace(/Unlimited/g, 'Ilimitados').replace(/\s*1\s*(Days|Días)$/i, '').replace(/Days/g, 'Días')}
@@ -284,10 +296,10 @@ export default function CheckoutPage() {
                   <p className="text-xs text-zinc-400 font-medium font-sans">
                     {lang === 'en'
                       ? item.dataAmount.replace(/Día/g, 'Day').replace(/Ilimitados/g, 'Unlimited')
-                      : item.dataAmount.replace(/Day/g, 'Día').replace(/Unlimited/g, 'Ilimitados')} • {item.days} {lang === 'en' ? 'days' : 'días'}
+                      : item.dataAmount.replace(/Day/g, 'Día').replace(/Unlimited/g, 'Ilimitados')} • {item.days} {lang === 'en' ? (item.days === 1 ? 'day' : 'days') : (item.days === 1 ? 'día' : 'días')}
                   </p>
                 </div>
-                <span className="font-semibold font-condensed text-2xl text-white">{formatCurrency(item.convertedPrice, currency)}</span>
+                <span className="font-semibold font-condensed text-xl sm:text-2xl text-white flex-shrink-0 text-right">{formatCurrency(item.convertedPrice, currency)}</span>
               </div>
             ))}
           </div>

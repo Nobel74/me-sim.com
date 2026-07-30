@@ -23,7 +23,19 @@ export async function GET(request) {
         // Deduplicate live api plans
         const uniqueMap = new Map();
         livePlans.forEach((p) => {
+          // Normalize structure if necessary
           const pIso = (p.iso || p.isoCode || '').toLowerCase();
+          
+          // Sanitize daily plans: set days to 1 and remove the day suffix from the title
+          const dataAmt = (p.dataAmount || p.data || '').toLowerCase();
+          const titleText = (p.title || '').toLowerCase();
+          if (dataAmt.includes('/ día') || dataAmt.includes('/ dia') || dataAmt.includes('/ day') || titleText.includes('/ día') || titleText.includes('/ dia') || titleText.includes('/ day')) {
+            p.days = 1;
+            if (p.title) {
+              p.title = p.title.replace(/\s*\d+\s*(days|días|días de validez|days validity|d|day)$/i, '');
+            }
+          }
+
           const key = `${pIso}-${p.dataAmount || p.data}-${p.days}`;
           if (!uniqueMap.has(key)) {
             uniqueMap.set(key, p);
@@ -173,7 +185,9 @@ export async function GET(request) {
     selectedTiers.forEach((t, idx) => {
       dynamicPlans.push({
         id: `${targetCode}-dyn-v${idx + 1}-${t.dataAmount.replace(/ /g, '').toLowerCase()}`,
-        title: `${displayName} ${t.dataAmount} ${t.days}Days`,
+        title: t.days === 1
+          ? `${displayName} ${t.dataAmount}`
+          : `${displayName} ${t.dataAmount} ${t.days}Days`,
         country: displayName,
         iso: targetCode,
         region: isRegionQuery ? targetCode : 'europe',
@@ -210,7 +224,9 @@ export async function GET(request) {
     regionTiers.forEach((t, idx) => {
       fallbackPlans.push({
         id: `${r.iso}-reg-v${idx + 1}-${t.dataAmount.replace(/ /g, '').toLowerCase()}`,
-        title: `${r.name} ${t.dataAmount} ${t.days}Days`,
+        title: t.days === 1
+          ? `${r.name} ${t.dataAmount}`
+          : `${r.name} ${t.dataAmount} ${t.days}Days`,
         country: r.name,
         iso: r.iso,
         region: r.region,
@@ -242,7 +258,9 @@ export async function GET(request) {
     countryTiers.forEach((t, idx) => {
       fallbackPlans.push({
         id: `${c.iso}-v${idx + 1}-${t.dataAmount.replace(/ /g, '').toLowerCase()}-${t.days}d`,
-        title: `${c.name} ${t.dataAmount} ${t.days}Days`,
+        title: t.days === 1
+          ? `${c.name} ${t.dataAmount}`
+          : `${c.name} ${t.dataAmount} ${t.days}Days`,
         country: c.name,
         iso: c.iso,
         region: c.region,

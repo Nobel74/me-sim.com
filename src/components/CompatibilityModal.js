@@ -362,11 +362,11 @@ export default function CompatibilityModal({ isOpen, onClose, lang = 'es' }) {
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/80 backdrop-blur-md z-[999] flex items-end sm:items-center justify-center p-0 sm:p-4"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-3xl p-4 sm:p-8 max-w-xl w-full shadow-2xl space-y-4 sm:space-y-6 relative border border-zinc-200 max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-t-[2.5rem] sm:rounded-3xl p-6 sm:p-8 max-w-xl w-full shadow-2xl space-y-4 sm:space-y-6 relative border-t border-x border-zinc-200 sm:border h-[85vh] sm:h-auto max-h-[85vh] sm:max-h-[90vh] overflow-y-auto"
       >
         <button
           onClick={onClose}
