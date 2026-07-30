@@ -327,6 +327,10 @@ export default function DashboardPage() {
                 const isUnlimited = (rawTitle.toLowerCase().includes('ilimitado') ||
                                     rawTitle.toLowerCase().includes('unlimited')) && !isDaily;
 
+                const cleanedAmount = (order.dataAmount || '500 MB')
+                  .replace(/\s*\/\s*(día|dia|day)/i, '')
+                  .trim();
+
                 // Formatted clean title display
                 let cleanTitle = rawTitle;
                 if (isUnlimited) {
@@ -450,13 +454,13 @@ export default function DashboardPage() {
                                 </span>
                               </span>
                               <span className="text-amber-600 font-mono font-bold text-xs">
-                                {order.dataAmount || '500 MB'} / {lang === 'en' ? 'Day' : 'Día'}
+                                {cleanedAmount} / {order.days || 1} {lang === 'en' ? 'Day' : 'Día'}
                               </span>
                             </div>
 
                             <div className="w-full bg-[#ffec00] h-6 rounded-full overflow-hidden border border-amber-500 shadow-sm flex items-center justify-center p-0.5">
                               <span className="text-[11px] font-black text-black font-mono leading-none tracking-wider uppercase">
-                                {order.dataAmount || '500 MB'} / {lang === 'en' ? 'Day High-Speed' : 'Día Alta Velocidad'}
+                                {cleanedAmount} / {order.days || 1} {lang === 'en' ? 'DAY HIGH-SPEED' : 'DÍA ALTA VELOCIDAD'}
                               </span>
                             </div>
                           </>
