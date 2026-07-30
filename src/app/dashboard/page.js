@@ -13,6 +13,7 @@ export default function DashboardPage() {
   const [currentUser, setCurrentUser] = useState(null);
   const [activeQrModal, setActiveQrModal] = useState(null);
   const [copiedKey, setCopiedKey] = useState(null);
+  const [esimUsage, setEsimUsage] = useState({});
 
   // Billing form state
   const [billing, setBilling] = useState({
@@ -131,6 +132,32 @@ export default function DashboardPage() {
 
     return () => window.removeEventListener('mesim_lang_changed', handleLangChange);
   }, []);
+
+  useEffect(() => {
+    // Fetch real-time eSIM usage stats for active orders
+    userOrders.forEach(async (order) => {
+      if (order.esimTranNo && !esimUsage[order.esimTranNo]) {
+        try {
+          const res = await fetch(`/api/usage/${order.esimTranNo}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success || data.usedGb !== undefined) {
+              setEsimUsage((prev) => ({
+                ...prev,
+                [order.esimTranNo]: {
+                  usedGb: parseFloat(data.usedGb || 0),
+                  totalGb: parseFloat(data.totalGb || 10),
+                  percentageUsed: parseFloat(data.percentageUsed || 0),
+                },
+              }));
+            }
+          }
+        } catch (e) {
+          console.warn(`Failed to fetch usage for ${order.esimTranNo}:`, e);
+        }
+      }
+    });
+  }, [userOrders]);
 
   const handleLogout = async () => {
     try {
@@ -346,9 +373,10 @@ export default function DashboardPage() {
                 }
 
                 // Fixed GB calculation
-                const used = order.usedGb || 8.0;
-                const total = order.totalGb || 10.0;
-                const pct = Math.min(100, Math.round((used / total) * 100));
+                const usage = esimUsage[order.esimTranNo];
+                const used = usage ? usage.usedGb : (order.usedGb || 8.0);
+                const total = usage ? usage.totalGb : (order.totalGb || 10.0);
+                const pct = usage ? Math.round(usage.percentageUsed) : Math.min(100, Math.round((used / total) * 100));
 
                 return (
                   <div key={order.orderId} className="bg-white rounded-3xl border border-zinc-200 p-4 sm:p-6 md:p-8 shadow-xl w-full">
