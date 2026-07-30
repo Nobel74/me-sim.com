@@ -401,24 +401,18 @@ export default function ClientLayout({ children }) {
 
         <div className="relative z-10">{children}</div>
       </main>
-
-      {/* Footer */}
-      <footer className="bg-black text-zinc-400 py-16 text-base border-t border-zinc-800 font-sans relative overflow-hidden">
+      <footer className="bg-black text-zinc-400 py-12 sm:py-16 px-4 sm:px-6 md:px-8 border-t border-zinc-800 font-sans relative overflow-hidden">
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-[#ffec00]/10 rounded-full blur-3xl pointer-events-none"></div>
         <div className="container-naked relative z-10">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10">
             {/* Col 1: Logo & Brand Info */}
-            <div className="space-y-4">
-              <img src="/logos/Logo-me-sim-neg.svg" alt="ME-SIM" className="h-10 w-auto animate-fade-in" />
-              <p className="text-sm text-zinc-400 leading-relaxed font-sans pr-4">{t.footerTagline}</p>
-              <div className="text-xs space-y-1">
-                <p>© {new Date().getFullYear()} ME-SIM. {t.footerRights}</p>
-                <p className="text-[#ffec00] font-condensed font-semibold tracking-wider">{t.footerCurrencyNote}</p>
-              </div>
+            <div className="flex flex-col items-center md:items-start text-center md:text-left space-y-4">
+              <img src="/logos/Logo-me-sim-neg.svg" alt="ME-SIM" className="h-10 w-auto animate-fade-in mx-auto md:mx-0" />
+              <p className="text-sm text-zinc-400 leading-relaxed font-sans pr-0 md:pr-4">{t.footerTagline}</p>
             </div>
 
             {/* Col 2: Popular Destinations */}
-            <div className="space-y-4">
+            <div className="space-y-4 text-center sm:text-left">
               <h4 className="text-white font-semibold text-sm tracking-wider uppercase text-[#ffec00]">
                 {lang === 'en' ? 'Popular eSIMs' : 'eSIMs Populares'}
               </h4>
@@ -452,7 +446,7 @@ export default function ClientLayout({ children }) {
             </div>
 
             {/* Col 3: Support */}
-            <div className="space-y-4">
+            <div className="space-y-4 text-center sm:text-left">
               <h4 className="text-white font-semibold text-sm tracking-wider uppercase text-[#ffec00]">
                 {lang === 'en' ? 'Help & Support' : 'Soporte y Ayuda'}
               </h4>
@@ -476,7 +470,7 @@ export default function ClientLayout({ children }) {
             </div>
 
             {/* Col 4: Legal */}
-            <div className="space-y-4">
+            <div className="space-y-4 text-center sm:text-left">
               <h4 className="text-white font-semibold text-sm tracking-wider uppercase text-[#ffec00]">
                 {lang === 'en' ? 'Legal Information' : 'Información Legal'}
               </h4>
@@ -504,13 +498,19 @@ export default function ClientLayout({ children }) {
                 <li>
                   <button
                     onClick={() => window.dispatchEvent(new Event('mesim_reopen_cookies'))}
-                    className="hover:text-[#ffec00] transition-colors underline decoration-transparent hover:decoration-[#ffec00] underline-offset-4 cursor-pointer text-left font-medium"
+                    className="hover:text-[#ffec00] transition-colors underline decoration-transparent hover:decoration-[#ffec00] underline-offset-4 cursor-pointer text-left font-medium mx-auto sm:mx-0 block"
                   >
                     {lang === 'en' ? 'Cookie Settings' : 'Ajustes de Cookies'}
                   </button>
                 </li>
               </ul>
             </div>
+          </div>
+
+          {/* Bottom Copyright & Currency Info Row */}
+          <div className="border-t border-zinc-900 pt-8 mt-12 text-center md:text-left flex flex-col md:flex-row justify-between items-center gap-4 text-xs font-sans">
+            <p>© {new Date().getFullYear()} ME-SIM. {t.footerRights}</p>
+            <p className="text-[#ffec00] font-condensed font-semibold tracking-wider">{t.footerCurrencyNote}</p>
           </div>
         </div>
       </footer>

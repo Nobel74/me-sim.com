@@ -1,59 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 export default function PoliticaDeCookiesPage() {
-  const [pageData, setPageData] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Fetch cookie policy page from WordPress REST API
-    const fetchWpPage = async () => {
-      try {
-        setLoading(true);
-        const res = await fetch('https://me-sim.com/wp-json/wp/v2/pages?slug=politica-de-cookies');
-        
-        if (res.ok) {
-          const pages = await res.json();
-          if (Array.isArray(pages) && pages.length > 0) {
-            setPageData(pages[0]);
-            setLoading(false);
-            return;
-          }
-        }
-      } catch (err) {
-        console.error('Error fetching WP Cookie Policy:', err);
-      }
-
-      // Fallback structure with structured HTML hierarchy
-      setPageData({
-        title: { rendered: 'Política de Cookies' },
-        content: {
-          rendered: `
-            <p>En <strong>ME-SIM.COM</strong> estamos comprometidos con la transparencia y el cumplimiento de las normativas de protección de datos (incluidos el RGPD europeo y las directrices de la AEPD). A continuación te informamos sobre el uso de cookies en nuestra plataforma.</p>
-            
-            <h2>1. ¿Qué son las Cookies?</h2>
-            <p>Las cookies son pequeños archivos de texto que los sitios web que visitas almacenan en tu dispositivo (ordenador, smartphone, tablet). Se utilizan para que el sitio funcione correctamente, sea más seguro y ofrezca una mejor experiencia al usuario.</p>
-            
-            <h2>2. Tipos de Cookies que Utiliza Este Sitio Web</h2>
-            <ul>
-              <li><strong>Cookies Técnicas u Obligatorias:</strong> Indispensables para que la web funcione (carrito de compras, idioma seleccionado, preferencias de consentimiento). No se pueden desactivar.</li>
-              <li><strong>Cookies de Análisis Estadístico (Google Analytics):</strong> Nos ayudan a medir el rendimiento de la web y a optimizar la experiencia de navegación de forma completamente anónima.</li>
-              <li><strong>Cookies de Publicidad y Marketing (Google Tag Manager):</strong> Permiten medir la eficacia de nuestras campañas y ofrecer anuncios relevantes.</li>
-            </ul>
-
-            <h2>3. ¿Cómo configurar o revocar tus preferencias?</h2>
-            <p>Puedes cambiar la configuración de tus cookies en cualquier momento desde el banner interactivo situado en el footer del sitio web, o ajustando la privacidad directamente en la configuración de tu navegador.</p>
-          `
-        }
-      });
-      setLoading(false);
-    };
-
-    fetchWpPage();
-  }, []);
-
   return (
     <div className="container-naked max-w-4xl font-sans">
       {/* Breadcrumbs */}
@@ -66,19 +15,75 @@ export default function PoliticaDeCookiesPage() {
       {/* Main Container */}
       <div className="bg-white rounded-3xl border border-zinc-200 p-6 sm:p-10 md:p-12 shadow-xl">
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-black mb-6 tracking-tight">
-          {pageData?.title?.rendered || 'Política de Cookies'}
+          Política de Cookies
         </h1>
 
-        {loading ? (
-          <div className="py-12 text-center text-zinc-400 font-medium animate-pulse">
-            Cargando Política de Cookies desde WordPress...
-          </div>
-        ) : (
-          <div
-            className="wp-content font-sans text-base sm:text-lg leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: pageData?.content?.rendered || '' }}
-          />
-        )}
+        <div className="wp-content font-sans text-base sm:text-lg leading-relaxed">
+          <p>En <strong>ME-SIM.COM</strong> estamos comprometidos con la transparencia y el cumplimiento de las normativas de protección de datos (incluidos el RGPD europeo y las directrices de la AEPD). A continuación te informamos sobre el uso de cookies en nuestra plataforma.</p>
+          
+          <h2>1. ¿Qué son las Cookies?</h2>
+          <p>Las cookies son pequeños archivos de texto que los sitios web que visitas almacenan en tu dispositivo (ordenador, smartphone, tablet). Se utilizan para que el sitio funcione correctamente, sea más seguro y ofrezca una mejor experiencia al usuario.</p>
+          
+          <h2>2. Tipos de Cookies que Utiliza Este Sitio Web</h2>
+          <ul>
+            <li><strong>Cookies Técnicas u Obligatorias:</strong> Indispensables para que la web funcione (carrito de compras, idioma seleccionado, preferencias de consentimiento). No se pueden desactivar.</li>
+            <li><strong>Cookies de Análisis Estadístico (Google Analytics):</strong> Nos ayudan a medir el rendimiento de la web y a optimizar la experiencia de navegación de forma completamente anónima.</li>
+            <li><strong>Cookies de Publicidad y Marketing (Google Tag Manager):</strong> Permiten medir la eficacia de nuestras campañas y ofrecer anuncios relevantes.</li>
+          </ul>
+
+          <h2>3. Listado Detallado de Cookies Utilizadas</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Proveedor / Cookie</th>
+                <th>Nombre técnico / Almacenamiento</th>
+                <th>Duración</th>
+                <th>Finalidad</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>ME-SIM.COM</strong></td>
+                <td><code>mesim_lang</code> / <code>localStorage</code></td>
+                <td>Persistente</td>
+                <td>Guarda la preferencia de idioma del usuario (ES/EN).</td>
+              </tr>
+              <tr>
+                <td><strong>ME-SIM.COM</strong></td>
+                <td><code>mesim_curr</code> / <code>localStorage</code></td>
+                <td>Persistente</td>
+                <td>Almacena la preferencia de moneda (EUR, USD, etc.).</td>
+              </tr>
+              <tr>
+                <td><strong>ME-SIM.COM</strong></td>
+                <td><code>mesim_cart</code> / <code>localStorage</code></td>
+                <td>Persistente</td>
+                <td>Guarda la información del carrito de compras del usuario.</td>
+              </tr>
+              <tr>
+                <td><strong>ME-SIM.COM</strong></td>
+                <td><code>mesim_cookie_consent</code> / <code>localStorage</code></td>
+                <td>1 año</td>
+                <td>Registra las preferencias de consentimiento del usuario sobre cookies.</td>
+              </tr>
+              <tr>
+                <td><strong>Google Analytics</strong></td>
+                <td><code>_ga</code>, <code>_ga_*</code></td>
+                <td>Hasta 2 años</td>
+                <td>Analiza estadísticas de tráfico y visitas del usuario.</td>
+              </tr>
+              <tr>
+                <td><strong>Google Tag Manager</strong></td>
+                <td>Elementos de script dinámicos</td>
+                <td>Sesión</td>
+                <td>Inyección de tags de marketing y scripts de conversión.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h2>4. ¿Cómo configurar o revocar tus preferencias?</h2>
+          <p>Puedes cambiar la configuración de tus cookies en cualquier momento desde el banner interactivo situado en el footer del sitio web, o ajustando la privacidad directamente en la configuración de tu navegador.</p>
+        </div>
       </div>
     </div>
   );
