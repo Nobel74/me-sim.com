@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { getTranslation, detectBrowserPreferences } from '../lib/i18n';
 import SupportChatbot from '../components/SupportChatbot';
+import CookieBanner from '../components/CookieBanner';
 
 export default function ClientLayout({ children }) {
   const pathname = usePathname();
@@ -100,6 +101,12 @@ export default function ClientLayout({ children }) {
         router.push('/en/refund-policy/');
       } else {
         router.push('/politica-de-reembolso/');
+      }
+    } else if (pathname.includes('/politica-de-cookies') || pathname.includes('/cookie-policy')) {
+      if (newLang === 'en') {
+        router.push('/en/cookie-policy/');
+      } else {
+        router.push('/politica-de-cookies/');
       }
     }
   };
@@ -396,51 +403,119 @@ export default function ClientLayout({ children }) {
       </main>
 
       {/* Footer */}
-      <footer className="bg-black text-zinc-400 py-12 text-base border-t border-zinc-800 font-sans relative overflow-hidden">
+      <footer className="bg-black text-zinc-400 py-16 text-base border-t border-zinc-800 font-sans relative overflow-hidden">
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-[#ffec00]/10 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="container-naked flex flex-col md:flex-row justify-between items-center gap-6 relative z-10">
-          <div className="flex flex-col sm:flex-row items-center gap-4">
-            <img src="/logos/Logo-me-sim-Header.svg" alt="ME-SIM" className="h-8 w-auto" />
-            <div className="hidden sm:block h-5 w-px bg-zinc-800"></div>
-            <p className="text-sm text-zinc-400 font-sans text-center sm:text-left">{t.footerTagline}</p>
-          </div>
-          <div className="flex flex-col sm:flex-row items-center gap-4 text-sm text-center sm:text-right text-zinc-400">
-            <Link
-              href="/soporte"
-              className="hover:text-[#ffec00] transition-colors underline font-medium"
-            >
-              {t.navSupport || (lang === 'en' ? 'Support' : 'Soporte')}
-            </Link>
-            <div className="hidden sm:block h-4 w-px bg-zinc-800"></div>
-            <Link
-              href={lang === 'en' ? '/en/privacy-policy/' : '/pollitica-de-privacidad/'}
-              className="hover:text-[#ffec00] transition-colors underline font-medium"
-            >
-              {t.privacyPolicy}
-            </Link>
-            <div className="hidden sm:block h-4 w-px bg-zinc-800"></div>
-            <Link
-              href={lang === 'en' ? '/en/terms-and-conditions/' : '/condiciones-de-servicio/'}
-              className="hover:text-[#ffec00] transition-colors underline font-medium"
-            >
-              {t.termsAndConditions}
-            </Link>
-            <div className="hidden sm:block h-4 w-px bg-zinc-800"></div>
-            <Link
-              href={lang === 'en' ? '/en/refund-policy/' : '/politica-de-reembolso/'}
-              className="hover:text-[#ffec00] transition-colors underline font-medium"
-            >
-              {t.refundPolicy}
-            </Link>
-            <div className="hidden sm:block h-4 w-px bg-zinc-800"></div>
-            <div>
-              <p>© {new Date().getFullYear()} ME-SIM. {t.footerRights}</p>
-              <p className="mt-1 text-[#ffec00] font-condensed font-semibold tracking-wider">{t.footerCurrencyNote}</p>
+        <div className="container-naked relative z-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10">
+            {/* Col 1: Logo & Brand Info */}
+            <div className="space-y-4">
+              <img src="/logos/Logo-me-sim-neg.svg" alt="ME-SIM" className="h-10 w-auto animate-fade-in" />
+              <p className="text-sm text-zinc-400 leading-relaxed font-sans pr-4">{t.footerTagline}</p>
+              <div className="text-xs space-y-1">
+                <p>© {new Date().getFullYear()} ME-SIM. {t.footerRights}</p>
+                <p className="text-[#ffec00] font-condensed font-semibold tracking-wider">{t.footerCurrencyNote}</p>
+              </div>
+            </div>
+
+            {/* Col 2: Popular Destinations */}
+            <div className="space-y-4">
+              <h4 className="text-white font-semibold text-sm tracking-wider uppercase text-[#ffec00]">
+                {lang === 'en' ? 'Popular eSIMs' : 'eSIMs Populares'}
+              </h4>
+              <ul className="space-y-2.5 text-sm font-medium">
+                <li>
+                  <Link href="/destination/us" className="hover:text-[#ffec00] transition-colors underline decoration-transparent hover:decoration-[#ffec00] underline-offset-4">
+                    {lang === 'en' ? 'eSIM United States' : 'eSIM Estados Unidos'}
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/region/europe" className="hover:text-[#ffec00] transition-colors underline decoration-transparent hover:decoration-[#ffec00] underline-offset-4">
+                    {lang === 'en' ? 'eSIM Europe Regional' : 'eSIM Europa Regional'}
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/destination/es" className="hover:text-[#ffec00] transition-colors underline decoration-transparent hover:decoration-[#ffec00] underline-offset-4">
+                    {lang === 'en' ? 'eSIM Spain' : 'eSIM España'}
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/destination/jp" className="hover:text-[#ffec00] transition-colors underline decoration-transparent hover:decoration-[#ffec00] underline-offset-4">
+                    {lang === 'en' ? 'eSIM Japan' : 'eSIM Japón'}
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/destination/gb" className="hover:text-[#ffec00] transition-colors underline decoration-transparent hover:decoration-[#ffec00] underline-offset-4">
+                    {lang === 'en' ? 'eSIM United Kingdom' : 'eSIM Reino Unido'}
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Col 3: Support */}
+            <div className="space-y-4">
+              <h4 className="text-white font-semibold text-sm tracking-wider uppercase text-[#ffec00]">
+                {lang === 'en' ? 'Help & Support' : 'Soporte y Ayuda'}
+              </h4>
+              <ul className="space-y-2.5 text-sm font-medium">
+                <li>
+                  <Link href="/soporte" className="hover:text-[#ffec00] transition-colors underline decoration-transparent hover:decoration-[#ffec00] underline-offset-4">
+                    {lang === 'en' ? 'Help Center' : 'Centro de Soporte'}
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/soporte/dispositivos-compatibles" className="hover:text-[#ffec00] transition-colors underline decoration-transparent hover:decoration-[#ffec00] underline-offset-4">
+                    {lang === 'en' ? 'eSIM Compatible Devices' : 'Dispositivos Compatibles'}
+                  </Link>
+                </li>
+                <li>
+                  <a href="mailto:info@me-sim.com" className="hover:text-[#ffec00] transition-colors underline decoration-transparent hover:decoration-[#ffec00] underline-offset-4">
+                    info@me-sim.com
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Col 4: Legal */}
+            <div className="space-y-4">
+              <h4 className="text-white font-semibold text-sm tracking-wider uppercase text-[#ffec00]">
+                {lang === 'en' ? 'Legal Information' : 'Información Legal'}
+              </h4>
+              <ul className="space-y-2.5 text-sm font-medium">
+                <li>
+                  <Link href={lang === 'en' ? '/en/privacy-policy/' : '/pollitica-de-privacidad/'} className="hover:text-[#ffec00] transition-colors underline decoration-transparent hover:decoration-[#ffec00] underline-offset-4">
+                    {t.privacyPolicy}
+                  </Link>
+                </li>
+                <li>
+                  <Link href={lang === 'en' ? '/en/terms-and-conditions/' : '/condiciones-de-servicio/'} className="hover:text-[#ffec00] transition-colors underline decoration-transparent hover:decoration-[#ffec00] underline-offset-4">
+                    {t.termsAndConditions}
+                  </Link>
+                </li>
+                <li>
+                  <Link href={lang === 'en' ? '/en/refund-policy/' : '/politica-de-reembolso/'} className="hover:text-[#ffec00] transition-colors underline decoration-transparent hover:decoration-[#ffec00] underline-offset-4">
+                    {t.refundPolicy}
+                  </Link>
+                </li>
+                <li>
+                  <Link href={lang === 'en' ? '/en/cookie-policy/' : '/politica-de-cookies/'} className="hover:text-[#ffec00] transition-colors underline decoration-transparent hover:decoration-[#ffec00] underline-offset-4">
+                    {lang === 'en' ? 'Cookie Policy' : 'Política de Cookies'}
+                  </Link>
+                </li>
+                <li>
+                  <button
+                    onClick={() => window.dispatchEvent(new Event('mesim_reopen_cookies'))}
+                    className="hover:text-[#ffec00] transition-colors underline decoration-transparent hover:decoration-[#ffec00] underline-offset-4 cursor-pointer text-left font-medium"
+                  >
+                    {lang === 'en' ? 'Cookie Settings' : 'Ajustes de Cookies'}
+                  </button>
+                </li>
+              </ul>
             </div>
           </div>
         </div>
       </footer>
       <SupportChatbot />
+      <CookieBanner />
     </>
   );
 }
