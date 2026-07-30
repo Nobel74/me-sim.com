@@ -224,6 +224,7 @@ export default function DashboardPage() {
       cartId: `${order.iso || 'es'}-${Date.now()}`,
       iso: order.iso || 'es',
       countryName: order.country || 'España',
+      title: order.title || 'eSIM España 10GB 30Days',
       planName: order.title || 'eSIM España 10GB 30Days',
       dataAmount: order.dataAmount || '10 GB',
       days: order.days || 30,

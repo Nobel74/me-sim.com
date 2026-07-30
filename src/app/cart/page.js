@@ -21,6 +21,9 @@ export default function CartPage() {
 
   const sanitizeCartItems = (items) => {
     return items.map(item => {
+      if (!item.title && item.planName) {
+        item.title = item.planName;
+      }
       const dataAmt = (item.dataAmount || '').toLowerCase();
       const titleText = (item.title || '').toLowerCase();
       if (dataAmt.includes('/ día') || dataAmt.includes('/ dia') || dataAmt.includes('/ day') || titleText.includes('/ día') || titleText.includes('/ dia') || titleText.includes('/ day')) {
@@ -156,13 +159,13 @@ export default function CartPage() {
                     <div className="min-w-0 flex-1">
                       <h3 className="font-semibold font-semi text-base sm:text-lg text-black break-words sm:truncate">
                         {lang === 'en'
-                          ? item.title.replace(/Día/g, 'Day').replace(/Ilimitados/g, 'Unlimited').replace(/\s*1\s*Days$/i, '').replace(/Days/g, 'Days')
-                          : item.title.replace(/Day/g, 'Día').replace(/Unlimited/g, 'Ilimitados').replace(/\s*1\s*(Days|Días)$/i, '').replace(/Days/g, 'Días')}
+                          ? (item.title || '').replace(/Día/g, 'Day').replace(/Ilimitados/g, 'Unlimited').replace(/\s*1\s*Days$/i, '').replace(/Days/g, 'Days')
+                          : (item.title || '').replace(/Day/g, 'Día').replace(/Unlimited/g, 'Ilimitados').replace(/\s*1\s*(Days|Días)$/i, '').replace(/Days/g, 'Días')}
                       </h3>
                       <p className="text-[0.85rem] text-zinc-500 font-medium mt-0.5">
                         {lang === 'en'
-                          ? item.dataAmount.replace(/Día/g, 'Day').replace(/Ilimitados/g, 'Unlimited')
-                          : item.dataAmount.replace(/Day/g, 'Día').replace(/Unlimited/g, 'Ilimitados')} • {item.days} {lang === 'en' ? (item.days === 1 ? 'day validity' : 'days validity') : (item.days === 1 ? 'día de validez' : 'días de validez')}
+                          ? (item.dataAmount || '').replace(/Día/g, 'Day').replace(/Ilimitados/g, 'Unlimited')
+                          : (item.dataAmount || '').replace(/Day/g, 'Día').replace(/Unlimited/g, 'Ilimitados')} • {item.days} {lang === 'en' ? (item.days === 1 ? 'day validity' : 'days validity') : (item.days === 1 ? 'día de validez' : 'días de validez')}
                       </p>
                     </div>
                   </div>
