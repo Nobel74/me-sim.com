@@ -10,8 +10,8 @@ export async function POST(request) {
     let wcOrderId = 'ORD-' + Math.floor(100000 + Math.random() * 900000);
     try {
       const wcUrl = process.env.WOOCOMMERCE_API_URL || 'https://me-sim.com';
-      const ck = process.env.WOOCOMMERCE_CONSUMER_KEY;
-      const cs = process.env.WOOCOMMERCE_CONSUMER_SECRET;
+      const ck = process.env.WOOCOMMERCE_CONSUMER_KEY || process.env.WC_CONSUMER_KEY;
+      const cs = process.env.WOOCOMMERCE_CONSUMER_SECRET || process.env.WC_CONSUMER_SECRET;
       
       if (ck && cs) {
         const names = (customerName || 'Traveler').split(' ');

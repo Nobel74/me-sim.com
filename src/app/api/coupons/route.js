@@ -34,8 +34,8 @@ export async function POST(request) {
     // Attempting WooCommerce REST API coupon lookup
     try {
       const wcUrl = process.env.WOOCOMMERCE_API_URL || 'https://me-sim.com';
-      const ck = process.env.WOOCOMMERCE_CONSUMER_KEY;
-      const cs = process.env.WOOCOMMERCE_CONSUMER_SECRET;
+      const ck = process.env.WOOCOMMERCE_CONSUMER_KEY || process.env.WC_CONSUMER_KEY;
+      const cs = process.env.WOOCOMMERCE_CONSUMER_SECRET || process.env.WC_CONSUMER_SECRET;
 
       if (ck && cs) {
         const res = await fetch(`${wcUrl}/wp-json/wc/v3/coupons?code=${cleanCode}`, {

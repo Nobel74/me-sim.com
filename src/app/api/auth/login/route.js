@@ -24,8 +24,8 @@ export async function POST(request) {
     } else if (password) {
       // 2. Password login validation
       const wcUrl = process.env.WOOCOMMERCE_API_URL || 'https://me-sim.com';
-      const ck = process.env.WOOCOMMERCE_CONSUMER_KEY;
-      const cs = process.env.WOOCOMMERCE_CONSUMER_SECRET;
+      const ck = process.env.WOOCOMMERCE_CONSUMER_KEY || process.env.WC_CONSUMER_KEY;
+      const cs = process.env.WOOCOMMERCE_CONSUMER_SECRET || process.env.WC_CONSUMER_SECRET;
 
       console.log('API AUTH DEBUG:', {
         url: wcUrl,

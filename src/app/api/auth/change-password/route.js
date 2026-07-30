@@ -12,8 +12,8 @@ export async function POST(request) {
     }
 
     const wcUrl = process.env.WOOCOMMERCE_API_URL || 'https://me-sim.com';
-    const ck = process.env.WOOCOMMERCE_CONSUMER_KEY;
-    const cs = process.env.WOOCOMMERCE_CONSUMER_SECRET;
+    const ck = process.env.WOOCOMMERCE_CONSUMER_KEY || process.env.WC_CONSUMER_KEY;
+    const cs = process.env.WOOCOMMERCE_CONSUMER_SECRET || process.env.WC_CONSUMER_SECRET;
 
     // 1. Attempt WordPress / WooCommerce Customer Password update if credentials available
     if (ck && cs && email) {
