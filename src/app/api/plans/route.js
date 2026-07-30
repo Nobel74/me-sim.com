@@ -153,20 +153,20 @@ export async function GET(request) {
   // Dynamic regional markup calculations
   const applyMarkup = (plansList) => {
     const REGION_MARKUPS = {
-      'europe': 2.10,
-      'europe-morocco': 2.05,
-      'north-america': 1.95,
-      'aukus': 1.95,
-      'china-hk-macau': 1.90,
-      'east-asia': 1.85,
-      'southeast-asia': 1.85,
-      'asia': 1.80,
-      'middle-east': 1.80,
-      'australia-new-zealand': 1.80,
-      'africa': 1.65,
-      'south-america': 1.60,
-      'caribbean': 1.50,
-      'oceania': 1.70, // general oceania fallback
+      'europe': 1.90,
+      'europe-morocco': 1.85,
+      'north-america': 1.75,
+      'aukus': 1.75,
+      'china-hk-macau': 1.70,
+      'east-asia': 1.68,
+      'southeast-asia': 1.68,
+      'middle-east': 1.69,
+      'asia': 1.62,
+      'australia-new-zealand': 1.62,
+      'africa': 1.48,
+      'south-america': 1.44,
+      'caribbean': 1.35,
+      'oceania': 1.55, // general oceania fallback
     };
 
     return plansList.map((p) => {
