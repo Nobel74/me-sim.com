@@ -23,11 +23,40 @@ export async function POST(request) {
       }
     } else if (password) {
       // 2. Password login validation
-      if (password.length < 4) {
-        return NextResponse.json(
-          { success: false, message: 'La contraseña es incorrecta.' },
-          { status: 401 }
-        );
+      const wcUrl = process.env.WOOCOMMERCE_API_URL || 'https://me-sim.com';
+      const ck = process.env.WOOCOMMERCE_CONSUMER_KEY;
+      const cs = process.env.WOOCOMMERCE_CONSUMER_SECRET;
+
+      if (ck && cs) {
+        try {
+          const authString = Buffer.from(`${cleanEmail}:${password}`).toString('base64');
+          const verifyRes = await fetch(`${wcUrl}/wp-json/wp/v2/users/me`, {
+            headers: {
+              Authorization: `Basic ${authString}`,
+            },
+          });
+
+          if (!verifyRes.ok) {
+            return NextResponse.json(
+              { success: false, message: 'El correo electrónico o la contraseña son incorrectos.' },
+              { status: 401 }
+            );
+          }
+        } catch (authErr) {
+          console.error('Error validating password with WordPress:', authErr);
+          return NextResponse.json(
+            { success: false, message: 'No se pudo conectar con el servidor de autenticación.' },
+            { status: 503 }
+          );
+        }
+      } else {
+        // Enforce a specific test password in development fallback instead of allowing anything
+        if (password !== 'admin1234') {
+          return NextResponse.json(
+            { success: false, message: 'La contraseña es incorrecta (Usa "admin1234" en modo de desarrollo).' },
+            { status: 401 }
+          );
+        }
       }
     } else {
       return NextResponse.json(
