@@ -328,8 +328,10 @@ export default function DashboardPage() {
 
                 // Formatted clean title display
                 const cleanTitle = isUnlimited
-                  ? (rawTitle.toLowerCase().includes('ilimitado') ? rawTitle : `eSIM ${order.country || 'España'} Datos Ilimitados (${order.days || 7} días)`)
-                  : rawTitle;
+                  ? (lang === 'en' ? `eSIM ${order.country || 'Spain'} Unlimited Data (${order.days || 7} days)` : (rawTitle.toLowerCase().includes('ilimitado') ? rawTitle : `eSIM ${order.country || 'España'} Datos Ilimitados (${order.days || 7} días)`))
+                  : (lang === 'en'
+                      ? rawTitle.replace(/Día/g, 'Day').replace(/Ilimitados/g, 'Unlimited').replace(/\s*1\s*Days$/i, '').replace(/Days/g, 'Days')
+                      : rawTitle.replace(/Day/g, 'Día').replace(/Unlimited/g, 'Ilimitados').replace(/\s*1\s*(Days|Días)$/i, '').replace(/Days/g, 'Días'));
 
                 // Fixed GB calculation
                 const used = order.usedGb || 8.0;

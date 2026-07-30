@@ -52,7 +52,7 @@ export default function PlanCard({
 
         <div>
           <strong className="text-xl font-semibold font-semi text-black block leading-tight">
-            {plan.dataAmount}
+            {lang === 'en' ? plan.dataAmount.replace(/Día/g, 'Day').replace(/Ilimitados/g, 'Unlimited') : plan.dataAmount}
           </strong>
           <span className="text-xs text-zinc-500 font-medium font-sans">
             {plan.days} {lang === 'en' ? 'days validity' : 'días de validez'}

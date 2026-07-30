@@ -218,7 +218,9 @@ export default function DestinationPage() {
     const existingCart = JSON.parse(localStorage.getItem('mesim_cart') || '[]');
     const newItem = {
       ...selectedPlan,
-      title: `eSIM ${countryName} ${selectedPlan.dataAmount} ${selectedPlan.days}Days`,
+      title: selectedPlan.days === 1
+        ? `eSIM ${countryName} ${selectedPlan.dataAmount}`
+        : `eSIM ${countryName} ${selectedPlan.dataAmount} ${selectedPlan.days}Days`,
       country: countryName,
       cartId: Date.now(),
       convertedPrice: convertCurrency(selectedPlan.priceEur, currency, rates),

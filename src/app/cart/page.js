@@ -122,21 +122,27 @@ export default function CartPage() {
               {cart.map((item) => (
                 <div
                   key={item.cartId}
-                  className="bg-white rounded-2xl border border-zinc-200 p-4 flex items-center justify-between gap-4 shadow-sm hover:border-zinc-300 transition-all"
+                  className="bg-white rounded-2xl border border-zinc-200 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm hover:border-zinc-300 transition-all"
                 >
                   <div className="flex items-center gap-4 min-w-0">
                     <div className="w-11 h-11 rounded-full overflow-hidden border border-zinc-200 flex-shrink-0 shadow-sm">
                       <img src={`/flags/${(item.iso || 'gl').toLowerCase()}.webp`} alt={item.country} className="w-full h-full object-cover" />
                     </div>
-                    <div className="min-w-0">
-                      <h3 className="font-semibold font-semi text-lg text-black truncate">{item.title}</h3>
-                      <p className="text-xs text-zinc-500 font-medium mt-0.5">
-                        {item.dataAmount} • {item.days} {lang === 'en' ? 'days validity' : 'días de validez'}
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-semibold font-semi text-base sm:text-lg text-black break-words sm:truncate">
+                        {lang === 'en'
+                          ? item.title.replace(/Día/g, 'Day').replace(/Ilimitados/g, 'Unlimited').replace(/\s*1\s*Days$/i, '').replace(/Days/g, 'Days')
+                          : item.title.replace(/Day/g, 'Día').replace(/Unlimited/g, 'Ilimitados').replace(/\s*1\s*(Days|Días)$/i, '').replace(/Days/g, 'Días')}
+                      </h3>
+                      <p className="text-[0.85rem] text-zinc-500 font-medium mt-0.5">
+                        {lang === 'en'
+                          ? item.dataAmount.replace(/Día/g, 'Day').replace(/Ilimitados/g, 'Unlimited')
+                          : item.dataAmount.replace(/Day/g, 'Día').replace(/Unlimited/g, 'Ilimitados')} • {item.days} {lang === 'en' ? 'days validity' : 'días de validez'}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4 flex-shrink-0">
+                  <div className="flex items-center justify-between sm:justify-end gap-4 border-t sm:border-t-0 pt-3 sm:pt-0 border-zinc-100">
                     <span className="font-semibold font-condensed text-xl text-black">
                       {formatCurrency(item.convertedPrice, currency)}
                     </span>

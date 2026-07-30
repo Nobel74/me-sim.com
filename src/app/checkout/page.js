@@ -276,9 +276,15 @@ export default function CheckoutPage() {
             {cart.map((item) => (
               <div key={item.cartId} className="flex justify-between items-center text-sm border-b border-zinc-800 pb-3">
                 <div>
-                  <p className="font-semibold font-semi text-[#ffec00] text-lg">{item.title}</p>
+                  <p className="font-semibold font-semi text-[#ffec00] text-lg">
+                    {lang === 'en'
+                      ? item.title.replace(/Día/g, 'Day').replace(/Ilimitados/g, 'Unlimited').replace(/\s*1\s*Days$/i, '').replace(/Days/g, 'Days')
+                      : item.title.replace(/Day/g, 'Día').replace(/Unlimited/g, 'Ilimitados').replace(/\s*1\s*(Days|Días)$/i, '').replace(/Days/g, 'Días')}
+                  </p>
                   <p className="text-xs text-zinc-400 font-medium font-sans">
-                    {item.dataAmount} • {item.days} {lang === 'en' ? 'days' : 'días'}
+                    {lang === 'en'
+                      ? item.dataAmount.replace(/Día/g, 'Day').replace(/Ilimitados/g, 'Unlimited')
+                      : item.dataAmount.replace(/Day/g, 'Día').replace(/Unlimited/g, 'Ilimitados')} • {item.days} {lang === 'en' ? 'days' : 'días'}
                   </p>
                 </div>
                 <span className="font-semibold font-condensed text-2xl text-white">{formatCurrency(item.convertedPrice, currency)}</span>

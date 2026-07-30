@@ -46,9 +46,9 @@ export async function GET(request) {
 
   // Complete Tiered Options for Individual Countries
   const countryTiers = [
-    { dataAmount: '500 MB / Día', days: 7, mult: 0.59 }, // 2.90 € starting price!
-    { dataAmount: '1 GB / Día', days: 7, mult: 0.8 },
-    { dataAmount: '2 GB / Día', days: 7, mult: 1.0 },
+    { dataAmount: '500 MB / Día', days: 1, mult: 0.59 }, // 2.90 € starting price!
+    { dataAmount: '1 GB / Día', days: 1, mult: 0.8 },
+    { dataAmount: '2 GB / Día', days: 1, mult: 1.0 },
     { dataAmount: '1 GB Total', days: 7, mult: 1.0 },
     { dataAmount: '2 GB Total', days: 15, mult: 1.6 },
     { dataAmount: '3 GB Total', days: 15, mult: 2.0 },
@@ -64,7 +64,7 @@ export async function GET(request) {
 
   // Complete Tiered Options for Regional Multi-Country Packages
   const regionTiers = [
-    { dataAmount: '500 MB / Día', days: 7, mult: 0.6 },
+    { dataAmount: '500 MB / Día', days: 1, mult: 0.6 },
     { dataAmount: '1 GB Total', days: 7, mult: 1.0 },
     { dataAmount: '3 GB Total', days: 15, mult: 1.8 },
     { dataAmount: '5 GB Total', days: 30, mult: 2.5 },
