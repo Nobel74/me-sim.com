@@ -262,8 +262,24 @@ export default function DestinationPage() {
 
   const coverageCountries = (() => {
     // Check if isoCode represents a multi-country region zone
-    const regionMatches = ALL_WORLD_COUNTRIES.filter((c) => c.region === isoCode);
-    if (regionMatches.length > 0) return regionMatches;
+    let regionCountries = [];
+    if (isoCode === 'aukus') {
+      regionCountries = ALL_WORLD_COUNTRIES.filter((c) => ['au', 'gb', 'us'].includes(c.iso));
+    } else if (isoCode === 'china-hk-macau') {
+      regionCountries = ALL_WORLD_COUNTRIES.filter((c) => ['cn', 'hk', 'mo'].includes(c.iso));
+    } else if (isoCode === 'east-asia') {
+      regionCountries = ALL_WORLD_COUNTRIES.filter((c) => ['jp', 'kr', 'tw'].includes(c.iso));
+    } else if (isoCode === 'southeast-asia') {
+      regionCountries = ALL_WORLD_COUNTRIES.filter((c) => ['th', 'my', 'sg', 'id', 'vn', 'ph', 'kh', 'la', 'mm'].includes(c.iso));
+    } else if (isoCode === 'europe-morocco') {
+      regionCountries = ALL_WORLD_COUNTRIES.filter((c) => c.region === 'europe' || c.iso === 'ma');
+    } else if (isoCode === 'australia-new-zealand') {
+      regionCountries = ALL_WORLD_COUNTRIES.filter((c) => ['au', 'nz'].includes(c.iso));
+    } else {
+      regionCountries = ALL_WORLD_COUNTRIES.filter((c) => c.region === isoCode);
+    }
+    
+    if (regionCountries.length > 0) return regionCountries;
 
     // Single country destination
     const singleMatch = ALL_WORLD_COUNTRIES.find((c) => c.iso === isoCode);
