@@ -38,8 +38,12 @@ export default function SupportArticlePage() {
 
       {/* Main Container */}
       <div className="bg-white rounded-3xl border border-zinc-200 p-6 sm:p-10 md:p-12 shadow-xl">
-        <span className="bg-[#ffec00] text-black text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-4 inline-block shadow-xs">
-          📖 {lang === 'en' ? 'Help Article' : 'Artículo de Ayuda'}
+        <span className="bg-[#ffec00] text-black text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-4 inline-flex items-center gap-1.5 shadow-xs">
+          <svg className="w-3.5 h-3.5 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+          </svg>
+          {lang === 'en' ? 'Help Article' : 'Artículo de Ayuda'}
         </span>
 
         <h1 className="text-3xl sm:text-4xl font-bold text-black mb-6 tracking-tight">
