@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getTranslation } from '../../lib/i18n';
-import { formatCurrency } from '../../lib/currency';
+import { formatCurrency, convertCurrency, getExchangeRates } from '../../lib/currency';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -12,6 +12,7 @@ export default function CheckoutPage() {
   const [cart, setCart] = useState([]);
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [rates, setRates] = useState(null);
 
   // Card Inputs
   const [cardNumber, setCardNumber] = useState('');
@@ -32,6 +33,7 @@ export default function CheckoutPage() {
   };
 
   useEffect(() => {
+    getExchangeRates().then(setRates);
     syncPreferences();
 
     const handleCurrencyChange = () => syncPreferences();
@@ -64,7 +66,12 @@ export default function CheckoutPage() {
     };
   }, []);
 
-  const subtotal = cart.reduce((sum, item) => sum + parseFloat(item.convertedPrice || 0), 0);
+  const getDisplayPrice = (item) => {
+    const base = item.priceEur || item.price || 0;
+    return rates ? parseFloat(convertCurrency(base, currency, rates)) : parseFloat(item.convertedPrice || base);
+  };
+
+  const subtotal = cart.reduce((sum, item) => sum + getDisplayPrice(item), 0);
   const discountAmount = appliedCoupon ? (subtotal * (appliedCoupon.discountPercent / 100)) : 0;
   const totalAmount = Math.max(0, subtotal - discountAmount).toFixed(2);
 
@@ -107,6 +114,8 @@ export default function CheckoutPage() {
           customerName: `${form.firstName} ${form.lastName}`,
           paymentIntentId: stripeData.paymentIntentId,
           couponCode: appliedCoupon?.code || null,
+          price: totalAmount,
+          currency: currency,
         }),
       });
 
@@ -299,7 +308,7 @@ export default function CheckoutPage() {
                       : item.dataAmount.replace(/Day/g, 'Día').replace(/Unlimited/g, 'Ilimitados')} • {item.days} {lang === 'en' ? (item.days === 1 ? 'day' : 'days') : (item.days === 1 ? 'día' : 'días')}
                   </p>
                 </div>
-                <span className="font-semibold font-condensed text-xl sm:text-2xl text-white flex-shrink-0 text-right">{formatCurrency(item.convertedPrice, currency)}</span>
+                <span className="font-semibold font-condensed text-xl sm:text-2xl text-white flex-shrink-0 text-right">{formatCurrency(getDisplayPrice(item).toFixed(2), currency)}</span>
               </div>
             ))}
           </div>
@@ -319,6 +328,17 @@ export default function CheckoutPage() {
           <div className="flex justify-between text-2xl font-semibold font-semi pt-2 text-white">
             <span>{lang === 'en' ? 'Total:' : 'Total a pagar:'}</span>
             <span className="text-[#ffec00] font-semibold font-condensed text-3xl">{formatCurrency(totalAmount, currency)}</span>
+          </div>
+
+          <div className="space-y-1.5 pt-4 mt-4 border-t border-zinc-800 text-xs font-sans text-zinc-400">
+            <div className="flex justify-between">
+              <span>{lang === 'en' ? 'Base Price (VAT Excl.):' : 'Base Imponible (Sin IVA):'}</span>
+              <span>{formatCurrency((parseFloat(totalAmount) / 1.21).toFixed(2), currency)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>{lang === 'en' ? 'VAT (21% Included):' : 'IVA (21% Incluido):'}</span>
+              <span>{formatCurrency((parseFloat(totalAmount) - (parseFloat(totalAmount) / 1.21)).toFixed(2), currency)}</span>
+            </div>
           </div>
         </div>
       </div>

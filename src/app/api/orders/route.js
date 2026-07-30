@@ -4,7 +4,7 @@ import { strongesimFetch } from '../../../lib/strongesim';
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { planId, customerEmail, customerName, paymentIntentId } = body;
+    const { planId, customerEmail, customerName, paymentIntentId, price, currency } = body;
 
     // 1. Create order in WooCommerce if API credentials are configured
     let wcOrderId = 'ORD-' + Math.floor(100000 + Math.random() * 900000);
@@ -80,6 +80,7 @@ export async function POST(request) {
             set_paid: true,
             transaction_id: paymentIntentId || '',
             customer_id: customerId, // Linked to real customer ID!
+            currency: currency || 'EUR',
             billing: {
               first_name: firstName,
               last_name: lastName,
@@ -90,6 +91,9 @@ export async function POST(request) {
                 name: `eSIM Plan (${planId})`,
                 quantity: 1,
                 sku: planId,
+                price: String(price || '0.00'),
+                subtotal: String(price || '0.00'),
+                total: String(price || '0.00'),
               }
             ],
             meta_data: [

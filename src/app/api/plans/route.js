@@ -7,6 +7,19 @@ export async function GET(request) {
   const country = (searchParams.get('country') || '').toLowerCase();
   const region = (searchParams.get('region') || '').toLowerCase();
 
+  // Multiplies all base provider prices by 1.8928 to cover margins + taxes
+  const applyMarkup = (plansList) => {
+    return plansList.map((p) => {
+      const rawPrice = parseFloat(p.priceEur || p.price || 0);
+      const markedUp = parseFloat((rawPrice * 1.8928).toFixed(2));
+      return {
+        ...p,
+        priceEur: markedUp,
+        price: markedUp,
+      };
+    });
+  };
+
   try {
     let endpoint = '/plans-v2';
     if (country) {
@@ -49,7 +62,7 @@ export async function GET(request) {
           }
         });
         const finalLive = Array.from(uniqueMap.values());
-        return NextResponse.json({ success: true, plans: finalLive, count: finalLive.length });
+        return NextResponse.json({ success: true, plans: applyMarkup(finalLive), count: finalLive.length });
       }
     }
   } catch (error) {
@@ -214,7 +227,7 @@ export async function GET(request) {
     });
 
     const finalDyn = deduplicatePlans(dynamicPlans);
-    return NextResponse.json({ success: true, plans: finalDyn, count: finalDyn.length });
+    return NextResponse.json({ success: true, plans: applyMarkup(finalDyn), count: finalDyn.length });
   }
 
   const fallbackPlans = [];
@@ -288,5 +301,5 @@ export async function GET(request) {
   });
 
   const finalFallback = deduplicatePlans(fallbackPlans);
-  return NextResponse.json({ success: true, plans: finalFallback, count: finalFallback.length });
+  return NextResponse.json({ success: true, plans: applyMarkup(finalFallback), count: finalFallback.length });
 }

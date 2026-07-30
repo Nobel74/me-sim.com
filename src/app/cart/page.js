@@ -3,12 +3,13 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getTranslation } from '../../lib/i18n';
-import { formatCurrency } from '../../lib/currency';
+import { formatCurrency, convertCurrency, getExchangeRates } from '../../lib/currency';
 
 export default function CartPage() {
   const [lang, setLang] = useState('es');
   const [currency, setCurrency] = useState('EUR');
   const [cart, setCart] = useState([]);
+  const [rates, setRates] = useState(null);
 
   // Coupon state
   const [couponInput, setCouponInput] = useState('');
@@ -47,6 +48,7 @@ export default function CartPage() {
   };
 
   useEffect(() => {
+    getExchangeRates().then(setRates);
     syncPreferences();
 
     const handleCurrencyChange = () => syncPreferences();
@@ -112,7 +114,12 @@ export default function CartPage() {
     localStorage.removeItem('mesim_coupon');
   };
 
-  const subtotal = cart.reduce((s, i) => s + parseFloat(i.convertedPrice || 0), 0);
+  const getDisplayPrice = (item) => {
+    const base = item.priceEur || item.price || 0;
+    return rates ? parseFloat(convertCurrency(base, currency, rates)) : parseFloat(item.convertedPrice || base);
+  };
+
+  const subtotal = cart.reduce((s, i) => s + getDisplayPrice(i), 0);
   const discountAmount = appliedCoupon ? (subtotal * (appliedCoupon.discountPercent / 100)) : 0;
   const finalTotal = Math.max(0, subtotal - discountAmount).toFixed(2);
 
@@ -162,7 +169,7 @@ export default function CartPage() {
 
                   <div className="flex items-center justify-between sm:justify-end gap-4 border-t sm:border-t-0 pt-3 sm:pt-0 border-zinc-100">
                     <span className="font-semibold font-condensed text-xl text-black">
-                      {formatCurrency(item.convertedPrice, currency)}
+                      {formatCurrency(getDisplayPrice(item).toFixed(2), currency)}
                     </span>
                     <button
                       onClick={() => removeItem(item.cartId)}
@@ -261,6 +268,17 @@ export default function CartPage() {
               <div className="flex justify-between text-xl font-semibold font-semi text-black pt-3 border-t border-zinc-100">
                 <span>Total:</span>
                 <span className="text-black font-semibold font-condensed text-2xl">{formatCurrency(finalTotal, currency)}</span>
+              </div>
+
+              <div className="space-y-1.5 pt-3 mt-3 border-t border-zinc-100 text-xs font-sans text-zinc-500">
+                <div className="flex justify-between">
+                  <span>{lang === 'en' ? 'Base Price (VAT Excl.):' : 'Base Imponible (Sin IVA):'}</span>
+                  <span>{formatCurrency((parseFloat(finalTotal) / 1.21).toFixed(2), currency)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>{lang === 'en' ? 'VAT (21% Included):' : 'IVA (21% Incluido):'}</span>
+                  <span>{formatCurrency((parseFloat(finalTotal) - (parseFloat(finalTotal) / 1.21)).toFixed(2), currency)}</span>
+                </div>
               </div>
             </div>
 
