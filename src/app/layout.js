@@ -56,6 +56,24 @@ export default function RootLayout({ children }) {
         {/* Google Search Console - Meta Verification (Sustituye por tu código real si lo deseas) */}
         <meta name="google-site-verification" content="TU_CODIGO_DE_VERIFICACION_DE_SEARCH_CONSOLE" />
 
+        {/* Google Consent Mode Default State */}
+        <Script
+          id="google-consent-default"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('consent', 'default', {
+                'ad_storage': 'denied',
+                'ad_user_data': 'denied',
+                'ad_personalization': 'denied',
+                'analytics_storage': 'denied'
+              });
+            `,
+          }}
+        />
+
         {/* Google Tag Manager */}
         <Script
           id="gtm-script"

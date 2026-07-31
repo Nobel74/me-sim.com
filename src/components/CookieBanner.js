@@ -56,44 +56,21 @@ export default function CookieBanner() {
   }, []);
 
   const loadScripts = (consent) => {
-    // 1. Google Analytics Loader
-    if (consent.analytics) {
-      const gaId = process.env.NEXT_PUBLIC_GA_ID || 'G-XXXXXXXXXX'; // Placeholder GA4 ID
-      if (gaId && !document.getElementById('google-analytics-script')) {
-        // Embed Global Site Tag
-        const script1 = document.createElement('script');
-        script1.id = 'google-analytics-script';
-        script1.async = true;
-        script1.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
-        document.head.appendChild(script1);
+    if (typeof window !== 'undefined' && window.gtag) {
+      window.gtag('consent', 'update', {
+        'analytics_storage': consent.analytics ? 'granted' : 'denied',
+        'ad_storage': consent.marketing ? 'granted' : 'denied',
+        'ad_user_data': consent.marketing ? 'granted' : 'denied',
+        'ad_personalization': consent.marketing ? 'granted' : 'denied'
+      });
 
-        const script2 = document.createElement('script');
-        script2.id = 'google-analytics-init';
-        script2.innerHTML = `
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
-          gtag('js', new Date());
-          gtag('config', '${gaId}', { 'anonymize_ip': true });
-        `;
-        document.head.appendChild(script2);
-      }
-    }
-
-    // 2. Google Tag Manager Loader
-    if (consent.marketing) {
-      const gtmId = process.env.NEXT_PUBLIC_GTM_ID || 'GTM-XXXXXXX'; // Placeholder GTM ID
-      if (gtmId && !document.getElementById('google-tagmanager-script')) {
-        const scriptGtm = document.createElement('script');
-        scriptGtm.id = 'google-tagmanager-script';
-        scriptGtm.innerHTML = `
-          (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-          new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-          j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-          'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-          })(window,document,'script','dataLayer','${gtmId}');
-        `;
-        document.head.appendChild(scriptGtm);
-      }
+      // Update dataLayer events for GTM trigger updates
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({
+        event: 'consent_update',
+        analytics_consent: consent.analytics ? 'granted' : 'denied',
+        marketing_consent: consent.marketing ? 'granted' : 'denied'
+      });
     }
   };
 
