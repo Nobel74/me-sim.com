@@ -37,6 +37,7 @@ const COUNTRY_ALIASES = {
   sg: ['singapur', 'singapore', 'sg'],
   id: ['indonesia', 'id'],
   eg: ['egipto', 'egypt', 'eg'],
+  ru: ['rusia', 'russia', 'ru'],
 };
 
 const PREFERRED_ISO_ORDER = [

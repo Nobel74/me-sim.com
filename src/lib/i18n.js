@@ -50,6 +50,7 @@ export const ALL_WORLD_COUNTRIES = [
   { iso: 'am', nameEs: 'Armenia', nameEn: 'Armenia', region: 'europe', baseEur: 4.90 },
   { iso: 'az', nameEs: 'Azerbaiyán', nameEn: 'Azerbaijan', region: 'europe', baseEur: 4.90 },
   { iso: 'mc', nameEs: 'Mónaco', nameEn: 'Monaco', region: 'europe', baseEur: 4.90 },
+  { iso: 'ru', nameEs: 'Rusia', nameEn: 'Russia', region: 'europe', baseEur: 5.90 },
 
   // --- AMÉRICA DEL NORTE (3 Países) ---
   { iso: 'us', nameEs: 'Estados Unidos', nameEn: 'United States', region: 'north-america', baseEur: 4.90 },
