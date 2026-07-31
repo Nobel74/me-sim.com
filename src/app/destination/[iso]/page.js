@@ -333,7 +333,7 @@ export default function DestinationPage() {
         <div className="relative z-10 p-4 sm:p-10 md:p-12 w-full flex flex-col items-center sm:items-start text-center sm:text-left">
           <div className="flex flex-wrap justify-center sm:justify-start items-center gap-2 mb-3.5">
             <img
-              src={`/flags/${isoCode}.webp`}
+              src={isoCode === 'global' ? '/flags/global.gif' : `/flags/${isoCode}.webp`}
               alt={countryName}
               className="w-9 h-9 sm:w-11 sm:h-11 rounded-full object-cover border-2 border-white/30 shadow-md flex-shrink-0"
             />

@@ -39,6 +39,7 @@ const COUNTRY_ALIASES = {
   eg: ['egipto', 'egypt', 'eg'],
   ru: ['rusia', 'russia', 'ru'],
   re: ['reunion', 'reunión', 're'],
+  global: ['global', 'world', 'mundial', 'internacional', 'multipaís', 'multipais', 'multi-country'],
 };
 
 const PREFERRED_ISO_ORDER = [
@@ -172,7 +173,7 @@ export default function HeroSearch({ lang = 'es', currency = 'EUR', rates = {}, 
                     >
                       <div className="flex items-center gap-2.5 sm:gap-3.5">
                         <img
-                          src={`/flags/${dest.iso}.webp`}
+                          src={dest.iso === 'global' ? '/flags/global.gif' : `/flags/${dest.iso}.webp`}
                           alt={name}
                           className="w-7 h-7 sm:w-9 sm:h-9 rounded-full object-cover border border-zinc-200 shadow-sm"
                         />
@@ -208,7 +209,7 @@ export default function HeroSearch({ lang = 'es', currency = 'EUR', rates = {}, 
                       >
                         <div className="flex items-center gap-2.5 sm:gap-3.5">
                           <img
-                            src={`/flags/${item.iso}.webp`}
+                            src={item.iso === 'global' ? '/flags/global.gif' : `/flags/${item.iso}.webp`}
                             alt={item.countryName}
                             className="w-7 h-7 sm:w-9 sm:h-9 rounded-full object-cover border border-zinc-200 shadow-sm"
                             onError={(e) => {

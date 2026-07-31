@@ -20,7 +20,7 @@ export default function CountryCard({ iso, countryName, priceEur, lang = 'es', c
       <div className="flex items-center gap-3.5 min-w-0">
         <div className="w-10 h-10 rounded-full overflow-hidden border border-zinc-200 shadow-sm flex-shrink-0 bg-zinc-50 group-hover:scale-105 transition-transform">
           <img
-            src={`/flags/${isoCode}.webp`}
+            src={isoCode === 'global' ? '/flags/global.gif' : `/flags/${isoCode}.webp`}
             alt={`eSIM ${displayName}`}
             className="w-full h-full object-cover"
             onError={(e) => {

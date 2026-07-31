@@ -183,6 +183,7 @@ export const ALL_WORLD_COUNTRIES = [
   { iso: 'sb', nameEs: 'Islas Salomón', nameEn: 'Solomon Islands', region: 'oceania', baseEur: 7.90 },
   { iso: 'fm', nameEs: 'Micronesia', nameEn: 'Micronesia', region: 'oceania', baseEur: 7.90 },
   { iso: 'pw', nameEs: 'Palaos', nameEn: 'Palau', region: 'oceania', baseEur: 7.90 },
+  { iso: 'global', nameEs: 'Global', nameEn: 'Global', region: 'global', baseEur: 9.90 },
 ];
 
 export const COUNTRY_NAMES = ALL_WORLD_COUNTRIES.reduce((acc, c) => {
@@ -200,6 +201,7 @@ export const REGION_NAMES = {
   africa: { es: 'África', en: 'Africa' },
   'middle-east': { es: 'Oriente Medio', en: 'Middle East' },
   oceania: { es: 'Oceanía', en: 'Oceania' },
+  global: { es: 'Global', en: 'Global' },
 };
 
 export function getCountryName(iso, lang = 'es', defaultName = '') {
