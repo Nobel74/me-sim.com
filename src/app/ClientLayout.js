@@ -200,6 +200,8 @@ export default function ClientLayout({ children }) {
             <img
               src="/logos/Logo-me-sim.svg"
               alt="ME-SIM"
+              width={112}
+              height={40}
               className="h-10 md:h-11 w-auto hover:scale-105 transition-transform"
             />
           </Link>
@@ -407,7 +409,7 @@ export default function ClientLayout({ children }) {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10">
             {/* Col 1: Logo & Brand Info */}
             <div className="flex flex-col items-center md:items-start text-center md:text-left space-y-4">
-              <img src="/logos/Logo-me-sim-neg.svg" alt="ME-SIM" className="h-10 w-auto animate-fade-in mx-auto md:mx-0" />
+              <img src="/logos/Logo-me-sim-neg.svg" alt="ME-SIM" width={112} height={40} className="h-10 w-auto animate-fade-in mx-auto md:mx-0" />
               <p className="text-sm text-zinc-400 leading-relaxed font-sans pr-0 md:pr-4">{t.footerTagline}</p>
             </div>
 
