@@ -1,3 +1,5 @@
+import { ALL_WORLD_COUNTRIES } from '../lib/i18n';
+
 export default async function sitemap() {
   const baseUrl = 'https://me-sim.com';
   
@@ -13,10 +15,8 @@ export default async function sitemap() {
     { url: `${baseUrl}/en/terms-and-conditions`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.3 },
   ];
 
-  const countries = ['es', 'us', 'gb', 'fr', 'it', 'tr', 'mx', 'th', 'de', 'jp', 'pt', 'ca', 'br', 'ar', 'co', 'pe', 'au'];
-  
-  const dynamicRoutes = countries.map((iso) => ({
-    url: `${baseUrl}/destination/${iso}`,
+  const dynamicRoutes = ALL_WORLD_COUNTRIES.map((country) => ({
+    url: `${baseUrl}/destination/${country.iso}`,
     lastModified: new Date(),
     changeFrequency: 'weekly',
     priority: 0.8,

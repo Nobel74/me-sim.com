@@ -174,6 +174,18 @@ const REGION_CARDS_DATA = [
     flags: ['es', 'fr', 'ma', 'de'],
     extraCount: '+32',
   },
+  {
+    iso: 'global',
+    nameEs: 'Plan Global Multipaís',
+    nameEn: 'Global Multi-Country Plan',
+    descEs: 'Conectividad total en más de 85 países en una sola eSIM',
+    descEn: 'Total connectivity across 85+ countries on a single eSIM',
+    badgeEs: 'Mundial',
+    badgeEn: 'Worldwide',
+    priceEur: 9.90,
+    flags: ['us', 'es', 'jp', 'gb'],
+    extraCount: '+81',
+  },
 ];
 
 const HERO_RANDOM_BACKGROUNDS = [

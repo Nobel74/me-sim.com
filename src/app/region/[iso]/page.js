@@ -22,6 +22,7 @@ const REGION_HERO_IMAGES = {
   'east-asia': 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=1000&auto=format&fit=crop',
   'southeast-asia': 'https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?q=80&w=1000&auto=format&fit=crop',
   'europe-morocco': 'https://images.unsplash.com/photo-1543783207-ec64e4d95325?q=80&w=1000&auto=format&fit=crop',
+  global: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1000&auto=format&fit=crop',
 };
 
 const REGION_DESCRIPTIONS = {
@@ -76,6 +77,10 @@ const REGION_DESCRIPTIONS = {
   'europe-morocco': {
     es: 'Cruza el Estrecho de Gibraltar y viaja sin interrupciones por toda la Unión Europea y Marruecos con una sola eSIM activa al instante.',
     en: 'Cross the Strait of Gibraltar and travel seamlessly across all EU countries and Morocco on a single active eSIM profile.',
+  },
+  global: {
+    es: 'Mantente conectado en tus viajes transcontinentales. Cobertura global masiva en más de 85 países sin preocuparte por comprar eSIMs locales en cada frontera.',
+    en: 'Stay connected on transcontinental journeys. Massive global coverage across 85+ countries without worrying about local eSIM profiles at each border.',
   },
 };
 
