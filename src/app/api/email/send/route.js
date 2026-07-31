@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { sendEmail, generateMagicCodeHtml, generateWelcomeCredentialsHtml } from '../../../../lib/email';
+import { sendEmail, generateMagicCodeHtml, generateWelcomeCredentialsHtml, generatePasswordResetHtml } from '../../../../lib/email';
 
 export async function POST(request) {
   try {
@@ -63,6 +63,23 @@ export async function POST(request) {
       return NextResponse.json({
         success: true,
         message: 'Welcome credentials email processed successfully.',
+      });
+    }
+
+    if (type === 'password_reset') {
+      const password = customPassword || 'MS-123456';
+      const htmlText = generatePasswordResetHtml(cleanEmail, password, lang);
+      const result = await sendEmail({
+        to: cleanEmail,
+        subject: lang === 'en' ? '🔒 Your ME-SIM Password Has Been Reset' : '🔒 Tu Contraseña de ME-SIM Ha Sido Restablecida',
+        htmlText,
+        type: 'password_reset',
+        data: { email: cleanEmail, password },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Password reset email processed successfully.',
       });
     }
 

@@ -85,23 +85,28 @@ export default function CheckoutPage() {
     setLoading(true);
 
     try {
-      // 1. Create Stripe Payment Intent via server route
-      const stripeRes = await fetch('/api/stripe/create-payment-intent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount: parseFloat(totalAmount),
-          currency,
-          customerEmail: form.email,
-        }),
-      });
+      let paymentIntentId = 'free_coupon';
 
-      const stripeData = await stripeRes.json();
+      if (parseFloat(totalAmount) > 0) {
+        // 1. Create Stripe Payment Intent via server route
+        const stripeRes = await fetch('/api/stripe/create-payment-intent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount: parseFloat(totalAmount),
+            currency,
+            customerEmail: form.email,
+          }),
+        });
 
-      if (!stripeData.success) {
-        alert(lang === 'en' ? 'Stripe payment creation failed.' : 'Error al procesar el pago con Stripe.');
-        setLoading(false);
-        return;
+        const stripeData = await stripeRes.json();
+
+        if (!stripeData.success) {
+          alert(lang === 'en' ? 'Stripe payment creation failed.' : 'Error al procesar el pago con Stripe.');
+          setLoading(false);
+          return;
+        }
+        paymentIntentId = stripeData.paymentIntentId;
       }
 
       // 2. Submit Order & Auto-Register Guest Account
@@ -112,7 +117,7 @@ export default function CheckoutPage() {
           planId: cart[0]?.id || 'es-1',
           customerEmail: form.email,
           customerName: `${form.firstName} ${form.lastName}`,
-          paymentIntentId: stripeData.paymentIntentId,
+          paymentIntentId: paymentIntentId,
           couponCode: appliedCoupon?.code || null,
           price: totalAmount,
           currency: currency,

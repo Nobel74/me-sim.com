@@ -13,7 +13,6 @@ export async function POST(request) {
 
     const cleanEmail = email.trim().toLowerCase();
 
-    // 1. Attempt WordPress REST API lost password trigger if WOOCOMMERCE_API_URL configured
     const rawWcUrl = process.env.WOOCOMMERCE_API_URL || process.env.NEXT_PUBLIC_WC_API_URL || 'https://api.me-sim.com';
     let wcUrl = rawWcUrl;
     if (wcUrl.includes('/wp-json')) {
@@ -22,58 +21,83 @@ export async function POST(request) {
     if (wcUrl.endsWith('/')) {
       wcUrl = wcUrl.slice(0, -1);
     }
-    try {
-      const wpRes = await fetch(`${wcUrl}/wp-json/wp/v2/users/lost-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_login: cleanEmail }),
-      });
-      if (wpRes.ok) {
-        return NextResponse.json({
-          success: true,
-          message: lang === 'en'
-            ? 'A password reset link has been sent to your email address via WordPress.'
-            : 'Hemos enviado un enlace de recuperación de contraseña a tu correo electrónico.',
-        });
-      }
-    } catch (wpErr) {
-      console.warn('WP lost-password endpoint notice:', wpErr.message);
+
+    const ck = process.env.WOOCOMMERCE_CONSUMER_KEY || process.env.WC_CONSUMER_KEY;
+    const cs = process.env.WOOCOMMERCE_CONSUMER_SECRET || process.env.WC_CONSUMER_SECRET;
+
+    if (!ck || !cs) {
+      return NextResponse.json(
+        { success: false, message: 'WooCommerce credentials not configured' },
+        { status: 500 }
+      );
     }
 
-    // 2. Fallback: Generate secure temporary OTP code & email notification
-    const tempResetCode = Math.floor(100000 + Math.random() * 900000).toString();
+    // 1. Search for customer by email
+    const searchRes = await fetch(`${wcUrl}/wp-json/wc/v3/customers?email=${encodeURIComponent(cleanEmail)}`, {
+      headers: {
+        Authorization: 'Basic ' + Buffer.from(`${ck}:${cs}`).toString('base64'),
+      },
+      cache: 'no-store'
+    });
 
+    if (!searchRes.ok) {
+      return NextResponse.json(
+        { success: false, message: lang === 'en' ? 'Error checking email registration.' : 'Error al verificar el registro del correo.' },
+        { status: 502 }
+      );
+    }
+
+    const customers = await searchRes.json();
+    if (!Array.isArray(customers) || customers.length === 0) {
+      return NextResponse.json(
+        { success: false, message: lang === 'en' ? 'This email address is not registered.' : 'Este correo electrónico no está registrado.' },
+        { status: 404 }
+      );
+    }
+
+    const customerId = customers[0].id;
+
+    // 2. Generate a new temporary password
+    const newTempPassword = 'MS-' + Math.floor(100000 + Math.random() * 900000).toString();
+
+    // 3. Update customer password in WooCommerce
+    const updateRes = await fetch(`${wcUrl}/wp-json/wc/v3/customers/${customerId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Basic ' + Buffer.from(`${ck}:${cs}`).toString('base64'),
+      },
+      body: JSON.stringify({ password: newTempPassword }),
+    });
+
+    if (!updateRes.ok) {
+      return NextResponse.json(
+        { success: false, message: lang === 'en' ? 'Failed to update account password.' : 'No se pudo restablecer la contraseña en la cuenta.' },
+        { status: 502 }
+      );
+    }
+
+    // 4. Send email with the new temporary password
     try {
-      const emailRes = await fetch(new URL('/api/email/send', request.url).toString(), {
+      await fetch(new URL('/api/email/send', request.url).toString(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: cleanEmail,
-          type: 'magic_code',
-          customCode: tempResetCode,
-          subject: lang === 'en' ? 'ME-SIM - Password Reset Code' : 'ME-SIM - Código de Recuperación de Contraseña',
+          type: 'password_reset',
+          customPassword: newTempPassword,
           lang,
         }),
       });
-
-      if (emailRes.ok) {
-        return NextResponse.json({
-          success: true,
-          message: lang === 'en'
-            ? `A reset verification code has been sent to ${cleanEmail}.`
-            : `Hemos enviado un código de recuperación a ${cleanEmail}.`,
-        });
-      }
-    } catch (e) {
-      console.warn('SMTP fallback notice:', e.message);
+    } catch (emailErr) {
+      console.error('Error triggering password reset email dispatch:', emailErr);
     }
 
-    // Default friendly response
     return NextResponse.json({
       success: true,
       message: lang === 'en'
-        ? `Instructions to reset your password have been dispatched to ${cleanEmail}.`
-        : `Se han enviado las instrucciones para restablecer tu contraseña a ${cleanEmail}.`,
+        ? 'A new temporary password has been sent to your email.'
+        : 'Se ha enviado una nueva contraseña temporal a tu correo electrónico.',
     });
 
   } catch (error) {

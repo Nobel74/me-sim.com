@@ -209,3 +209,42 @@ export function generateWelcomeCredentialsHtml(email, password, lang = 'es') {
     </html>
   `;
 }
+
+export function generatePasswordResetHtml(email, password, lang = 'es') {
+  const isEn = lang === 'en';
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f5; color: #0f0f0f; margin: 0; padding: 40px 20px;">
+      <div style="max-width: 540px; margin: 0 auto; background: #ffffff; border: 1px solid #e4e4e7; border-radius: 24px; padding: 40px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
+        <img src="https://me-sim.com/logos/Logo-me-sim-mail.png" alt="ME-SIM" style="height: 45px; display: inline-block; margin-bottom: 24px;" />
+        <h2 style="color: #18181b; font-size: 20px; font-weight: 700; margin-bottom: 16px;">
+          ${isEn ? 'Your Password Has Been Reset' : '¡Tu contraseña ha sido restablecida!'}
+        </h2>
+        
+        <p style="color: #52525b; font-size: 15px; line-height: 1.6; margin-bottom: 24px; text-align: left;">
+          ${isEn 
+            ? 'We have generated a new temporary password for your account. Use the credentials below to log in:' 
+            : 'Hemos generado una nueva contraseña temporal para tu cuenta. Utiliza las siguientes credenciales para acceder:'}
+        </p>
+
+        <div style="background: #f4f4f5; border: 1px solid #e4e4e7; border-radius: 16px; padding: 20px; text-align: left; margin-bottom: 28px; font-size: 14px; color: #27272a;">
+          <p style="margin: 0 0 10px;"><strong>${isEn ? 'Username / Email:' : 'Usuario / Email:'}</strong> ${email}</p>
+          <p style="margin: 0;"><strong>${isEn ? 'New Temporary Password:' : 'Nueva Contraseña Temporal:'}</strong> <code style="background: #e4e4e7; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${password}</code></p>
+        </div>
+
+        <a href="https://me-sim.com/login" style="background: #ffec00; color: #000000; font-weight: 800; font-size: 15px; padding: 14px 28px; border-radius: 12px; text-decoration: none; display: inline-block; border: 1px solid rgba(0,0,0,0.1); margin-bottom: 20px;">
+          ${isEn ? 'Access My Account ➔' : 'Acceder a Mi Cuenta ➔'}
+        </a>
+
+        <p style="color: #71717a; font-size: 12px; margin-top: 20px;">
+          ${isEn 
+            ? 'For security reasons, we recommend changing this password from your account profile settings after logging in.' 
+            : 'Por razones de seguridad, te recomendamos cambiar esta contraseña temporal desde la configuración de tu cuenta después de iniciar sesión.'}
+        </p>
+      </div>
+    </body>
+    </html>
+  `;
+}
