@@ -43,7 +43,14 @@ export async function sendEmail({ to, subject, htmlText, type = 'magic_code', da
   }
 
   // 2. Try sending via WooCommerce WP-Mail API endpoint
-  const wpUrl = process.env.WOOCOMMERCE_API_URL || 'https://me-sim.com';
+  const rawWcUrl = process.env.WOOCOMMERCE_API_URL || process.env.NEXT_PUBLIC_WC_API_URL || 'https://api.me-sim.com';
+  let wpUrl = rawWcUrl;
+  if (wpUrl.includes('/wp-json')) {
+    wpUrl = wpUrl.split('/wp-json')[0];
+  }
+  if (wpUrl.endsWith('/')) {
+    wpUrl = wpUrl.slice(0, -1);
+  }
   try {
     const res = await fetch(`${wpUrl}/wp-json/mesim/v1/send-email`, {
       method: 'POST',

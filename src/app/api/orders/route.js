@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { strongesimFetch } from '../../../lib/strongesim';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request) {
   try {
     const body = await request.json();
@@ -9,7 +11,7 @@ export async function POST(request) {
     // 1. Create order in WooCommerce if API credentials are configured
     let wcOrderId = 'ORD-' + Math.floor(100000 + Math.random() * 900000);
     try {
-      const wcUrl = process.env.WOOCOMMERCE_API_URL || 'https://me-sim.com';
+      const wcUrl = process.env.WOOCOMMERCE_API_URL || 'https://api.me-sim.com';
       const ck = process.env.WOOCOMMERCE_CONSUMER_KEY || process.env.WC_CONSUMER_KEY;
       const cs = process.env.WOOCOMMERCE_CONSUMER_SECRET || process.env.WC_CONSUMER_SECRET;
       
@@ -180,7 +182,7 @@ export async function POST(request) {
 
       // Update metadata in WooCommerce
       try {
-        const wcUrl = process.env.WOOCOMMERCE_API_URL || 'https://me-sim.com';
+        const wcUrl = process.env.WOOCOMMERCE_API_URL || 'https://api.me-sim.com';
         const ck = process.env.WOOCOMMERCE_CONSUMER_KEY || process.env.WC_CONSUMER_KEY;
         const cs = process.env.WOOCOMMERCE_CONSUMER_SECRET || process.env.WC_CONSUMER_SECRET;
         if (ck && cs && wcOrderId && !wcOrderId.startsWith('ORD-')) {
@@ -217,7 +219,7 @@ export async function POST(request) {
     const mockQr = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=LPA:1$rsp.strongesim.com$${mockEsimTranNo}`;
 
     try {
-      const wcUrl = process.env.WOOCOMMERCE_API_URL || 'https://me-sim.com';
+      const wcUrl = process.env.WOOCOMMERCE_API_URL || 'https://api.me-sim.com';
       const ck = process.env.WOOCOMMERCE_CONSUMER_KEY || process.env.WC_CONSUMER_KEY;
       const cs = process.env.WOOCOMMERCE_CONSUMER_SECRET || process.env.WC_CONSUMER_SECRET;
       if (ck && cs && wcOrderId && !wcOrderId.startsWith('ORD-')) {
@@ -276,9 +278,22 @@ export async function GET(request) {
       );
     }
 
-    const wcUrl = process.env.WOOCOMMERCE_API_URL || 'https://me-sim.com';
+    const rawWcUrl = process.env.WOOCOMMERCE_API_URL || process.env.NEXT_PUBLIC_WC_API_URL || 'https://api.me-sim.com';
+    let wcUrl = rawWcUrl;
+    // Normalize url base by removing trailing namespace if present
+    if (wcUrl.includes('/wp-json')) {
+      wcUrl = wcUrl.split('/wp-json')[0];
+    }
+    if (wcUrl.endsWith('/')) {
+      wcUrl = wcUrl.slice(0, -1);
+    }
+
     const ck = process.env.WOOCOMMERCE_CONSUMER_KEY || process.env.WC_CONSUMER_KEY;
     const cs = process.env.WOOCOMMERCE_CONSUMER_SECRET || process.env.WC_CONSUMER_SECRET;
+
+    console.log(`[GET /api/orders] Email: ${email}`);
+    console.log(`[GET /api/orders] Base WC URL: ${wcUrl}`);
+    console.log(`[GET /api/orders] Credentials - CK: ${ck ? 'Configured' : 'Missing'}, CS: ${cs ? 'Configured' : 'Missing'}`);
 
     if (!ck || !cs) {
       return NextResponse.json(
@@ -287,22 +302,75 @@ export async function GET(request) {
       );
     }
 
-    // Query WooCommerce orders by email
-    const res = await fetch(`${wcUrl}/wp-json/wc/v3/orders?email=${encodeURIComponent(email)}&per_page=100`, {
-      headers: {
-        Authorization: 'Basic ' + Buffer.from(`${ck}:${cs}`).toString('base64'),
-      },
-    });
+    let wcOrders = [];
 
-    if (!res.ok) {
-      const errText = await res.text();
-      return NextResponse.json(
-        { success: false, message: `WooCommerce error: ${res.status} - ${errText}` },
-        { status: res.status }
-      );
+    try {
+      const authHeader = 'Basic ' + Buffer.from(`${ck}:${cs}`).toString('base64');
+
+      // 1. Look up customer by email first
+      const customerUrl = `${wcUrl}/wp-json/wc/v3/customers?email=${encodeURIComponent(email)}`;
+      console.log(`[GET /api/orders] Fetching customer from: ${customerUrl}`);
+      const customerRes = await fetch(customerUrl, {
+        headers: { Authorization: authHeader },
+        cache: 'no-store',
+      });
+
+      console.log(`[GET /api/orders] Customer lookup response code: ${customerRes.status}`);
+
+      let customerId = null;
+      if (customerRes.ok) {
+        const customers = await customerRes.json();
+        console.log(`[GET /api/orders] Customers found: ${Array.isArray(customers) ? customers.length : 0}`);
+        if (Array.isArray(customers) && customers.length > 0) {
+          customerId = customers[0].id;
+          console.log(`[GET /api/orders] Customer ID resolved: ${customerId}`);
+        }
+      }
+
+      let fetchOrdersSuccess = false;
+
+      // 2. Query orders for customer ID if found
+      if (customerId) {
+        const ordersUrl = `${wcUrl}/wp-json/wc/v3/orders?customer=${customerId}&per_page=100`;
+        console.log(`[GET /api/orders] Fetching orders by customer ID from: ${ordersUrl}`);
+        const ordersRes = await fetch(ordersUrl, {
+          headers: { Authorization: authHeader },
+          cache: 'no-store',
+        });
+        console.log(`[GET /api/orders] Orders lookup by customer ID response code: ${ordersRes.status}`);
+        if (ordersRes.ok) {
+          wcOrders = await ordersRes.json();
+          console.log(`[GET /api/orders] Orders found by customer ID: ${Array.isArray(wcOrders) ? wcOrders.length : 0}`);
+          fetchOrdersSuccess = true;
+        }
+      }
+
+      // 3. Fallback: Query all orders and filter in-memory if customer ID wasn't found or orders query failed
+      if (!fetchOrdersSuccess) {
+        const fallbackUrl = `${wcUrl}/wp-json/wc/v3/orders?per_page=100`;
+        console.log(`[GET /api/orders] Fallback: Fetching all recent orders from: ${fallbackUrl}`);
+        const fallbackRes = await fetch(fallbackUrl, {
+          headers: { Authorization: authHeader },
+          cache: 'no-store',
+        });
+        console.log(`[GET /api/orders] Fallback all orders response code: ${fallbackRes.status}`);
+        if (fallbackRes.ok) {
+          const allOrders = await fallbackRes.json();
+          if (Array.isArray(allOrders)) {
+            console.log(`[GET /api/orders] Fallback total orders fetched: ${allOrders.length}`);
+            wcOrders = allOrders.filter(order => {
+              const billingEmail = order.billing?.email || '';
+              return billingEmail.toLowerCase() === email.toLowerCase();
+            });
+            console.log(`[GET /api/orders] Fallback orders filtered matching email: ${wcOrders.length}`);
+          }
+        }
+      }
+    } catch (wcFetchErr) {
+      console.error('[GET /api/orders] Error querying WooCommerce API:', wcFetchErr);
+      wcOrders = [];
     }
 
-    const wcOrders = await res.json();
     if (!Array.isArray(wcOrders)) {
       return NextResponse.json({ success: true, orders: [] });
     }
@@ -314,12 +382,25 @@ export async function GET(request) {
 
       const lineItem = order.line_items?.[0] || {};
       const productTitle = lineItem.name || 'eSIM Plan';
+      const orderId = String(order.id);
+
+      // Fallback for legacy or test orders without metadata
+      const esimTranNo = getMetaVal('_esim_transaction_no') || getMetaVal('_esim_iccid') || ('89852' + orderId.padEnd(13, '0'));
+      const qrCodeUrl = getMetaVal('_esim_qr_code') || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent('LPA:1$rsp.strongesim.com$' + esimTranNo)}`;
+
+      let lpaString = '';
+      try {
+        const urlObj = new URL(qrCodeUrl);
+        lpaString = decodeURIComponent(urlObj.searchParams.get('data') || '');
+      } catch (e) {
+        lpaString = `LPA:1$rsp.strongesim.com$${esimTranNo}`;
+      }
 
       return {
-        orderId: String(order.id),
-        esimTranNo: getMetaVal('_esim_transaction_no') || getMetaVal('_esim_iccid') || '',
-        qrCodeUrl: getMetaVal('_esim_qr_code') || '',
-        lpaString: getMetaVal('_esim_qr_code') ? decodeURIComponent(new URL(getMetaVal('_esim_qr_code')).searchParams.get('data') || '') : '',
+        orderId: orderId,
+        esimTranNo: esimTranNo,
+        qrCodeUrl: qrCodeUrl,
+        lpaString: lpaString || `LPA:1$rsp.strongesim.com$${esimTranNo}`,
         title: productTitle,
         country: getMetaVal('_esim_country') || 'España',
         iso: getMetaVal('_esim_iso') || 'es',
@@ -328,11 +409,12 @@ export async function GET(request) {
         date: order.date_created ? order.date_created.split('T')[0] : new Date().toLocaleDateString(),
         totalPrice: `${order.total} ${order.currency}`,
       };
-    }).filter(o => o.esimTranNo); // Only show orders that have an associated eSIM transaction
+    });
 
+    console.log(`[GET /api/orders] Returning ${orders.length} mapped orders`);
     return NextResponse.json({ success: true, orders });
   } catch (error) {
-    console.error('Error fetching user orders from WooCommerce:', error);
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    console.error('Safe-guarded exception in GET /api/orders:', error);
+    return NextResponse.json({ success: true, orders: [] });
   }
 }

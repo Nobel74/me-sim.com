@@ -14,7 +14,14 @@ export async function POST(request) {
     const cleanEmail = email.trim().toLowerCase();
 
     // 1. Attempt WordPress REST API lost password trigger if WOOCOMMERCE_API_URL configured
-    const wcUrl = process.env.WOOCOMMERCE_API_URL || 'https://me-sim.com';
+    const rawWcUrl = process.env.WOOCOMMERCE_API_URL || process.env.NEXT_PUBLIC_WC_API_URL || 'https://api.me-sim.com';
+    let wcUrl = rawWcUrl;
+    if (wcUrl.includes('/wp-json')) {
+      wcUrl = wcUrl.split('/wp-json')[0];
+    }
+    if (wcUrl.endsWith('/')) {
+      wcUrl = wcUrl.slice(0, -1);
+    }
     try {
       const wpRes = await fetch(`${wcUrl}/wp-json/wp/v2/users/lost-password`, {
         method: 'POST',

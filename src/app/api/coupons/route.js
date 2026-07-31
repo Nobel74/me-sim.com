@@ -33,7 +33,14 @@ export async function POST(request) {
 
     // Attempting WooCommerce REST API coupon lookup
     try {
-      const wcUrl = process.env.WOOCOMMERCE_API_URL || 'https://me-sim.com';
+      const rawWcUrl = process.env.WOOCOMMERCE_API_URL || process.env.NEXT_PUBLIC_WC_API_URL || 'https://api.me-sim.com';
+      let wcUrl = rawWcUrl;
+      if (wcUrl.includes('/wp-json')) {
+        wcUrl = wcUrl.split('/wp-json')[0];
+      }
+      if (wcUrl.endsWith('/')) {
+        wcUrl = wcUrl.slice(0, -1);
+      }
       const ck = process.env.WOOCOMMERCE_CONSUMER_KEY || process.env.WC_CONSUMER_KEY;
       const cs = process.env.WOOCOMMERCE_CONSUMER_SECRET || process.env.WC_CONSUMER_SECRET;
 
