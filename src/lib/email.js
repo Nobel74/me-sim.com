@@ -138,7 +138,7 @@ export function generateOrderConfirmationHtml(orderData, lang = 'es') {
           <p style="margin: 0;"><strong>${isEn ? 'Total Paid:' : 'Total Pagado:'}</strong> ${orderData.totalPrice}</p>
         </div>
 
-        <p style="color: #71717a; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} ME-SIM Connectivity. Todos los derechos reservados.</p>
+        <p style="color: #71717a; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} ME-SIM Connectivity. ${isEn ? 'All rights reserved.' : 'Todos los derechos reservados.'}</p>
       </div>
     </body>
     </html>
