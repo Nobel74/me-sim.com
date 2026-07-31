@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { planId, customerEmail, customerName, paymentIntentId, price, currency, title, country, iso, dataAmount, days } = body;
+    const { planId, customerEmail, customerName, paymentIntentId, price, currency, title, country, iso, dataAmount, days, lang = 'es' } = body;
 
     // 1. Create order in WooCommerce if API credentials are configured
     let wcOrderId = 'ORD-' + Math.floor(100000 + Math.random() * 900000);
@@ -139,7 +139,7 @@ export async function POST(request) {
                     email: customerEmail,
                     type: 'welcome_credentials',
                     customPassword: generatedPassword,
-                    lang: 'es',
+                    lang: lang,
                   }),
                 });
                 console.log(`Welcome credentials email sent to ${customerEmail}`);
@@ -205,6 +205,29 @@ export async function POST(request) {
         console.error('Error updating WooCommerce meta_data after StrongeSIM activation:', err);
       }
 
+      // Send order confirmation email with QR code
+      try {
+        await fetch(new URL('/api/email/send', request.url).toString(), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: customerEmail,
+            type: 'order_confirmation',
+            orderData: {
+              title: title || 'eSIM Plan',
+              orderId: wcOrderId,
+              esimTranNo: esimTranNo,
+              qrCodeUrl: qrCodeUrl,
+              totalPrice: `${price} ${currency || 'EUR'}`,
+            },
+            lang: lang,
+          }),
+        });
+        console.log(`Order confirmation email sent to ${customerEmail}`);
+      } catch (mailErr) {
+        console.error('Error sending order confirmation email:', mailErr);
+      }
+
       return NextResponse.json({
         success: true,
         order_id: wcOrderId,
@@ -240,6 +263,29 @@ export async function POST(request) {
       }
     } catch (err) {
       console.error('Error updating WooCommerce meta_data after mock eSIM creation:', err);
+    }
+
+    // Send order confirmation email with QR code
+    try {
+      await fetch(new URL('/api/email/send', request.url).toString(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: customerEmail,
+          type: 'order_confirmation',
+          orderData: {
+            title: title || 'eSIM Plan',
+            orderId: wcOrderId,
+            esimTranNo: mockEsimTranNo,
+            qrCodeUrl: mockQr,
+            totalPrice: `${price} ${currency || 'EUR'}`,
+          },
+          lang: lang,
+        }),
+      });
+      console.log(`Mock order confirmation email sent to ${customerEmail}`);
+    } catch (mailErr) {
+      console.error('Error sending mock order confirmation email:', mailErr);
     }
 
     return NextResponse.json({

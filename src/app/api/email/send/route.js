@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { sendEmail, generateMagicCodeHtml, generateWelcomeCredentialsHtml, generatePasswordResetHtml } from '../../../../lib/email';
+import { sendEmail, generateMagicCodeHtml, generateWelcomeCredentialsHtml, generatePasswordResetHtml, generateOrderConfirmationHtml } from '../../../../lib/email';
 
 export async function POST(request) {
   try {
@@ -80,6 +80,22 @@ export async function POST(request) {
       return NextResponse.json({
         success: true,
         message: 'Password reset email processed successfully.',
+      });
+    }
+
+    if (type === 'order_confirmation') {
+      const htmlText = generateOrderConfirmationHtml(body.orderData, lang);
+      const result = await sendEmail({
+        to: cleanEmail,
+        subject: lang === 'en' ? '🎉 Your ME-SIM eSIM Order Confirmation' : '🎉 Confirmación de tu Pedido eSIM en ME-SIM',
+        htmlText,
+        type: 'order_confirmation',
+        data: body.orderData,
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Order confirmation email processed successfully.',
       });
     }
 

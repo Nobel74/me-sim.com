@@ -126,6 +126,7 @@ export default function CheckoutPage() {
           iso: cart[0]?.iso || 'es',
           dataAmount: cart[0]?.dataAmount || '10 GB',
           days: cart[0]?.days || 30,
+          lang,
         }),
       });
 
