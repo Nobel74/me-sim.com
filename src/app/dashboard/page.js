@@ -78,30 +78,27 @@ export default function DashboardPage() {
 
   const t = getTranslation(lang);
 
+  const [loadingOrders, setLoadingOrders] = useState(false);
+
+  const fetchOrders = async () => {
+    setLoadingOrders(true);
+    try {
+      const res = await fetch('/api/orders');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.orders) {
+          setUserOrders(data.orders);
+        }
+      }
+    } catch (e) {
+      console.error('Error fetching real-time orders:', e);
+    } finally {
+      setLoadingOrders(false);
+    }
+  };
+
   const syncState = () => {
     setLang(localStorage.getItem('mesim_lang') || 'es');
-
-    const orders = JSON.parse(localStorage.getItem('mesim_user_orders') || '[]');
-    if (orders.length === 0) {
-      const demoOrder = {
-        orderId: 'ORD-98214',
-        esimTranNo: '898523400019283741',
-        qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=LPA:1$rsp.strongesim.com$898523400019283741',
-        lpaString: 'LPA:1$rsp.strongesim.com$898523400019283741',
-        title: 'eSIM España 10GB 30Days',
-        country: 'España',
-        iso: 'es',
-        dataAmount: '10 GB',
-        days: 30,
-        usedGb: 8.0,
-        totalGb: 10.0,
-        date: '2026-07-28',
-        totalPrice: '14.90 €',
-      };
-      setUserOrders([demoOrder]);
-    } else {
-      setUserOrders(orders);
-    }
 
     const savedBilling = JSON.parse(localStorage.getItem('mesim_billing') || 'null');
     if (savedBilling) {
@@ -132,6 +129,12 @@ export default function DashboardPage() {
 
     return () => window.removeEventListener('mesim_lang_changed', handleLangChange);
   }, []);
+
+  useEffect(() => {
+    if (currentUser) {
+      fetchOrders();
+    }
+  }, [currentUser]);
 
   useEffect(() => {
     // Fetch real-time eSIM usage stats for active orders
@@ -205,7 +208,6 @@ export default function DashboardPage() {
     setDeleting(true);
     try {
       await fetch('/api/auth/delete-account', { method: 'POST' });
-      localStorage.removeItem('mesim_user_orders');
       localStorage.removeItem('mesim_billing');
       localStorage.removeItem('mesim_coupon');
       window.dispatchEvent(new Event('mesim_auth_changed'));

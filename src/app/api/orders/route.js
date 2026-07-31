@@ -4,7 +4,7 @@ import { strongesimFetch } from '../../../lib/strongesim';
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { planId, customerEmail, customerName, paymentIntentId, price, currency } = body;
+    const { planId, customerEmail, customerName, paymentIntentId, price, currency, title, country, iso, dataAmount, days } = body;
 
     // 1. Create order in WooCommerce if API credentials are configured
     let wcOrderId = 'ORD-' + Math.floor(100000 + Math.random() * 900000);
@@ -88,7 +88,7 @@ export async function POST(request) {
             },
             line_items: [
               {
-                name: `eSIM Plan (${planId})`,
+                name: title || `eSIM Plan (${planId})`,
                 quantity: 1,
                 sku: planId,
                 price: String(price || '0.00'),
@@ -100,6 +100,22 @@ export async function POST(request) {
               {
                 key: '_stripe_intent_id',
                 value: paymentIntentId || '',
+              },
+              {
+                key: '_esim_iso',
+                value: iso || 'es',
+              },
+              {
+                key: '_esim_country',
+                value: country || 'España',
+              },
+              {
+                key: '_esim_data_amount',
+                value: dataAmount || '10 GB',
+              },
+              {
+                key: '_esim_days',
+                value: String(days || 30),
               }
             ]
           }),
@@ -159,28 +175,164 @@ export async function POST(request) {
     }
 
     if (esimData) {
+      const esimTranNo = esimData.esimTranNo;
+      const qrCodeUrl = esimData.qr_code_url || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(esimData.lpaString || '')}`;
+
+      // Update metadata in WooCommerce
+      try {
+        const wcUrl = process.env.WOOCOMMERCE_API_URL || 'https://me-sim.com';
+        const ck = process.env.WOOCOMMERCE_CONSUMER_KEY || process.env.WC_CONSUMER_KEY;
+        const cs = process.env.WOOCOMMERCE_CONSUMER_SECRET || process.env.WC_CONSUMER_SECRET;
+        if (ck && cs && wcOrderId && !wcOrderId.startsWith('ORD-')) {
+          await fetch(`${wcUrl}/wp-json/wc/v3/orders/${wcOrderId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: 'Basic ' + Buffer.from(`${ck}:${cs}`).toString('base64'),
+            },
+            body: JSON.stringify({
+              meta_data: [
+                { key: '_esim_iccid', value: esimTranNo },
+                { key: '_esim_transaction_no', value: esimTranNo },
+                { key: '_esim_qr_code', value: qrCodeUrl },
+              ]
+            })
+          });
+        }
+      } catch (err) {
+        console.error('Error updating WooCommerce meta_data after StrongeSIM activation:', err);
+      }
+
       return NextResponse.json({
         success: true,
         order_id: wcOrderId,
-        esimTranNo: esimData.esimTranNo,
-        qr_code_url: esimData.qr_code_url || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(esimData.lpaString || '')}`,
+        esimTranNo: esimTranNo,
+        qr_code_url: qrCodeUrl,
         status: esimData.status || 'COMPLETED',
       });
     }
 
     // Fallback simulation if StrongeSIM API is in Sandbox/Demo or fails
     const mockEsimTranNo = '89852' + Math.floor(1000000000 + Math.random() * 9000000000);
+    const mockQr = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=LPA:1$rsp.strongesim.com$${mockEsimTranNo}`;
+
+    try {
+      const wcUrl = process.env.WOOCOMMERCE_API_URL || 'https://me-sim.com';
+      const ck = process.env.WOOCOMMERCE_CONSUMER_KEY || process.env.WC_CONSUMER_KEY;
+      const cs = process.env.WOOCOMMERCE_CONSUMER_SECRET || process.env.WC_CONSUMER_SECRET;
+      if (ck && cs && wcOrderId && !wcOrderId.startsWith('ORD-')) {
+        await fetch(`${wcUrl}/wp-json/wc/v3/orders/${wcOrderId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Basic ' + Buffer.from(`${ck}:${cs}`).toString('base64'),
+          },
+          body: JSON.stringify({
+            meta_data: [
+              { key: '_esim_iccid', value: mockEsimTranNo },
+              { key: '_esim_transaction_no', value: mockEsimTranNo },
+              { key: '_esim_qr_code', value: mockQr },
+            ]
+          })
+        });
+      }
+    } catch (err) {
+      console.error('Error updating WooCommerce meta_data after mock eSIM creation:', err);
+    }
+
     return NextResponse.json({
       success: true,
       order_id: wcOrderId,
       esimTranNo: mockEsimTranNo,
-      qr_code_url: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=LPA:1$rsp.strongesim.com$${mockEsimTranNo}`,
+      qr_code_url: mockQr,
       status: 'COMPLETED',
       isDemo: true,
     });
 
   } catch (error) {
     console.error('General error handling orders endpoint:', error);
+    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+  }
+}
+
+export async function GET(request) {
+  try {
+    const sessionCookie = request.cookies.get('mesim_session');
+
+    if (!sessionCookie || !sessionCookie.value) {
+      return NextResponse.json(
+        { success: false, message: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const sessionData = JSON.parse(Buffer.from(sessionCookie.value, 'base64').toString('utf-8'));
+    const email = sessionData.email;
+
+    if (!email) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid session' },
+        { status: 400 }
+      );
+    }
+
+    const wcUrl = process.env.WOOCOMMERCE_API_URL || 'https://me-sim.com';
+    const ck = process.env.WOOCOMMERCE_CONSUMER_KEY || process.env.WC_CONSUMER_KEY;
+    const cs = process.env.WOOCOMMERCE_CONSUMER_SECRET || process.env.WC_CONSUMER_SECRET;
+
+    if (!ck || !cs) {
+      return NextResponse.json(
+        { success: false, message: 'WooCommerce credentials not configured' },
+        { status: 500 }
+      );
+    }
+
+    // Query WooCommerce orders by email
+    const res = await fetch(`${wcUrl}/wp-json/wc/v3/orders?email=${encodeURIComponent(email)}&per_page=100`, {
+      headers: {
+        Authorization: 'Basic ' + Buffer.from(`${ck}:${cs}`).toString('base64'),
+      },
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      return NextResponse.json(
+        { success: false, message: `WooCommerce error: ${res.status} - ${errText}` },
+        { status: res.status }
+      );
+    }
+
+    const wcOrders = await res.json();
+    if (!Array.isArray(wcOrders)) {
+      return NextResponse.json({ success: true, orders: [] });
+    }
+
+    // Map WooCommerce orders to dashboard format
+    const orders = wcOrders.map(order => {
+      const meta = order.meta_data || [];
+      const getMetaVal = (key) => meta.find(m => m.key === key)?.value || '';
+
+      const lineItem = order.line_items?.[0] || {};
+      const productTitle = lineItem.name || 'eSIM Plan';
+
+      return {
+        orderId: String(order.id),
+        esimTranNo: getMetaVal('_esim_transaction_no') || getMetaVal('_esim_iccid') || '',
+        qrCodeUrl: getMetaVal('_esim_qr_code') || '',
+        lpaString: getMetaVal('_esim_qr_code') ? decodeURIComponent(new URL(getMetaVal('_esim_qr_code')).searchParams.get('data') || '') : '',
+        title: productTitle,
+        country: getMetaVal('_esim_country') || 'España',
+        iso: getMetaVal('_esim_iso') || 'es',
+        dataAmount: getMetaVal('_esim_data_amount') || '10 GB',
+        days: parseInt(getMetaVal('_esim_days') || '30', 10),
+        date: order.date_created ? order.date_created.split('T')[0] : new Date().toLocaleDateString(),
+        totalPrice: `${order.total} ${order.currency}`,
+      };
+    }).filter(o => o.esimTranNo); // Only show orders that have an associated eSIM transaction
+
+    return NextResponse.json({ success: true, orders });
+  } catch (error) {
+    console.error('Error fetching user orders from WooCommerce:', error);
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }

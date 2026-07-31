@@ -116,6 +116,11 @@ export default function CheckoutPage() {
           couponCode: appliedCoupon?.code || null,
           price: totalAmount,
           currency: currency,
+          title: cart[0]?.title || cart[0]?.planName || 'España 10GB 30Days',
+          country: cart[0]?.countryName || cart[0]?.country || 'España',
+          iso: cart[0]?.iso || 'es',
+          dataAmount: cart[0]?.dataAmount || '10 GB',
+          days: cart[0]?.days || 30,
         }),
       });
 
@@ -131,20 +136,6 @@ export default function CheckoutPage() {
           }),
         });
 
-        const userOrders = JSON.parse(localStorage.getItem('mesim_user_orders') || '[]');
-        userOrders.unshift({
-          orderId: data.order_id,
-          esimTranNo: data.esimTranNo,
-          qrCodeUrl: data.qr_code_url,
-          title: cart[0]?.title || 'España 10GB 30Days',
-          country: cart[0]?.country || 'España',
-          iso: cart[0]?.iso || 'es',
-          dataAmount: cart[0]?.dataAmount || '10 GB',
-          days: cart[0]?.days || 30,
-          date: new Date().toLocaleDateString(),
-          totalPrice: formatCurrency(totalAmount, currency),
-        });
-        localStorage.setItem('mesim_user_orders', JSON.stringify(userOrders));
         localStorage.removeItem('mesim_cart');
         localStorage.removeItem('mesim_coupon');
 
