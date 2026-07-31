@@ -153,20 +153,9 @@ export function generateOrderConfirmationHtml(orderData, lang = 'es') {
           </h2>
           <p style="color: #52525b; font-size: 15px; line-height: 1.6; margin: 0;">
             ${isEn 
-              ? 'Thank you for your purchase! Your eSIM order has been successfully completed. Below you will find the details of your purchase and your installation QR code.' 
-              : '¡Gracias por tu compra! Tu pedido de eSIM ha sido completado con éxito. A continuación encontrarás los detalles de tu adquisición y tu código QR de instalación.'}
+              ? 'Thank you for your purchase! Your eSIM order has been successfully completed. Below you will find the details of your purchase and your line details.' 
+              : '¡Gracias por tu compra! Tu pedido de eSIM ha sido completado con éxito. A continuación encontrarás los detalles de tu adquisición y de tu línea.'}
           </p>
-        </div>
-
-        <!-- eSIM QR Code Card -->
-        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 20px; padding: 24px; margin-bottom: 28px;">
-          <div style="background: #ffffff; border: 2px solid #000000; padding: 20px; border-radius: 20px; display: inline-block; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
-            <img src="${orderData.qrCodeUrl}" alt="eSIM QR Code" style="width: 220px; height: 220px; display: block;" />
-          </div>
-          
-          <div style="background: #ffec00; color: #000000; font-weight: 800; font-size: 13px; padding: 12px; border-radius: 12px; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid rgba(0,0,0,0.05);">
-            📲 ${isEn ? 'Scan QR in phone Settings > Cellular/Mobile to install' : 'Escanea el QR en Ajustes > Datos Móviles de tu móvil'}
-          </div>
         </div>
 
         <!-- Order Information Table -->
