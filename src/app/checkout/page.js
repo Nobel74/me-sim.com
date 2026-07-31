@@ -352,8 +352,6 @@ export default function CheckoutPage() {
       {showSuccessModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center border border-zinc-200 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
-            {/* Header Yellow Accent Bar */}
-            <div className="absolute top-0 left-0 right-0 h-2 bg-[#ffec00] rounded-t-3xl" />
             
             {/* Success Icon */}
             <div className="w-16 h-16 bg-[#ffec00]/20 rounded-full flex items-center justify-center mx-auto mb-6">
