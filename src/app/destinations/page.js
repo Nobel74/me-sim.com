@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { getTranslation, ALL_WORLD_COUNTRIES, getRegionName } from '../../lib/i18n';
+import { useRouter } from 'next/navigation';
+import { getTranslation, ALL_WORLD_COUNTRIES, getRegionName, getCountryName } from '../../lib/i18n';
 import { formatCurrency, convertCurrency } from '../../lib/currency';
 import { matchesCountryQuery } from '../../lib/searchUtils';
 import CountryCard from '../../components/CountryCard';
@@ -26,6 +27,7 @@ const HERO_RANDOM_BACKGROUNDS = [
 ];
 
 export default function AllDestinationsPage() {
+  const router = useRouter();
   const [lang, setLang] = useState('es');
   const [currency, setCurrency] = useState('EUR');
   const [rates, setRates] = useState({ EUR: 1, USD: 1.09, GBP: 0.85, AUD: 1.65 });
@@ -33,6 +35,8 @@ export default function AllDestinationsPage() {
   const [selectedRegion, setSelectedRegion] = useState('all');
   const [heroBg, setHeroBg] = useState(HERO_RANDOM_BACKGROUNDS[0]);
   const [plans, setPlans] = useState([]);
+  const [isOpen, setIsOpen] = useState(false);
+  const searchContainerRef = useRef(null);
 
   const t = getTranslation(lang);
 
@@ -50,8 +54,15 @@ export default function AllDestinationsPage() {
     const handleCurrencyChange = () => syncPreferences();
     const handleLangChange = () => syncPreferences();
 
+    const handleClickOutside = (e) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+
     window.addEventListener('mesim_currency_changed', handleCurrencyChange);
     window.addEventListener('mesim_lang_changed', handleLangChange);
+    document.addEventListener('mousedown', handleClickOutside);
 
     fetch('https://open.er-api.com/v6/latest/EUR')
       .then((res) => res.json())
@@ -79,6 +90,7 @@ export default function AllDestinationsPage() {
     return () => {
       window.removeEventListener('mesim_currency_changed', handleCurrencyChange);
       window.removeEventListener('mesim_lang_changed', handleLangChange);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
 
@@ -89,6 +101,32 @@ export default function AllDestinationsPage() {
     const converted = convertCurrency(minEur, currency, rates);
     return formatCurrency(converted, currency);
   };
+
+  const handleNavigate = (iso) => {
+    setIsOpen(false);
+    router.push(`/destination/${iso}`);
+  };
+
+  const searchSuggestions = searchTerm.trim()
+    ? ALL_WORLD_COUNTRIES
+        .filter((country) => matchesCountryQuery(country.iso, searchTerm, lang))
+        .map((country) => {
+          const iso = country.iso;
+          const matchingPlans = plans.filter((p) => (p.iso || '').toLowerCase() === iso);
+          let safePrice = country.baseEur || 4.90;
+          if (matchingPlans.length > 0) {
+            const minPrice = Math.min(...matchingPlans.map((p) => p.priceEur));
+            if (isFinite(minPrice)) safePrice = minPrice;
+          }
+
+          return {
+            iso,
+            countryName: getCountryName(iso, lang, country.nameEs),
+            minPriceEur: safePrice,
+          };
+        })
+        .slice(0, 8)
+    : [];
 
   const regionKeys = [
     'all',
@@ -176,8 +214,10 @@ export default function AllDestinationsPage() {
           </p>
 
           {/* Search Input Bar inside Hero */}
-          <div className="mb-6 max-w-2xl">
-            <div className="flex items-center bg-white rounded-full p-1.5 sm:p-2 pl-5 sm:pl-6 shadow-2xl border-2 border-white/20 hover:border-[#ffec00] transition-all">
+          <div ref={searchContainerRef} className="mb-6 max-w-2xl relative">
+            <div className={`flex items-center bg-white rounded-full p-1.5 sm:p-2 pl-5 sm:pl-6 shadow-2xl border-2 transition-all ${
+              isOpen ? 'border-[#ffec00] ring-4 ring-[#ffec00]/30' : 'border-white/20 hover:border-[#ffec00]'
+            }`}>
               <svg
                 className="w-5 h-5 sm:w-6 sm:h-6 text-black mr-2.5 flex-shrink-0"
                 fill="none"
@@ -189,24 +229,75 @@ export default function AllDestinationsPage() {
               <input
                 type="text"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onFocus={() => setIsOpen(true)}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setIsOpen(true);
+                }}
                 placeholder={t.searchPlaceholder}
                 className="w-full text-black font-semibold text-sm sm:text-base outline-none bg-transparent placeholder-zinc-400 font-sans"
               />
               {searchTerm && (
                 <button
-                  onClick={() => setSearchTerm('')}
+                  onClick={() => {
+                    setSearchTerm('');
+                    setIsOpen(true);
+                  }}
                   className="text-zinc-400 hover:text-black px-2 font-semibold text-sm"
                 >
                   ✕
                 </button>
               )}
               <button
+                onClick={() => setIsOpen(false)}
                 className="bg-[#ffec00] hover:bg-yellow-300 text-black font-bold font-sans tracking-wider uppercase px-5 sm:px-7 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm shadow-md transition-all flex-shrink-0 ml-1.5 border border-black/10"
               >
                 {lang === 'en' ? 'SEARCH' : 'BUSCAR'}
               </button>
             </div>
+
+            {/* Floating Suggestions Dropdown */}
+            {isOpen && searchTerm.trim() && (
+              <div className="absolute top-full left-0 right-0 mt-3 bg-white rounded-3xl shadow-2xl border border-zinc-200 p-3 sm:p-4 text-black overflow-hidden z-50 transition-all max-h-80 overflow-y-auto scrollbar-thin animate-scale-in">
+                <h4 className="text-xs font-semibold font-condensed tracking-wider text-zinc-400 uppercase mb-3 px-3">
+                  {lang === 'en' ? `RESULTS FOR "${searchTerm.toUpperCase()}"` : `RESULTADOS PARA "${searchTerm.toUpperCase()}"`}
+                </h4>
+                {searchSuggestions.length === 0 ? (
+                  <p className="text-zinc-500 text-sm p-4 font-semibold font-sans">{t.noResults}</p>
+                ) : (
+                  <div className="space-y-1">
+                    {searchSuggestions.map((item) => {
+                      const displayPrice = convertCurrency(item.minPriceEur, currency, rates);
+
+                      return (
+                        <div
+                          key={item.iso}
+                          onClick={() => handleNavigate(item.iso)}
+                          className="flex items-center justify-between p-2.5 sm:p-3.5 rounded-2xl hover:bg-[#ffec00]/20 cursor-pointer transition-colors group"
+                        >
+                          <div className="flex items-center gap-2.5 sm:gap-3.5">
+                            <img
+                              src={item.iso === 'global' ? '/flags/global.gif' : `/flags/${item.iso}.webp`}
+                              alt={item.countryName}
+                              className="w-7 h-7 sm:w-9 sm:h-9 rounded-full object-cover border border-zinc-200 shadow-sm"
+                              onError={(e) => {
+                                e.target.src = '/flags/gl.webp';
+                              }}
+                            />
+                            <span className="font-semibold font-semi text-black text-sm sm:text-lg">
+                              {item.countryName}
+                            </span>
+                          </div>
+                          <span className="text-xs font-semibold text-zinc-500 font-condensed">
+                            {t.fromPrice} <strong className="text-black text-sm sm:text-base font-semibold font-condensed ml-1">{formatCurrency(displayPrice, currency)}</strong>
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Glassmorphism Feature Highlight Card */}
