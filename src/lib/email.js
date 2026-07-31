@@ -28,11 +28,21 @@ export async function sendEmail({ to, subject, htmlText, type = 'magic_code', da
         },
       });
 
+      const path = await import('path');
+      const logoPath = path.join(process.cwd(), 'public', 'logos', 'Logo-me-sim-mail.png');
+
       const info = await transporter.sendMail({
         from: `"ME-SIM Connectivity" <${smtpUser}>`,
         to: to,
         subject: subject,
         html: htmlText,
+        attachments: [
+          {
+            filename: 'Logo-me-sim-mail.png',
+            path: logoPath,
+            cid: 'logo-mesim',
+          }
+        ]
       });
 
       console.log(`[EMAIL SERVICE] Sent via SMTP (${smtpHost}:${smtpPort}) - Message ID:`, info.messageId);
@@ -95,7 +105,7 @@ export function generateMagicCodeHtml(code, lang = 'es') {
     <head><meta charset="utf-8"></head>
     <body style="font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f5; color: #0f0f0f; margin: 0; padding: 40px 20px;">
       <div style="max-width: 520px; margin: 0 auto; background: #ffffff; border: 1px solid #e4e4e7; border-radius: 24px; padding: 40px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
-        <img src="https://me-sim.com/logos/Logo-me-sim-mail-db.png" alt="ME-SIM" style="height: 45px; display: inline-block; margin-bottom: 24px;" />
+        <img src="cid:logo-mesim" alt="ME-SIM" style="height: 45px; display: inline-block; margin-bottom: 24px;" />
         <h2 style="color: #18181b; font-size: 20px; font-weight: 700; margin-bottom: 16px;">${isEn ? 'Your Login Code' : 'Tu Código de Acceso a tu Cuenta'}</h2>
         <p style="color: #52525b; font-size: 15px; line-height: 1.6; margin-bottom: 28px;">
           ${isEn ? 'Use the following 6-digit verification code to sign into your ME-SIM account:' : 'Utiliza el siguiente código de verificación de 6 dígitos para acceder a tu panel de cliente en ME-SIM:'}
@@ -120,7 +130,7 @@ export function generateOrderConfirmationHtml(orderData, lang = 'es') {
     <head><meta charset="utf-8"></head>
     <body style="font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f5; color: #0f0f0f; margin: 0; padding: 40px 20px;">
       <div style="max-width: 580px; margin: 0 auto; background: #ffffff; border: 1px solid #e4e4e7; border-radius: 24px; padding: 40px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
-        <img src="https://me-sim.com/logos/Logo-me-sim-mail-db.png" alt="ME-SIM" style="height: 45px; display: inline-block; margin-bottom: 24px;" />
+        <img src="cid:logo-mesim" alt="ME-SIM" style="height: 45px; display: inline-block; margin-bottom: 24px;" />
         <h2 style="color: #166534; font-size: 22px; font-weight: 800; margin-bottom: 24px;">🎉 ${isEn ? 'eSIM Order Confirmed!' : '¡Pedido de eSIM Confirmado!'}</h2>
         
         <div style="background: #ffffff; border: 2px solid #000000; padding: 20px; border-radius: 20px; display: inline-block; margin-bottom: 24px;">
@@ -153,7 +163,7 @@ export function generatePaymentFailedHtml(orderData, lang = 'es') {
     <head><meta charset="utf-8"></head>
     <body style="font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f5; color: #0f0f0f; margin: 0; padding: 40px 20px;">
       <div style="max-width: 540px; margin: 0 auto; background: #ffffff; border: 1px solid #fee2e2; border-radius: 24px; padding: 40px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
-        <img src="https://me-sim.com/logos/Logo-me-sim-mail-db.png" alt="ME-SIM" style="height: 45px; display: inline-block; margin-bottom: 24px;" />
+        <img src="cid:logo-mesim" alt="ME-SIM" style="height: 45px; display: inline-block; margin-bottom: 24px;" />
         <h2 style="color: #991b1b; font-size: 20px; font-weight: 800; margin-bottom: 16px;">⚠️ ${isEn ? 'Payment Action Required' : 'Hubo un problema con tu pago'}</h2>
         
         <p style="color: #52525b; font-size: 15px; line-height: 1.6; margin-bottom: 24px;">
@@ -179,7 +189,7 @@ export function generateWelcomeCredentialsHtml(email, password, lang = 'es') {
     <head><meta charset="utf-8"></head>
     <body style="font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f5; color: #0f0f0f; margin: 0; padding: 40px 20px;">
       <div style="max-width: 540px; margin: 0 auto; background: #ffffff; border: 1px solid #e4e4e7; border-radius: 24px; padding: 40px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
-        <img src="https://me-sim.com/logos/Logo-me-sim-mail-db.png" alt="ME-SIM" style="height: 45px; display: inline-block; margin-bottom: 24px;" />
+        <img src="cid:logo-mesim" alt="ME-SIM" style="height: 45px; display: inline-block; margin-bottom: 24px;" />
         <h2 style="color: #18181b; font-size: 20px; font-weight: 700; margin-bottom: 16px;">
           ${isEn ? 'Your Account Has Been Created!' : '¡Tu cuenta ha sido creada con éxito!'}
         </h2>
