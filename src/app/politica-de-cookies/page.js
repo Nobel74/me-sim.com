@@ -67,16 +67,16 @@ export default function PoliticaDeCookiesPage() {
                 <td>Registra las preferencias de consentimiento del usuario sobre cookies.</td>
               </tr>
               <tr>
-                <td><strong>Google Analytics</strong></td>
-                <td><code>_ga</code>, <code>_ga_*</code></td>
+                <td><strong>Google Analytics (G-XZ9CSKPTFH)</strong></td>
+                <td><code>_ga</code>, <code>_ga_*</code>, <code>_gid</code></td>
                 <td>Hasta 2 años</td>
-                <td>Analiza estadísticas de tráfico y visitas del usuario.</td>
+                <td>Analiza estadísticas de tráfico y visitas del usuario de forma anónima.</td>
               </tr>
               <tr>
-                <td><strong>Google Tag Manager</strong></td>
-                <td>Elementos de script dinámicos</td>
+                <td><strong>Google Tag Manager (GTM-PHSFJ537)</strong></td>
+                <td>Contenedor de scripts</td>
                 <td>Sesión</td>
-                <td>Inyección de tags de marketing y scripts de conversión.</td>
+                <td>Inyección y gestión de tags de marketing, píxeles de conversión y analítica.</td>
               </tr>
             </tbody>
           </table>

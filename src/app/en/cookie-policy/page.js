@@ -67,16 +67,16 @@ export default function CookiePolicyPage() {
                 <td>Records the user's cookie consent choices.</td>
               </tr>
               <tr>
-                <td><strong>Google Analytics</strong></td>
-                <td><code>_ga</code>, <code>_ga_*</code></td>
+                <td><strong>Google Analytics (G-XZ9CSKPTFH)</strong></td>
+                <td><code>_ga</code>, <code>_ga_*</code>, <code>_gid</code></td>
                 <td>Up to 2 years</td>
-                <td>Analyzes traffic and site usage statistics.</td>
+                <td>Analyzes traffic and site usage statistics anonymously.</td>
               </tr>
               <tr>
-                <td><strong>Google Tag Manager</strong></td>
-                <td>Dynamic Script tags</td>
+                <td><strong>Google Tag Manager (GTM-PHSFJ537)</strong></td>
+                <td>Script container</td>
                 <td>Session</td>
-                <td>Dynamically injects conversion tags and marketing scripts.</td>
+                <td>Injection and management of marketing tags, conversion pixels, and analytics scripts.</td>
               </tr>
             </tbody>
           </table>
