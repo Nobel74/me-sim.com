@@ -151,3 +151,16 @@ function me_sim_notify_order_completed( $order_id ) {
         }
     }
 }
+
+// ==========================================
+// 4. INTERCEPTAR EMAILS Y CORREGIR URLS (WP_MAIL)
+// ==========================================
+add_filter( 'wp_mail', 'me_sim_bridge_filter_outgoing_mail_urls' );
+function me_sim_bridge_filter_outgoing_mail_urls( $args ) {
+    if ( isset( $args['message'] ) ) {
+        // Reemplazar el subdominio del backend de la API por el dominio público de Next.js
+        $args['message'] = str_replace( 'https://api.me-sim.com', 'https://me-sim.com', $args['message'] );
+        $args['message'] = str_replace( 'api.me-sim.com', 'me-sim.com', $args['message'] );
+    }
+    return $args;
+}
