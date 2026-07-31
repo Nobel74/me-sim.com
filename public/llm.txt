@@ -1,0 +1,19 @@
+# ME-SIM - International eSIM Connectivity
+
+ME-SIM is a premium digital eSIM provider offering instant international mobile data connectivity for travelers in over 198 countries without roaming fees.
+
+## Core Features
+- **Instant eSIM Delivery**: Provisioned securely via email and user dashboard in real-time.
+- **Global Coverage**: Reliable LTE/4G/5G mobile networks worldwide.
+- **Bilingual Interface**: Full translation support in both Spanish (ES) and English (EN).
+- **Secure Payments**: 100% secure checkouts processed via Stripe, featuring instant coupon discount application (e.g., up to 100% off checkout bypass).
+- **User Dashboard**: Secure, cookie-authenticated panel displaying active lines, data usage, and QR codes.
+
+## Integration Protocols
+- **API URL Base**: `https://me-sim.com` (Frontend Next.js) and `https://api.me-sim.com` (WooCommerce/WordPress backend).
+- **Reseller API integration**: Synced synchronously with StrongeSIM reseller API services for automatic eSIM transaction processing.
+- **Google Consent Mode v2**: Full GDPR compliance with default denied storage states, updated dynamically via the Cookie Consent Banner.
+
+## Official Contact
+- **Email**: info@me-sim.com
+- **Website**: https://me-sim.com
