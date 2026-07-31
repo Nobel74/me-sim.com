@@ -38,6 +38,7 @@ const COUNTRY_ALIASES = {
   id: ['indonesia', 'id'],
   eg: ['egipto', 'egypt', 'eg'],
   ru: ['rusia', 'russia', 'ru'],
+  re: ['reunion', 'reunión', 're'],
 };
 
 const PREFERRED_ISO_ORDER = [

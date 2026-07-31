@@ -150,6 +150,7 @@ export const ALL_WORLD_COUNTRIES = [
   { iso: 'sd', nameEs: 'Sudán', nameEn: 'Sudan', region: 'africa', baseEur: 6.90 },
   { iso: 'ly', nameEs: 'Libia', nameEn: 'Libya', region: 'africa', baseEur: 6.90 },
   { iso: 'ga', nameEs: 'Gabón', nameEn: 'Gabon', region: 'africa', baseEur: 6.90 },
+  { iso: 're', nameEs: 'Reunión', nameEn: 'Réunion', region: 'africa', baseEur: 5.90 },
 
   // --- CARIBE Y CENTROAMÉRICA (25 Países e Islas) ---
   { iso: 'cr', nameEs: 'Costa Rica', nameEn: 'Costa Rica', region: 'caribbean', baseEur: 4.90 },
