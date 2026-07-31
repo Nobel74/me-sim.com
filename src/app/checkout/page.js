@@ -13,6 +13,7 @@ export default function CheckoutPage() {
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [loading, setLoading] = useState(false);
   const [rates, setRates] = useState(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   // Card Inputs
   const [cardNumber, setCardNumber] = useState('');
@@ -65,6 +66,15 @@ export default function CheckoutPage() {
       window.removeEventListener('mesim_lang_changed', handleLangChange);
     };
   }, []);
+
+  useEffect(() => {
+    if (showSuccessModal) {
+      const timer = setTimeout(() => {
+        router.push('/dashboard');
+      }, 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [showSuccessModal, router]);
 
   const getDisplayPrice = (item) => {
     const base = item.priceEur || item.price || 0;
@@ -148,8 +158,7 @@ export default function CheckoutPage() {
         window.dispatchEvent(new Event('mesim_auth_changed'));
         window.dispatchEvent(new Event('mesim_cart_changed'));
 
-        alert(lang === 'en' ? '🎉 Payment processed via Stripe! Your eSIM is ready.' : '🎉 ¡Pago procesado con éxito en Stripe! Tu eSIM ha sido generada.');
-        router.push('/dashboard');
+        setShowSuccessModal(true);
       } else {
         alert((lang === 'en' ? 'Order error: ' : 'Error al generar la orden: ') + (data.message || 'Error'));
       }
@@ -339,6 +348,48 @@ export default function CheckoutPage() {
           </div>
         </div>
       </div>
+
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center border border-zinc-200 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+            {/* Header Yellow Accent Bar */}
+            <div className="absolute top-0 left-0 right-0 h-2 bg-[#ffec00] rounded-t-3xl" />
+            
+            {/* Success Icon */}
+            <div className="w-16 h-16 bg-[#ffec00]/20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg className="w-8 h-8 text-black" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            
+            {/* Branded Logo */}
+            <img src="/logos/Logo-me-sim-Header.svg" alt="ME-SIM" className="h-7 mx-auto mb-4" />
+            
+            {/* Title & Description */}
+            <h3 className="text-2xl font-bold font-semi text-black mb-3">
+              {lang === 'en' ? 'Order Successful!' : '¡Pedido Completado!'}
+            </h3>
+            <p className="text-sm text-zinc-500 font-sans leading-relaxed mb-6">
+              {lang === 'en' 
+                ? 'Your payment was processed successfully. Your eSIM is ready and instructions have been sent to your email.' 
+                : 'Tu pago se ha procesado con éxito. Tu eSIM está lista y hemos enviado las instrucciones de instalación a tu correo.'}
+            </p>
+            
+            {/* Button */}
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="w-full bg-black hover:bg-zinc-800 text-[#ffec00] font-semibold font-condensed tracking-wider uppercase py-3.5 px-5 rounded-2xl text-base transition-all shadow-md flex items-center justify-center gap-2"
+            >
+              {lang === 'en' ? 'Go to my Dashboard ➔' : 'Ir a mi Panel ➔'}
+            </button>
+            
+            {/* Auto Redirect text */}
+            <p className="text-[11px] text-zinc-400 font-sans mt-3">
+              {lang === 'en' ? 'Redirecting automatically in a few seconds...' : 'Redirigiendo automáticamente en unos segundos...'}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
