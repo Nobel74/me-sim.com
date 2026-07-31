@@ -196,8 +196,8 @@ export default function CartPage() {
               </h3>
               <p className="text-xs text-zinc-500 font-medium mb-3 font-sans">
                 {lang === 'en'
-                  ? 'Enter your WooCommerce coupon code to apply your savings (Try: MESIM10, BIENVENIDA, SUMMER20).'
-                  : 'Introduce tu código de cupón de WooCommerce para aplicar el descuento (Prueba: MESIM10, BIENVENIDA, SUMMER20).'}
+                  ? 'Enter your coupon code.'
+                  : 'Introduce tu código de cupón.'}
               </p>
 
               {appliedCoupon ? (
