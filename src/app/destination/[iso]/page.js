@@ -299,12 +299,51 @@ export default function DestinationPage() {
     "description": lang === 'en'
       ? `High-Speed mobile data connection in ${countryName}. Get unlimited data or fixed GB packages instantly.`
       : `Conexión de datos móviles de alta velocidad en ${countryName}. Consigue datos ilimitados o paquetes de gigas fijos al instante.`,
+    "brand": {
+      "@type": "Brand",
+      "name": "ME-SIM"
+    },
     "offers": {
       "@type": "Offer",
       "price": minPriceEur,
       "priceCurrency": "EUR",
       "availability": "https://schema.org/InStock",
-      "url": `https://me-sim.com/destination/${isoCode}`
+      "url": `https://me-sim.com/destination/${isoCode}`,
+      "hasMerchantReturnPolicy": {
+        "@type": "MerchantReturnPolicy",
+        "applicableCountry": "ES",
+        "returnPolicyCategory": "https://schema.org/MerchantReturnNotPermitted",
+        "merchantReturnLink": lang === 'en'
+          ? "https://me-sim.com/en/refund-policy"
+          : "https://me-sim.com/politica-de-reembolso"
+      },
+      "shippingDetails": {
+        "@type": "OfferShippingDetails",
+        "shippingRate": {
+          "@type": "MonetaryAmount",
+          "value": 0,
+          "currency": "EUR"
+        },
+        "shippingDestination": {
+          "@type": "DefinedRegion",
+          "addressCountry": "ES"
+        },
+        "deliveryTime": {
+          "@type": "ShippingDeliveryTime",
+          "handlingTime": {
+            "@type": "QuantitativeValue",
+            "minValue": 0,
+            "maxValue": 0,
+            "unitCode": "DAY"
+          },
+          "transitTime": {
+            "@type": "QuantitativeValue",
+            "minValue": 0,
+            "maxValue": 0,
+            "unitCode": "DAY"
+          }
+        }
+      }
     }
   };
 

@@ -26,6 +26,7 @@ yarn-error.log*
 .env*.local
 .env
 .env.production
+pricing_strategy.md
 
 # vercel
 .vercel
