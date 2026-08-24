@@ -81,39 +81,6 @@ export async function sendEmail({ to, subject, htmlText, type = 'magic_code', da
     }
   }
 
-  // 2. Try sending via WooCommerce WP-Mail API endpoint
-  const rawWcUrl = process.env.WOOCOMMERCE_API_URL || process.env.NEXT_PUBLIC_WC_API_URL || 'https://api.me-sim.com';
-  let wpUrl = rawWcUrl;
-  if (wpUrl.includes('/wp-json')) {
-    wpUrl = wpUrl.split('/wp-json')[0];
-  }
-  if (wpUrl.endsWith('/')) {
-    wpUrl = wpUrl.slice(0, -1);
-  }
-  try {
-    const res = await fetch(`${wpUrl}/wp-json/mesim/v1/send-email`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-ME-SIM-KEY': process.env.EMAIL_API_KEY || 'mesim-secure-mail-2026',
-      },
-      body: JSON.stringify({
-        to,
-        subject,
-        html: htmlText,
-        type,
-        data,
-      }),
-    });
-
-    if (res.ok) {
-      const responseData = await res.json();
-      return { success: true, message: 'Email enviado a través de WooCommerce API', responseData, provider: 'WooCommerce API' };
-    }
-  } catch (err) {
-    console.warn('[EMAIL SERVICE] WooCommerce API call fallback:', err.message);
-  }
-
   // 3. Fallback for Local Dev Mode
   return {
     success: true,
