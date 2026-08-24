@@ -64,8 +64,8 @@ export async function POST(req) {
     // Extract key order properties (adjust field mapping to match WordPress me-sim-bridge webhook format)
     const orderId = payload.order_id || payload.id;
     const email = payload.email || payload.billing?.email;
-    const sku = payload.sku || (payload.line_items && payload.line_items[0]?.sku);
-    const customerName = payload.customer_name || `${payload.billing?.first_name || ''} ${payload.billing?.last_name || ''}`.trim() || 'Traveler';
+    const sku = payload.sku || payload.items?.[0]?.sku || payload.line_items?.[0]?.sku;
+    const customerName = payload.customer_name || payload.customerName || `${payload.billing?.first_name || ''} ${payload.billing?.last_name || ''}`.trim() || 'Traveler';
 
     console.log(`Firma HMAC verificada con éxito para el pedido #${orderId} de [${email}]`);
 

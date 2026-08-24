@@ -99,9 +99,24 @@ function me_sim_notify_order_completed( $order_id ) {
     foreach ( $order->get_items() as $item_id => $item ) {
         $product = $item->get_product();
         $sku = $product ? $product->get_sku() : '';
+
+        // ARQUITECTURA API-DRIVEN: Si el SKU tradicional de WooCommerce está vacío,
+        // extraemos el SKU/Plan ID de los metadatos que nuestro Next.js envía al crear el pedido
+        if ( empty( $sku ) ) {
+            $possible_meta_keys = array( 'plan_id', '_plan_id', 'sku', '_sku', 'plan_code', 'planCode' );
+            foreach ( $possible_meta_keys as $key ) {
+                $meta_val = $item->get_meta( $key );
+                if ( ! empty( $meta_val ) ) {
+                    $sku = $meta_val;
+                    break;
+                }
+            }
+        }
+
         if ( empty( $first_sku ) && ! empty( $sku ) ) {
             $first_sku = $sku;
         }
+
         $items[] = array(
             'product_id' => $item->get_product_id(),
             'name'       => $item->get_name(),
