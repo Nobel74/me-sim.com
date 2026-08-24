@@ -17,8 +17,8 @@ export async function getStrongeSIMAuth() {
     return { accessToken: authToken, sessionId };
   }
 
-  const baseUrl = process.env.STRONGESIM_BASE_URL || 'https://api.strongesim.com/api/v1';
-  const username = process.env.STRONGESIM_USERNAME;
+  const baseUrl = process.env.STRONGESIM_BASE_URL || process.env.STRONGESIM_API_URL || 'https://api.strongesim.com/api/v1';
+  const username = process.env.STRONGESIM_USERNAME || process.env.STRONGESIM_EMAIL;
   const password = process.env.STRONGESIM_PASSWORD;
 
   if (!username || !password) {
@@ -71,7 +71,7 @@ export async function getStrongeSIMAuth() {
  * Realiza peticiones autenticadas al servidor de StrongeSIM
  */
 export async function strongesimFetch(endpoint, options = {}) {
-  const baseUrl = process.env.STRONGESIM_BASE_URL || 'https://api.strongesim.com/api/v1';
+  const baseUrl = process.env.STRONGESIM_BASE_URL || process.env.STRONGESIM_API_URL || 'https://api.strongesim.com/api/v1';
   const { accessToken, sessionId } = await getStrongeSIMAuth();
 
   const headers = {
