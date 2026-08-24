@@ -171,7 +171,8 @@ export async function POST(req) {
 
         // Send order confirmation email with real QR code
         try {
-          await fetch(new URL('/api/email/send', req.url).toString(), {
+          const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://me-sim.com';
+          await fetch(`${baseUrl}/api/email/send`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

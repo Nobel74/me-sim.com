@@ -141,7 +141,8 @@ export async function POST(request) {
             // Send welcome credentials email to new customers
             if (isNewCustomer && generatedPassword) {
               try {
-                await fetch(new URL('/api/email/send', request.url).toString(), {
+                const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://me-sim.com';
+                await fetch(`${baseUrl}/api/email/send`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
@@ -357,7 +358,8 @@ export async function POST(request) {
 
       // Send order confirmation email with QR code
       try {
-        await fetch(new URL('/api/email/send', request.url).toString(), {
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://me-sim.com';
+        await fetch(`${baseUrl}/api/email/send`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
