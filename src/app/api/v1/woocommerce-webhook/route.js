@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { strongesimFetch } from '../../../../lib/strongesim';
+import { addDiagnosticLog } from '../../../../lib/logger';
 
 // Secure CORS Headers
 const corsHeaders = {
@@ -66,6 +67,8 @@ export async function POST(req) {
     const email = payload.email || payload.billing?.email;
     const sku = payload.sku || payload.items?.[0]?.sku || payload.line_items?.[0]?.sku;
     const customerName = payload.customer_name || payload.customerName || `${payload.billing?.first_name || ''} ${payload.billing?.last_name || ''}`.trim() || 'Traveler';
+
+    addDiagnosticLog('WEBHOOK', 'RECEIVED_ORDER_COMPLETED', { orderId, email, sku, customerName });
 
     console.log(`Firma HMAC verificada con éxito para el pedido #${orderId} de [${email}]`);
 

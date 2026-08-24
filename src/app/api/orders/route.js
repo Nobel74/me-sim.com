@@ -9,6 +9,8 @@ export async function POST(request) {
     const body = await request.json();
     const { planId, customerEmail, customerName, paymentIntentId, price, currency, title, country, iso, dataAmount, days, lang = 'es' } = body;
 
+    addDiagnosticLog('POST_ORDERS', 'ENTRY', { planId, customerEmail, customerName, price, country, iso });
+
     // 1. Create order in WooCommerce if API credentials are configured
     let wcOrderId = 'ORD-' + Math.floor(100000 + Math.random() * 900000);
     try {
