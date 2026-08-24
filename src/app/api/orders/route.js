@@ -268,7 +268,34 @@ export async function POST(request) {
       if (response.ok) {
         esimData = await response.json();
         addDiagnosticLog('STRONGESIM', 'ORDER_SUCCESS', { esimData });
-        console.log(`StrongeSIM real eSIM purchased successfully. Code: ${esimData.esimTranNo || esimData.iccid}`);
+        
+        // If StrongeSIM returned an order ID or transactionId in pending status, fetch real profile details
+        const nestedData = esimData.data || esimData;
+        const targetId = nestedData.transactionId || nestedData.id || nestedData.orderId;
+        
+        if (targetId && (nestedData.status === 'pending' || !nestedData.iccid || !nestedData.qr_code_url)) {
+          try {
+            // Attempt retrieving profile details / real ICCID & QR from StrongeSIM
+            const profileRes = await strongesimFetch(`/orders/${targetId}`, { cache: 'no-store' });
+            if (profileRes.ok) {
+              const profileData = await profileRes.json();
+              if (profileData && (profileData.data || profileData.iccid || profileData.qr_code_url)) {
+                esimData = {
+                  ...esimData,
+                  data: {
+                    ...(esimData.data || {}),
+                    ...(profileData.data || profileData),
+                  }
+                };
+                addDiagnosticLog('STRONGESIM', 'PROFILE_DETAILS_FETCHED', { profileData });
+              }
+            }
+          } catch (pErr) {
+            console.warn('Could not fetch expanded profile details from StrongeSIM:', pErr.message);
+          }
+        }
+
+        console.log(`StrongeSIM real eSIM purchased successfully. Code: ${esimData.esimTranNo || esimData.iccid || targetId}`);
       } else {
         const errorBody = await response.text();
         addDiagnosticLog('STRONGESIM', 'ORDER_REJECTED', { status: response.status, errorBody });
