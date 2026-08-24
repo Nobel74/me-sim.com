@@ -282,8 +282,10 @@ export async function POST(request) {
     }
 
     if (esimData) {
-      const esimTranNo = esimData.esimTranNo;
-      const qrCodeUrl = esimData.qr_code_url || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(esimData.lpaString || '')}`;
+      const nested = esimData.data || esimData;
+      const esimTranNo = nested.esimTranNo || nested.iccid || nested.transactionId || nested.id;
+      const lpaString = nested.lpaString || nested.lpa || (esimTranNo ? `LPA:1$rsp.strongesim.com$${esimTranNo}` : '');
+      const qrCodeUrl = nested.qr_code_url || nested.qrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(lpaString)}`;
 
       // Update metadata in WooCommerce
       try {

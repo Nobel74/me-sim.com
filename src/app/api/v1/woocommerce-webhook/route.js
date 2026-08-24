@@ -130,8 +130,10 @@ export async function POST(req) {
 
       if (response.ok) {
         esimData = await response.json();
-        const esimTranNo = esimData.esimTranNo || esimData.iccid;
-        const qrCodeUrl = esimData.qr_code_url || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(esimData.lpaString || ('LPA:1$rsp.strongesim.com$' + esimTranNo))}`;
+        const nested = esimData.data || esimData;
+        const esimTranNo = nested.esimTranNo || nested.iccid || nested.transactionId || nested.id;
+        const lpaString = nested.lpaString || nested.lpa || (esimTranNo ? `LPA:1$rsp.strongesim.com$${esimTranNo}` : '');
+        const qrCodeUrl = nested.qr_code_url || nested.qrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(lpaString)}`;
 
         console.log(`StrongeSIM eSIM purchased successfully for order #${orderId}. Code: ${esimTranNo}`);
 
