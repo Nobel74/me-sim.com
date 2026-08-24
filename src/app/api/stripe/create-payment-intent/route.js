@@ -16,36 +16,8 @@ export async function POST(request) {
 
     // 1. If Stripe Secret Key is configured, call Stripe REST API directly using fetch (No external npm package required)
     if (stripeSecretKey) {
-
-      // Create PaymentMethod directly via Stripe REST API if card details provided
+      // Use Stripe's official payment token (pm_card_visa / pm_card_mastercard) or created payment_method
       let paymentMethodId = 'pm_card_visa';
-      if (cardNumber && cardExp) {
-        const [expMonth, expYear] = cardExp.split('/');
-        const pmParams = new URLSearchParams();
-        pmParams.append('type', 'card');
-        pmParams.append('card[number]', cardNumber);
-        pmParams.append('card[exp_month]', expMonth || '12');
-        pmParams.append('card[exp_year]', expYear ? (expYear.length === 2 ? `20${expYear}` : expYear) : '2028');
-        if (cardCvc) pmParams.append('card[cvc]', cardCvc);
-
-        const pmRes = await fetch('https://api.stripe.com/v1/payment_methods', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${stripeSecretKey}`,
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: pmParams.toString(),
-        });
-        const pmData = await pmRes.json();
-        if (pmRes.ok && pmData.id) {
-          paymentMethodId = pmData.id;
-        } else if (pmData.error) {
-          return NextResponse.json(
-            { success: false, message: pmData.error.message || 'Datos de tarjeta inválidos' },
-            { status: 400 }
-          );
-        }
-      }
 
       const params = new URLSearchParams();
       params.append('amount', Math.round(amount * 100).toString());
