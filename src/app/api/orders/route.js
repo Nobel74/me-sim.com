@@ -169,25 +169,43 @@ export async function POST(request) {
 
       // Helper function to resolve dynamic/synthetic plan IDs to real StrongeSIM API package codes
       try {
-        const isoCode = (iso || 'es').toLowerCase();
-        const plansRes = await strongesimFetch(`/plans-v2?country=${encodeURIComponent(isoCode)}`, { cache: 'no-store' });
-        if (plansRes.ok) {
-          const plansData = await plansRes.json();
-          const livePlans = plansData.plans || plansData.data || (Array.isArray(plansData) ? plansData : []);
-          if (livePlans && livePlans.length > 0) {
-            // Find closest matching live plan by data amount or ISO
-            const targetData = (dataAmount || '').toLowerCase();
-            const matchedPlan = livePlans.find(p => {
-              const pData = (p.dataAmount || p.data || p.name || '').toLowerCase();
-              return pData.includes(targetData) || p.days === days;
-            }) || livePlans[0];
+        const isoCode = (iso || 'es').toUpperCase();
+        
+        // 1. Try fetching from StrongeSIM /packages or /plans-v2
+        const plansEndpoints = [`/plans-v2?country=${encodeURIComponent(isoCode.toLowerCase())}`, '/packages', '/plans'];
+        let matchedPlanId = null;
 
-            if (matchedPlan && (matchedPlan.plan_id || matchedPlan.id || matchedPlan.code)) {
-              realStrongeSimPlanId = matchedPlan.plan_id || matchedPlan.id || matchedPlan.code;
-              console.log(`Resolved synthetic plan [${planId}] to real StrongeSIM plan_id: [${realStrongeSimPlanId}]`);
+        for (const ep of plansEndpoints) {
+          try {
+            const plansRes = await strongesimFetch(ep, { cache: 'no-store' });
+            if (plansRes.ok) {
+              const plansData = await plansRes.json();
+              const livePlans = plansData.plans || plansData.packages || plansData.data || (Array.isArray(plansData) ? plansData : []);
+              if (Array.isArray(livePlans) && livePlans.length > 0) {
+                const targetData = (dataAmount || '').toLowerCase();
+                const matchedPlan = livePlans.find(p => {
+                  const pIso = (p.iso || p.isoCode || p.country_code || '').toUpperCase();
+                  const pData = (p.dataAmount || p.data || p.name || p.title || '').toLowerCase();
+                  return (pIso === isoCode || pIso === '') && (pData.includes(targetData) || p.days === days);
+                }) || livePlans.find(p => (p.iso || p.isoCode || '').toUpperCase() === isoCode) || livePlans[0];
+
+                if (matchedPlan) {
+                  matchedPlanId = matchedPlan.plan_id || matchedPlan.package_id || matchedPlan.code || matchedPlan.id || matchedPlan.sku;
+                  if (matchedPlanId) break;
+                }
+              }
             }
-          }
+          } catch (e) {}
         }
+
+        // 2. If dynamic resolution failed, construct standard StrongeSIM package code format (e.g., AE_1GB_7D, TR_1GB_7D, ES_10GB_30D)
+        if (!matchedPlanId || matchedPlanId.includes('-v') || matchedPlanId.includes('-dyn-')) {
+          const cleanData = (dataAmount || '1GB').replace(/\s+/g, '').toUpperCase();
+          matchedPlanId = `${isoCode}_${cleanData}_${days}D`;
+        }
+
+        realStrongeSimPlanId = matchedPlanId;
+        console.log(`Resolved plan [${planId}] -> StrongeSIM real plan_id: [${realStrongeSimPlanId}]`);
       } catch (planResolveErr) {
         console.warn('Could not resolve StrongeSIM live plan_id, using provided planId:', planResolveErr.message);
       }

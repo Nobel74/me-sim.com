@@ -96,6 +96,12 @@ export async function POST(req) {
         console.warn('Webhook plan_id resolution fallback:', rErr.message);
       }
 
+      if (!realPlanId || realPlanId.includes('-v') || realPlanId.includes('-dyn-')) {
+        const parts = sku.split('-');
+        const isoCode = (parts[0] || 'AE').toUpperCase();
+        realPlanId = `${isoCode}_1GB_7D`;
+      }
+
       const response = await strongesimFetch('/orders-v2', {
         method: 'POST',
         body: JSON.stringify({
