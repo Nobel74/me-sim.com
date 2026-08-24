@@ -230,10 +230,15 @@ export async function POST(request) {
         body: JSON.stringify({
           plan_id: realStrongeSimPlanId,
           customer_email: customerEmail,
+          email: customerEmail,
+          user_email: customerEmail,
           customer_name: customerName,
           send_email: true,
+          sendEmail: true,
+          send_email_to_customer: true,
           notify_customer: true,
           send_qr_email: true,
+          deliver_qr: true,
         }),
       });
 
@@ -251,10 +256,15 @@ export async function POST(request) {
           body: JSON.stringify({
             plan_id: realStrongeSimPlanId,
             customer_email: customerEmail,
+            email: customerEmail,
+            user_email: customerEmail,
             customer_name: customerName,
             send_email: true,
+            sendEmail: true,
+            send_email_to_customer: true,
             notify_customer: true,
             send_qr_email: true,
+            deliver_qr: true,
           }),
         });
 
