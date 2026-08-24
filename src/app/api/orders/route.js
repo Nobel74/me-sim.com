@@ -444,16 +444,23 @@ export async function GET(request) {
         lpaString = `LPA:1$rsp.strongesim.com$${esimTranNo}`;
       }
 
+      // Dynamic data amount extraction from meta or title
+      let dataAmount = getMetaVal('_esim_data_amount');
+      if (!dataAmount) {
+        const titleMatch = productTitle.match(/(\d+\s*(?:GB|MB)(?:\s*\/\s*Día|\s*\/\s*Dia|\s*\/\s*Day|\s*Total)?)/i);
+        dataAmount = titleMatch ? titleMatch[1] : '1 GB';
+      }
+
       return {
         orderId: orderId,
         esimTranNo: esimTranNo,
         qrCodeUrl: qrCodeUrl,
         lpaString: lpaString || `LPA:1$rsp.strongesim.com$${esimTranNo}`,
         title: productTitle,
-        country: getMetaVal('_esim_country') || 'España',
-        iso: getMetaVal('_esim_iso') || 'es',
-        dataAmount: getMetaVal('_esim_data_amount') || '10 GB',
-        days: parseInt(getMetaVal('_esim_days') || '30', 10),
+        country: getMetaVal('_esim_country') || 'Emiratos Árabes Unidos',
+        iso: getMetaVal('_esim_iso') || 'ae',
+        dataAmount: dataAmount,
+        days: parseInt(getMetaVal('_esim_days') || '7', 10),
         date: order.date_created ? order.date_created.split('T')[0] : new Date().toLocaleDateString(),
         totalPrice: `${order.total} ${order.currency}`,
       };

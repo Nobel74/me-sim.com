@@ -14,17 +14,17 @@ export async function GET(request, { params }) {
     console.error(`Error fetching usage for ${esimTranNo}:`, error);
   }
 
-  // Real-time data consumption mock (e.g. 4.2 / 10.0 GB)
+  // Real-time data consumption fallback (0 GB used if no StrongeSIM telemetry yet)
   return NextResponse.json({
     success: true,
     esimTranNo: esimTranNo,
-    totalBytes: 10 * 1024 * 1024 * 1024, // 10 GB
-    usedBytes: 4.2 * 1024 * 1024 * 1024,  // 4.2 GB
-    remainingBytes: 5.8 * 1024 * 1024 * 1024,
-    totalGb: 10.0,
-    usedGb: 4.2,
-    remainingGb: 5.8,
-    percentageUsed: 42.0,
+    totalBytes: 0,
+    usedBytes: 0,
+    remainingBytes: 0,
+    totalGb: 0.0,
+    usedGb: 0.0,
+    remainingGb: 0.0,
+    percentageUsed: 0.0,
     isDemo: true,
   });
 }

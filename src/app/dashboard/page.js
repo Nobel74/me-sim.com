@@ -145,12 +145,24 @@ export default function DashboardPage() {
           if (res.ok) {
             const data = await res.json();
             if (data.success || data.usedGb !== undefined) {
+              // Parse contracted data volume from order (e.g., "1 GB" -> 1.0)
+              const matchGb = (order.dataAmount || '').match(/([\d.]+)\s*(GB|MB)/i);
+              let orderTotalGb = 1.0;
+              if (matchGb) {
+                orderTotalGb = parseFloat(matchGb[1]);
+                if (matchGb[2].toUpperCase() === 'MB') orderTotalGb /= 1000;
+              }
+
+              const totalGbResolved = data.totalGb && data.totalGb > 0 ? data.totalGb : orderTotalGb;
+              const usedGbResolved = parseFloat(data.usedGb || 0);
+              const percentage = totalGbResolved > 0 ? parseFloat(((usedGbResolved / totalGbResolved) * 100).toFixed(1)) : 0;
+
               setEsimUsage((prev) => ({
                 ...prev,
                 [order.esimTranNo]: {
-                  usedGb: parseFloat(data.usedGb || 0),
-                  totalGb: parseFloat(data.totalGb || 10),
-                  percentageUsed: parseFloat(data.percentageUsed || 0),
+                  usedGb: usedGbResolved,
+                  totalGb: totalGbResolved,
+                  percentageUsed: percentage,
                 },
               }));
             }
