@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { amount, currency = 'eur', customerEmail, cardNumber, cardExp, cardCvc } = body;
+    const { amount, currency = 'eur', customerEmail } = body;
 
     if (!amount || amount <= 0) {
       return NextResponse.json(
