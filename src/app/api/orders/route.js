@@ -210,7 +210,7 @@ export async function POST(request) {
         console.warn('Could not resolve StrongeSIM live plan_id, using provided planId:', planResolveErr.message);
       }
 
-      const response = await strongesimFetch('/orders-v2', {
+      let response = await strongesimFetch('/orders-v2', {
         method: 'POST',
         body: JSON.stringify({
           plan_id: realStrongeSimPlanId,
@@ -218,6 +218,19 @@ export async function POST(request) {
           customer_name: customerName,
         }),
       });
+
+      // Fallback to /orders if StrongeSIM server returns 404 / Cannot POST /api/v1/orders-v2
+      if (!response.ok && response.status === 404) {
+        console.warn('Endpoint /orders-v2 not found at StrongeSIM, falling back to /orders...');
+        response = await strongesimFetch('/orders', {
+          method: 'POST',
+          body: JSON.stringify({
+            plan_id: realStrongeSimPlanId,
+            customer_email: customerEmail,
+            customer_name: customerName,
+          }),
+        });
+      }
 
       if (response.ok) {
         esimData = await response.json();

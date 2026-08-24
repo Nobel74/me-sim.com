@@ -71,7 +71,10 @@ export async function getStrongeSIMAuth() {
  * Realiza peticiones autenticadas al servidor de StrongeSIM
  */
 export async function strongesimFetch(endpoint, options = {}) {
-  const baseUrl = process.env.STRONGESIM_BASE_URL || process.env.STRONGESIM_API_URL || 'https://api.strongesim.com/api/v1';
+  let rawBaseUrl = process.env.STRONGESIM_BASE_URL || process.env.STRONGESIM_API_URL || 'https://api.strongesim.com/api/v1';
+  let cleanBaseUrl = rawBaseUrl.replace(/\/+$/, '');
+  let cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+
   const { accessToken, sessionId } = await getStrongeSIMAuth();
 
   const headers = {
@@ -82,7 +85,7 @@ export async function strongesimFetch(endpoint, options = {}) {
     ...(options.headers || {}),
   };
 
-  const response = await fetch(`${baseUrl}${endpoint}`, {
+  const response = await fetch(`${cleanBaseUrl}${cleanEndpoint}`, {
     ...options,
     headers,
   });
