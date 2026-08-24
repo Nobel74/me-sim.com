@@ -1,10 +1,8 @@
-/**
- * Transactional Email Mailer for ME-SIM
- * Configured for mail.me-sim.com SMTP (Port 465 SSL/TLS) & WooCommerce API
- */
+import { addDiagnosticLog } from './logger';
 
 export async function sendEmail({ to, subject, htmlText, type = 'magic_code', data = {} }) {
   console.log(`[EMAIL SERVICE] Preparing ${type} email for: ${to}`);
+  addDiagnosticLog('EMAIL_SERVICE', 'PREPARING_SEND', { to, subject, type });
 
   const smtpHost = process.env.SMTP_HOST;
   const smtpPort = process.env.SMTP_PORT || '465';
@@ -35,9 +33,11 @@ export async function sendEmail({ to, subject, htmlText, type = 'magic_code', da
         html: htmlText,
       });
 
+      addDiagnosticLog('EMAIL_SERVICE', 'SMTP_SUCCESS', { to, type, messageId: info.messageId });
       console.log(`[EMAIL SERVICE] Sent via SMTP (${smtpHost}:${smtpPort}) - Message ID:`, info.messageId);
       return { success: true, messageId: info.messageId, provider: 'SMTP' };
     } catch (err) {
+      addDiagnosticLog('EMAIL_SERVICE', 'SMTP_ERROR', { error: err.message, to, type });
       console.warn('[EMAIL SERVICE] Direct SMTP attempt error:', err.message);
     }
   }
