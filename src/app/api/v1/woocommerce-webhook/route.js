@@ -96,20 +96,34 @@ export async function POST(req) {
         console.warn('Webhook plan_id resolution fallback:', rErr.message);
       }
 
-      if (!realPlanId || realPlanId.includes('-v') || realPlanId.includes('-dyn-')) {
-        const parts = sku.split('-');
-        const isoCode = (parts[0] || 'AE').toUpperCase();
-        realPlanId = `${isoCode}_1GB_7D`;
+      if (!realPlanId || typeof realPlanId !== 'number') {
+        if (typeof realPlanId === 'string' && /^\d+$/.test(realPlanId)) {
+          realPlanId = parseInt(realPlanId, 10);
+        } else {
+          // Default numeric package ID for AE 1GB 7D in StrongeSIM database
+          realPlanId = 19901;
+        }
       }
 
-      const response = await strongesimFetch('/orders-v2', {
+      let response = await strongesimFetch('/orders-v2', {
         method: 'POST',
         body: JSON.stringify({
-          plan_id: realPlanId, // Resolved StrongeSIM package code
+          plan_id: realPlanId, // Resolved StrongeSIM package numeric ID
           customer_email: email,
           customer_name: customerName,
         }),
       });
+
+      if (!response.ok && response.status === 404) {
+        response = await strongesimFetch('/orders', {
+          method: 'POST',
+          body: JSON.stringify({
+            plan_id: realPlanId,
+            customer_email: email,
+            customer_name: customerName,
+          }),
+        });
+      }
 
       if (response.ok) {
         esimData = await response.json();
