@@ -231,6 +231,9 @@ export async function POST(request) {
           plan_id: realStrongeSimPlanId,
           customer_email: customerEmail,
           customer_name: customerName,
+          send_email: true,
+          notify_customer: true,
+          send_qr_email: true,
         }),
       });
 
@@ -249,6 +252,9 @@ export async function POST(request) {
             plan_id: realStrongeSimPlanId,
             customer_email: customerEmail,
             customer_name: customerName,
+            send_email: true,
+            notify_customer: true,
+            send_qr_email: true,
           }),
         });
 

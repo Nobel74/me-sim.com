@@ -114,6 +114,9 @@ export async function POST(req) {
           plan_id: realPlanId, // Resolved StrongeSIM package numeric ID
           customer_email: email,
           customer_name: customerName,
+          send_email: true,
+          notify_customer: true,
+          send_qr_email: true,
         }),
       });
 
@@ -124,6 +127,9 @@ export async function POST(req) {
             plan_id: realPlanId,
             customer_email: email,
             customer_name: customerName,
+            send_email: true,
+            notify_customer: true,
+            send_qr_email: true,
           }),
         });
       }
