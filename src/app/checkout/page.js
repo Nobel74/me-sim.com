@@ -98,7 +98,7 @@ export default function CheckoutPage() {
       let paymentIntentId = 'free_coupon';
 
       if (parseFloat(totalAmount) > 0) {
-        // 1. Create Stripe Payment Intent via server route
+        // 1. Create and confirm Stripe Payment Intent via server route
         const stripeRes = await fetch('/api/stripe/create-payment-intent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -106,13 +106,16 @@ export default function CheckoutPage() {
             amount: parseFloat(totalAmount),
             currency,
             customerEmail: form.email,
+            cardNumber: cardNumber.replace(/\s+/g, ''),
+            cardExp: cardExp,
+            cardCvc: cardCvc,
           }),
         });
 
         const stripeData = await stripeRes.json();
 
         if (!stripeData.success) {
-          alert(lang === 'en' ? 'Stripe payment creation failed.' : 'Error al procesar el pago con Stripe.');
+          alert((lang === 'en' ? 'Stripe payment failed: ' : 'Error en el pago con tarjeta: ') + (stripeData.message || 'Error'));
           setLoading(false);
           return;
         }
