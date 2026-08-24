@@ -9,14 +9,53 @@ export async function sendEmail({ to, subject, htmlText, type = 'magic_code', da
   const smtpUser = process.env.SMTP_USER;
   const smtpPassword = process.env.SMTP_PASSWORD;
 
-  // 1. Try sending via Nodemailer if credentials configured in environment
-  if (smtpPassword && smtpUser && smtpHost) {
+  // 1. Try sending via WooCommerce WP-Mail API endpoint (Best deliverability & valid DKIM/SPF)
+  const rawWcUrl = process.env.WOOCOMMERCE_API_URL || process.env.NEXT_PUBLIC_WC_API_URL || 'https://api.me-sim.com';
+  let wpUrl = rawWcUrl;
+  if (wpUrl.includes('/wp-json')) {
+    wpUrl = wpUrl.split('/wp-json')[0];
+  }
+  if (wpUrl.endsWith('/')) {
+    wpUrl = wpUrl.slice(0, -1);
+  }
+  try {
+    const res = await fetch(`${wpUrl}/wp-json/mesim/v1/send-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-ME-SIM-KEY': process.env.EMAIL_API_KEY || 'mesim-secure-mail-2026',
+      },
+      body: JSON.stringify({
+        to,
+        subject,
+        html: htmlText,
+        type,
+        data,
+      }),
+    });
+
+    if (res.ok) {
+      const responseData = await res.json();
+      addDiagnosticLog('EMAIL_SERVICE', 'WP_MAIL_SUCCESS', { to, type, responseData });
+      console.log(`[EMAIL SERVICE] Sent via WordPress WP-Mail API (api.me-sim.com) to ${to}`);
+      return { success: true, message: 'Email enviado a través de WooCommerce API', responseData, provider: 'WooCommerce API' };
+    } else {
+      const errTxt = await res.text();
+      addDiagnosticLog('EMAIL_SERVICE', 'WP_MAIL_ERROR', { status: res.status, errTxt });
+    }
+  } catch (err) {
+    addDiagnosticLog('EMAIL_SERVICE', 'WP_MAIL_EXCEPTION', { error: err.message });
+    console.warn('[EMAIL SERVICE] WooCommerce API call fallback:', err.message);
+  }
+
+  // 2. Fallback to Direct SMTP if configured with valid password
+  if (smtpPassword && smtpPassword !== 'me-sim-password' && smtpUser && smtpHost) {
     try {
       const nodemailer = (await import('nodemailer')).default;
       const transporter = nodemailer.createTransport({
         host: smtpHost,
         port: parseInt(smtpPort),
-        secure: parseInt(smtpPort) === 465, // true for 465, false for 587
+        secure: parseInt(smtpPort) === 465,
         auth: {
           user: smtpUser,
           pass: smtpPassword,
