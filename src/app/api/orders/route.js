@@ -225,9 +225,18 @@ export async function POST(request) {
       } else {
         const errorBody = await response.text();
         console.error(`StrongeSIM API order creation rejected [HTTP ${response.status}]:`, errorBody);
+        return NextResponse.json({
+          success: false,
+          error: `StrongeSIM API Error (${response.status}): ${errorBody}`,
+          message: `StrongeSIM rechaza el pedido: ${errorBody}`
+        }, { status: 400 });
       }
     } catch (error) {
       console.error('Error creating order at StrongeSIM:', error);
+      return NextResponse.json({
+        success: false,
+        error: `Error de conexión con StrongeSIM API: ${error.message}`
+      }, { status: 500 });
     }
 
     if (esimData) {
