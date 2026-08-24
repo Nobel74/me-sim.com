@@ -96,6 +96,11 @@ export async function POST(request) {
                 price: String(price || '0.00'),
                 subtotal: String(price || '0.00'),
                 total: String(price || '0.00'),
+                meta_data: [
+                  { key: 'plan_id', value: planId },
+                  { key: 'sku', value: planId },
+                  { key: '_plan_id', value: planId },
+                ],
               }
             ],
             meta_data: [
