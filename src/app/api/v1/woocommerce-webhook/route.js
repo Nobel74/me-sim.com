@@ -79,10 +79,27 @@ export async function POST(req) {
     // 5. Trigger order to StrongeSIM reseller API sychronous /orders-v2 endpoint
     let esimData = null;
     try {
+      let realPlanId = sku;
+
+      // Attempt resolving synthetic SKU/Plan ID to StrongeSIM's active package ID
+      try {
+        const plansRes = await strongesimFetch('/plans-v2', { cache: 'no-store' });
+        if (plansRes.ok) {
+          const plansData = await plansRes.json();
+          const livePlans = plansData.plans || plansData.data || (Array.isArray(plansData) ? plansData : []);
+          const matchedPlan = livePlans.find(p => p.sku === sku || p.id === sku || p.plan_id === sku || (p.iso && sku.toLowerCase().startsWith(p.iso.toLowerCase())));
+          if (matchedPlan && (matchedPlan.plan_id || matchedPlan.id || matchedPlan.code)) {
+            realPlanId = matchedPlan.plan_id || matchedPlan.id || matchedPlan.code;
+          }
+        }
+      } catch (rErr) {
+        console.warn('Webhook plan_id resolution fallback:', rErr.message);
+      }
+
       const response = await strongesimFetch('/orders-v2', {
         method: 'POST',
         body: JSON.stringify({
-          plan_id: sku, // SKU serves as the plan identifier
+          plan_id: realPlanId, // Resolved StrongeSIM package code
           customer_email: email,
           customer_name: customerName,
         }),

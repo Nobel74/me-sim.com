@@ -165,10 +165,37 @@ export async function POST(request) {
     // 2. Trigger order to StrongeSIM API
     let esimData = null;
     try {
+      let realStrongeSimPlanId = planId;
+
+      // Helper function to resolve dynamic/synthetic plan IDs to real StrongeSIM API package codes
+      try {
+        const isoCode = (iso || 'es').toLowerCase();
+        const plansRes = await strongesimFetch(`/plans-v2?country=${encodeURIComponent(isoCode)}`, { cache: 'no-store' });
+        if (plansRes.ok) {
+          const plansData = await plansRes.json();
+          const livePlans = plansData.plans || plansData.data || (Array.isArray(plansData) ? plansData : []);
+          if (livePlans && livePlans.length > 0) {
+            // Find closest matching live plan by data amount or ISO
+            const targetData = (dataAmount || '').toLowerCase();
+            const matchedPlan = livePlans.find(p => {
+              const pData = (p.dataAmount || p.data || p.name || '').toLowerCase();
+              return pData.includes(targetData) || p.days === days;
+            }) || livePlans[0];
+
+            if (matchedPlan && (matchedPlan.plan_id || matchedPlan.id || matchedPlan.code)) {
+              realStrongeSimPlanId = matchedPlan.plan_id || matchedPlan.id || matchedPlan.code;
+              console.log(`Resolved synthetic plan [${planId}] to real StrongeSIM plan_id: [${realStrongeSimPlanId}]`);
+            }
+          }
+        }
+      } catch (planResolveErr) {
+        console.warn('Could not resolve StrongeSIM live plan_id, using provided planId:', planResolveErr.message);
+      }
+
       const response = await strongesimFetch('/orders-v2', {
         method: 'POST',
         body: JSON.stringify({
-          plan_id: planId,
+          plan_id: realStrongeSimPlanId,
           customer_email: customerEmail,
           customer_name: customerName,
         }),
@@ -176,6 +203,10 @@ export async function POST(request) {
 
       if (response.ok) {
         esimData = await response.json();
+        console.log(`StrongeSIM real eSIM purchased successfully. Code: ${esimData.esimTranNo || esimData.iccid}`);
+      } else {
+        const errorBody = await response.text();
+        console.error(`StrongeSIM API order creation rejected [HTTP ${response.status}]:`, errorBody);
       }
     } catch (error) {
       console.error('Error creating order at StrongeSIM:', error);
