@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request) {
   try {
-    const { amount, currency = 'eur', customerEmail } = await request.json();
+    const body = await request.json();
+    const { amount, currency = 'eur', customerEmail, cardNumber, cardExp, cardCvc } = body;
 
     if (!amount || amount <= 0) {
       return NextResponse.json(
@@ -15,7 +16,6 @@ export async function POST(request) {
 
     // 1. If Stripe Secret Key is configured, call Stripe REST API directly using fetch (No external npm package required)
     if (stripeSecretKey) {
-      const { cardNumber, cardExp, cardCvc } = body;
 
       // Create PaymentMethod directly via Stripe REST API if card details provided
       let paymentMethodId = 'pm_card_visa';
