@@ -16,16 +16,22 @@ export async function POST(request) {
 
     // 1. If Stripe Secret Key is configured, call Stripe REST API directly using fetch (No external npm package required)
     if (stripeSecretKey) {
-      // Use Stripe's official payment token (pm_card_visa / pm_card_mastercard) or created payment_method
-      let paymentMethodId = 'pm_card_visa';
-
+      const isLiveMode = stripeSecretKey.startsWith('sk_live_');
       const params = new URLSearchParams();
       params.append('amount', Math.round(amount * 100).toString());
       params.append('currency', currency.toLowerCase());
       if (customerEmail) params.append('receipt_email', customerEmail);
-      params.append('payment_method', paymentMethodId);
-      params.append('confirm', 'true');
-      params.append('return_url', 'https://me-sim.com/checkout');
+
+      if (isLiveMode) {
+        // Live Mode: Use standard card payment method types for Stripe checkout confirmation
+        params.append('payment_method_types[]', 'card');
+      } else {
+        // Test Mode: Use standard test card token
+        params.append('payment_method', 'pm_card_visa');
+        params.append('confirm', 'true');
+        params.append('return_url', 'https://me-sim.com/checkout');
+      }
+
       params.append('metadata[integration]', 'ME-SIM Next.js Headless');
 
       const res = await fetch('https://api.stripe.com/v1/payment_intents', {
