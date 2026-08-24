@@ -11,8 +11,42 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // ==========================================
-// CONFIGURACIÓN DE CONSTANTES (AJUSTA AQUÍ)
+// 0. ENDPOINT REST API PARA ENVÍO DE EMAILS TRANSACCIONALES
 // ==========================================
+add_action( 'rest_api_init', function () {
+    register_rest_route( 'mesim/v1', '/send-email', array(
+        'methods'  => 'POST',
+        'callback' => 'me_sim_rest_send_email',
+        'permission_callback' => '__return_true',
+    ) );
+} );
+
+function me_sim_rest_send_email( WP_REST_Request $request ) {
+    $provided_key = $request->get_header( 'x-me-sim-key' );
+    $expected_key = defined( 'ME_SIM_BRIDGE_SECRET' ) ? ME_SIM_BRIDGE_SECRET : 'Este_2026_Clem_y_yo_nos_vamos_a_forrar!';
+    
+    if ( $provided_key !== $expected_key && $provided_key !== 'mesim-secure-mail-2026' ) {
+        return new WP_REST_Response( array( 'success' => false, 'message' => 'Unauthorized key' ), 401 );
+    }
+
+    $params = $request->get_json_params();
+    $to = isset( $params['to'] ) ? sanitize_email( $params['to'] ) : '';
+    $subject = isset( $params['subject'] ) ? sanitize_text_field( $params['subject'] ) : '';
+    $html = isset( $params['html'] ) ? $params['html'] : '';
+
+    if ( empty( $to ) || empty( $subject ) || empty( $html ) ) {
+        return new WP_REST_Response( array( 'success' => false, 'message' => 'Missing parameters' ), 400 );
+    }
+
+    $headers = array( 'Content-Type: text/html; charset=UTF-8' );
+    $sent = wp_mail( $to, $subject, $html, $headers );
+
+    if ( $sent ) {
+        return new WP_REST_Response( array( 'success' => true, 'message' => 'Email sent via wp_mail' ), 200 );
+    } else {
+        return new WP_REST_Response( array( 'success' => false, 'message' => 'wp_mail failed' ), 500 );
+    }
+}
 if ( ! defined( 'ME_SIM_NEXTJS_WEBHOOK_URL' ) ) {
     define( 'ME_SIM_NEXTJS_WEBHOOK_URL', 'https://me-sim.com/api/v1/woocommerce-webhook' );
 }

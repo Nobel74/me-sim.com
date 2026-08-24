@@ -23,7 +23,7 @@ export async function sendEmail({ to, subject, htmlText, type = 'magic_code', da
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-ME-SIM-KEY': process.env.EMAIL_API_KEY || 'mesim-secure-mail-2026',
+        'X-ME-SIM-KEY': process.env.ME_SIM_BRIDGE_SECRET || process.env.EMAIL_API_KEY || 'Este_2026_Clem_y_yo_nos_vamos_a_forrar!',
       },
       body: JSON.stringify({
         to,
