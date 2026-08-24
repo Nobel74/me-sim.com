@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { strongesimFetch } from '../../../lib/strongesim';
+import { addDiagnosticLog } from '../../../lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -219,6 +220,8 @@ export async function POST(request) {
         console.warn('Could not resolve StrongeSIM live plan_id, using provided planId:', planResolveErr.message);
       }
 
+      addDiagnosticLog('STRONGESIM', 'RESOLVE_PLAN_ID_START', { originalPlanId: planId, iso, dataAmount, days });
+
       let response = await strongesimFetch('/orders-v2', {
         method: 'POST',
         body: JSON.stringify({
@@ -226,6 +229,12 @@ export async function POST(request) {
           customer_email: customerEmail,
           customer_name: customerName,
         }),
+      });
+
+      addDiagnosticLog('STRONGESIM', 'POST_ORDERS_V2_RESPONSE', {
+        status: response.status,
+        ok: response.ok,
+        realStrongeSimPlanId,
       });
 
       // Fallback to /orders if StrongeSIM server returns 404 / Cannot POST /api/v1/orders-v2
@@ -239,13 +248,21 @@ export async function POST(request) {
             customer_name: customerName,
           }),
         });
+
+        addDiagnosticLog('STRONGESIM', 'POST_ORDERS_FALLBACK_RESPONSE', {
+          status: response.status,
+          ok: response.ok,
+          realStrongeSimPlanId,
+        });
       }
 
       if (response.ok) {
         esimData = await response.json();
+        addDiagnosticLog('STRONGESIM', 'ORDER_SUCCESS', { esimData });
         console.log(`StrongeSIM real eSIM purchased successfully. Code: ${esimData.esimTranNo || esimData.iccid}`);
       } else {
         const errorBody = await response.text();
+        addDiagnosticLog('STRONGESIM', 'ORDER_REJECTED', { status: response.status, errorBody });
         console.error(`StrongeSIM API order creation rejected [HTTP ${response.status}]:`, errorBody);
         return NextResponse.json({
           success: false,

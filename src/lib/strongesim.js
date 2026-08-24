@@ -1,6 +1,4 @@
-/**
- * Helper del Lado del Servidor para Autenticación y llamadas Proxy a StrongeSIM API
- */
+import { addDiagnosticLog } from './logger';
 
 let authToken = null;
 let sessionId = null;
@@ -22,7 +20,8 @@ export async function getStrongeSIMAuth() {
   const password = process.env.STRONGESIM_PASSWORD;
 
   if (!username || !password) {
-    lastAuthError = 'Credenciales STRONGESIM_USERNAME o STRONGESIM_PASSWORD no configuradas en .env.local';
+    lastAuthError = 'Credenciales STRONGESIM_USERNAME o STRONGESIM_PASSWORD no configuradas en entorno';
+    addDiagnosticLog('STRONGESIM_AUTH', 'MISSING_CREDENTIALS', { username: !!username, password: !!password });
     return { accessToken: null, sessionId: null };
   }
 
@@ -47,8 +46,15 @@ export async function getStrongeSIMAuth() {
       responseData = JSON.parse(responseText);
     } catch (e) {}
 
+    addDiagnosticLog('STRONGESIM_AUTH', 'LOGIN_RESPONSE', {
+      status: response.status,
+      ok: response.ok,
+      success: responseData.success,
+      baseUrl,
+      username,
+    });
+
     if (response.ok && responseData.success) {
-      // Extraemos accessToken directamente de data.accessToken
       authToken = responseData.data?.accessToken || responseData.data?.token || responseData.accessToken;
       sessionId = responseData.data?.sessionId || responseData.data?.session_id || 'session_active';
 
@@ -62,6 +68,7 @@ export async function getStrongeSIMAuth() {
     lastAuthError = `HTTP ${response.status}: ${responseText}`;
   } catch (error) {
     lastAuthError = `Error de conexión: ${error.message}`;
+    addDiagnosticLog('STRONGESIM_AUTH', 'LOGIN_EXCEPTION', { error: error.message });
   }
 
   return { accessToken: null, sessionId: null };
