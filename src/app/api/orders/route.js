@@ -83,6 +83,7 @@ export async function POST(request) {
             payment_method: 'stripe',
             payment_method_title: 'Stripe',
             set_paid: true,
+            status: 'completed',
             transaction_id: paymentIntentId || '',
             customer_id: customerId, // Linked to real customer ID!
             currency: currency || 'EUR',
