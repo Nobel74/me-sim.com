@@ -130,7 +130,60 @@ export async function POST(req) {
 
       if (response.ok) {
         esimData = await response.json();
-        console.log(`StrongeSIM eSIM purchased successfully for order #${orderId}. Code: ${esimData.esimTranNo}`);
+        const esimTranNo = esimData.esimTranNo || esimData.iccid;
+        const qrCodeUrl = esimData.qr_code_url || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(esimData.lpaString || ('LPA:1$rsp.strongesim.com$' + esimTranNo))}`;
+
+        console.log(`StrongeSIM eSIM purchased successfully for order #${orderId}. Code: ${esimTranNo}`);
+
+        // Update WooCommerce order metadata
+        try {
+          const wcUrl = process.env.WOOCOMMERCE_API_URL || 'https://api.me-sim.com';
+          const ck = process.env.WOOCOMMERCE_CONSUMER_KEY || process.env.WC_CONSUMER_KEY;
+          const cs = process.env.WOOCOMMERCE_CONSUMER_SECRET || process.env.WC_CONSUMER_SECRET;
+          if (ck && cs && orderId) {
+            await fetch(`${wcUrl}/wp-json/wc/v3/orders/${orderId}`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: 'Basic ' + Buffer.from(`${ck}:${cs}`).toString('base64'),
+              },
+              body: JSON.stringify({
+                meta_data: [
+                  { key: '_esim_iccid', value: esimTranNo },
+                  { key: '_esim_transaction_no', value: esimTranNo },
+                  { key: '_esim_qr_code', value: qrCodeUrl },
+                ]
+              })
+            });
+            console.log(`Updated WooCommerce Order #${orderId} with real eSIM metadata.`);
+          }
+        } catch (wcMetaErr) {
+          console.error(`Error updating WooCommerce Order #${orderId} metadata:`, wcMetaErr);
+        }
+
+        // Send order confirmation email with real QR code
+        try {
+          await fetch(new URL('/api/email/send', req.url).toString(), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: email,
+              type: 'order_confirmation',
+              orderData: {
+                title: payload.items?.[0]?.name || 'eSIM Plan',
+                orderId: orderId,
+                esimTranNo: esimTranNo,
+                qrCodeUrl: qrCodeUrl,
+                totalPrice: `${payload.total_amount || '0.00'} ${payload.currency || 'EUR'}`,
+                customerName: customerName,
+              },
+              lang: 'es',
+            }),
+          });
+          console.log(`Order confirmation email with QR sent to ${email}`);
+        } catch (emailErr) {
+          console.error(`Error sending QR email for Order #${orderId}:`, emailErr);
+        }
       } else {
         const errorText = await response.text();
         console.error(`StrongeSIM API error: ${response.status} - ${errorText}`);
