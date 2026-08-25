@@ -101,49 +101,75 @@ export async function strongesimFetch(endpoint, options = {}) {
 }
 
 /**
- * Resuelve el plan_id numérico real de StrongeSIM basándose en ISO, volumen de datos o días
- * Elimina cualquier fallback incorrecto a países extraños (como Uzbekistán 19901)
+ * Resuelve el plan_id numérico real de StrongeSIM basándose en ISO y volumen de datos
+ * Garantiza la coincidencia por país (ES/España) para evitar cualquier asignación de Uzbekistán u otros países
  */
 export async function resolveStrongeSimPlanId({ sku, iso = 'es', dataAmount = '', days = 30 }) {
   if (typeof sku === 'number') return sku;
   if (typeof sku === 'string' && /^\d+$/.test(sku.trim())) return parseInt(sku.trim(), 10);
 
   const isoCode = (iso || (typeof sku === 'string' ? sku.split('-')[0] : '') || 'es').toUpperCase();
-  const targetDataStr = (dataAmount || '').toLowerCase();
+  
+  // Extraer valor de datos desinfectado ("500", "10", "1", "5", etc.)
+  const rawData = (dataAmount || sku || '').toLowerCase();
+  let cleanDataTag = '';
+  if (rawData.includes('500mb') || rawData.includes('500 mb') || rawData.includes('500')) {
+    cleanDataTag = '500';
+  } else {
+    const gbMatch = rawData.match(/(\d+)\s*gb/);
+    if (gbMatch) {
+      cleanDataTag = gbMatch[1];
+    }
+  }
 
   try {
-    const endpoints = [`/plans-v2?country=${isoCode.toLowerCase()}`, '/packages', '/plans', '/plans-v2'];
+    const endpoints = [`/plans-v2?country=${isoCode.toLowerCase()}`, '/plans-v2', '/packages', '/plans'];
     for (const ep of endpoints) {
       try {
         const res = await strongesimFetch(ep, { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
           const packages = data.plans || data.packages || data.data || (Array.isArray(data) ? data : []);
+          
           if (Array.isArray(packages) && packages.length > 0) {
+            // 1. Filtrado estricto por ISO o Nombre de País (España / Spain / ES)
             const countryPackages = packages.filter(p => {
-              const pIso = (p.iso || p.isoCode || p.country_code || p.country || '').toUpperCase();
-              return pIso === isoCode || pIso.includes(isoCode) || isoCode.includes(pIso);
+              const pIso = (p.iso || p.isoCode || p.country_code || p.countryCode || '').toUpperCase();
+              const pCountry = (p.country || p.country_name || p.name || p.title || '').toUpperCase();
+              
+              if (pIso === isoCode || pIso.includes(isoCode)) return true;
+              if (isoCode === 'ES' && (pCountry.includes('SPAIN') || pCountry.includes('ESPAÑA'))) return true;
+              if (isoCode === 'FR' && (pCountry.includes('FRANCE') || pCountry.includes('FRANCIA'))) return true;
+              if (isoCode === 'US' && (pCountry.includes('UNITED STATES') || pCountry.includes('USA'))) return true;
+              if (pCountry.includes(isoCode)) return true;
+              return false;
             });
 
-            const pool = countryPackages.length > 0 ? countryPackages : packages;
+            // Usamos UNICAMENTE la piscina del país destino. Nunca caemos a packages[0] global
+            const pool = countryPackages.length > 0 ? countryPackages : [];
 
-            let match = pool.find(p => String(p.sku || p.id || p.code || p.plan_id) === String(sku));
+            if (pool.length > 0) {
+              // Coincidencia exacta por SKU/ID
+              let match = pool.find(p => String(p.sku || p.id || p.code || p.plan_id) === String(sku));
 
-            if (!match && targetDataStr) {
-              match = pool.find(p => {
-                const pData = (p.dataAmount || p.data || p.name || p.title || '').toLowerCase();
-                return pData.includes(targetDataStr) || (days && p.days === parseInt(days, 10));
-              });
-            }
+              // Coincidencia por etiqueta de datos (500MB, 10GB, etc)
+              if (!match && cleanDataTag) {
+                match = pool.find(p => {
+                  const pData = (p.dataAmount || p.data || p.name || p.title || '').toLowerCase();
+                  return pData.includes(cleanDataTag);
+                });
+              }
 
-            if (!match) {
-              match = pool[0];
-            }
+              // Fallback seguro al primer paquete del MISMO PAÍS (España)
+              if (!match) {
+                match = pool[0];
+              }
 
-            if (match) {
-              const resolvedId = match.id || match.plan_id || match.package_id || match.code;
-              if (resolvedId && (typeof resolvedId === 'number' || /^\d+$/.test(String(resolvedId)))) {
-                return parseInt(String(resolvedId), 10);
+              if (match) {
+                const resolvedId = match.id || match.plan_id || match.package_id || match.code;
+                if (resolvedId && (typeof resolvedId === 'number' || /^\d+$/.test(String(resolvedId)))) {
+                  return parseInt(String(resolvedId), 10);
+                }
               }
             }
           }
