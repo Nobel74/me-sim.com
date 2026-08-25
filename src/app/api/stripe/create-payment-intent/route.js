@@ -23,42 +23,42 @@ export async function POST(request) {
       if (expYear.length === 2) expYear = '20' + expYear;
       const cleanCvc = (cardCvc || '').trim();
 
-      let paymentMethodId = '';
-
-      if (cleanCardNumber && expMonth && expYear && cleanCvc) {
-        // A. Create PaymentMethod on Stripe using card details
-        const pmParams = new URLSearchParams();
-        pmParams.append('type', 'card');
-        pmParams.append('card[number]', cleanCardNumber);
-        pmParams.append('card[exp_month]', expMonth);
-        pmParams.append('card[exp_year]', expYear);
-        pmParams.append('card[cvc]', cleanCvc);
-        if (customerEmail) pmParams.append('billing_details[email]', customerEmail);
-        if (customerName) pmParams.append('billing_details[name]', customerName);
-
-        const pmRes = await fetch('https://api.stripe.com/v1/payment_methods', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${stripeSecretKey}`,
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: pmParams.toString(),
-        });
-
-        const pmData = await pmRes.json();
-
-        if (!pmRes.ok || pmData.error) {
-          return NextResponse.json(
-            { success: false, message: pmData.error?.message || 'Los datos de la tarjeta son incorrectos o fueron rechazados.' },
-            { status: 400 }
-          );
-        }
-
-        paymentMethodId = pmData.id;
-      } else {
-        // Fallback for test mode token if no card details provided
-        paymentMethodId = 'pm_card_visa';
+      if (!cleanCardNumber || !expMonth || !expYear || !cleanCvc) {
+        return NextResponse.json(
+          { success: false, message: 'Por favor, introduce los datos completos de tu tarjeta bancaria (número, caducidad y CVC).' },
+          { status: 400 }
+        );
       }
+
+      // A. Create PaymentMethod on Stripe using card details
+      const pmParams = new URLSearchParams();
+      pmParams.append('type', 'card');
+      pmParams.append('card[number]', cleanCardNumber);
+      pmParams.append('card[exp_month]', expMonth);
+      pmParams.append('card[exp_year]', expYear);
+      pmParams.append('card[cvc]', cleanCvc);
+      if (customerEmail) pmParams.append('billing_details[email]', customerEmail);
+      if (customerName) pmParams.append('billing_details[name]', customerName);
+
+      const pmRes = await fetch('https://api.stripe.com/v1/payment_methods', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${stripeSecretKey}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: pmParams.toString(),
+      });
+
+      const pmData = await pmRes.json();
+
+      if (!pmRes.ok || pmData.error) {
+        return NextResponse.json(
+          { success: false, message: pmData.error?.message || 'Los datos de la tarjeta son incorrectos o fueron rechazados por el banco.' },
+          { status: 400 }
+        );
+      }
+
+      const paymentMethodId = pmData.id;
 
       // B. Create & Confirm PaymentIntent in Stripe
       const piParams = new URLSearchParams();
@@ -81,6 +81,7 @@ export async function POST(request) {
 
       const paymentIntent = await piRes.json();
 
+      // STRICT VALIDATION: Only return success if Stripe confirmed payment succeeded
       if (piRes.ok && (paymentIntent.status === 'succeeded' || paymentIntent.status === 'requires_capture')) {
         return NextResponse.json({
           success: true,
@@ -88,23 +89,27 @@ export async function POST(request) {
           paymentIntentId: paymentIntent.id,
           status: paymentIntent.status,
         });
-      } else if (piRes.ok && paymentIntent.status === 'requires_action') {
+      }
+
+      if (piRes.ok && paymentIntent.status === 'requires_action') {
         const redirectUrl = paymentIntent.next_action?.redirect_to_url?.url;
         return NextResponse.json({
           success: false,
           requiresAction: true,
           redirectUrl: redirectUrl,
-          message: 'Se requiere verificación 3D Secure de tu banco.',
+          message: 'Se requiere autenticación 3D Secure con tu banco.',
         }, { status: 402 });
-      } else if (paymentIntent.error) {
-        return NextResponse.json(
-          { success: false, message: paymentIntent.error.message || 'Pago rechazado por el banco emisor.' },
-          { status: 400 }
-        );
       }
+
+      // If status is not succeeded (e.g., requires_payment_method, failed, etc.)
+      const errorMsg = paymentIntent.error?.message || `El pago no pudo ser completado por Stripe (Estado: ${paymentIntent.status || 'fallido'}).`;
+      return NextResponse.json(
+        { success: false, message: errorMsg, status: paymentIntent.status },
+        { status: 400 }
+      );
     }
 
-    // 2. Default Sandbox / Simulation Mode (Zero real charges)
+    // Only fallback if NO Stripe Secret Key is defined at all in environment
     const mockClientSecret = `pi_mock_${Date.now()}_secret_${Math.random().toString(36).substring(7)}`;
 
     return NextResponse.json({

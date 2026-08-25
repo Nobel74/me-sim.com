@@ -120,12 +120,15 @@ export default function CheckoutPage() {
 
         const stripeData = await stripeRes.json();
 
-        if (!stripeData.success) {
+        // STRICT CHECK: Stop immediately if payment was not captured successfully by Stripe
+        const isStripeConfirmed = stripeData.success && (stripeData.status === 'succeeded' || stripeData.status === 'requires_capture' || stripeData.simulated === true);
+
+        if (!isStripeConfirmed) {
           if (stripeData.requiresAction && stripeData.redirectUrl) {
             window.location.href = stripeData.redirectUrl;
             return;
           }
-          alert((lang === 'en' ? 'Stripe payment failed: ' : 'Error en el pago con tarjeta: ') + (stripeData.message || 'Error'));
+          alert((lang === 'en' ? 'Stripe payment could not be processed: ' : 'El cobro no se pudo completar en la tarjeta: ') + (stripeData.message || 'Pago no autorizado por el banco emisor.'));
           setLoading(false);
           return;
         }
