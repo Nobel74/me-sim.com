@@ -129,18 +129,24 @@ export async function resolveStrongeSimPlanId({ sku, iso = 'es', dataAmount = ''
 
   const targetIso = (iso || (typeof sku === 'string' ? sku.split('-')[0] : '') || 'es').toUpperCase().trim();
   const rawDataStr = (dataAmount || sku || '').toLowerCase();
+  const targetDays = parseInt(days || 30, 10);
 
-  // Extraer valor de datos desinfectado ("500", "10", "1", "20", "5")
-  let cleanDataNumber = '';
+  // Extraer etiquetas de datos probables (500MB, 0.5GB, 10GB, 1GB, Daily, Unlimited)
+  let dataTags = [];
+  const isDailyPlan = rawDataStr.includes('día') || rawDataStr.includes('dia') || rawDataStr.includes('day') || targetDays === 1;
+
   if (rawDataStr.includes('500')) {
-    cleanDataNumber = '500';
+    dataTags = ['500', '0.5', '500mb', '0.5gb'];
+  } else if (rawDataStr.includes('unlimited') || rawDataStr.includes('ilimitad')) {
+    dataTags = ['unlimited', 'ilimitad'];
   } else {
-    const numMatch = rawDataStr.match(/(\d+)\s*gb/);
-    if (numMatch) {
-      cleanDataNumber = numMatch[1];
+    const gbMatch = rawDataStr.match(/(\d+)\s*gb/);
+    if (gbMatch) {
+      const num = gbMatch[1];
+      dataTags = [`${num}gb`, `${num} gb`, `${num}g`, `${num}`];
     } else {
       const anyNum = rawDataStr.match(/\d+/);
-      if (anyNum) cleanDataNumber = anyNum[0];
+      if (anyNum) dataTags = [anyNum[0]];
     }
   }
 
@@ -161,16 +167,13 @@ export async function resolveStrongeSimPlanId({ sku, iso = 'es', dataAmount = ''
           const pIso = (p.iso || p.isoCode || p.country_code || p.countryCode || '').toUpperCase().trim();
           const pCountry = (p.country || p.country_name || p.name || p.title || '').toUpperCase();
 
-          // A) Coincidencia por ISO de 2 letras (ej. ES, FR, US, JP, ID)
           if (pIso === targetIso) return true;
 
-          // B) Coincidencia por Región Multi-país (ej. europe, asia, latam)
           const regKeys = REGION_KEYWORDS[targetIso];
           if (regKeys && regKeys.some(k => pCountry.includes(k) || pIso.includes(k))) {
             return true;
           }
 
-          // C) Coincidencia estricta por Nombre de País en Español/Inglés (evita "INDONESIA".includes("ES"))
           if (countryMeta) {
             const nameEn = (countryMeta.nameEn || '').toUpperCase();
             const nameEs = (countryMeta.nameEs || '').toUpperCase();
@@ -182,22 +185,29 @@ export async function resolveStrongeSimPlanId({ sku, iso = 'es', dataAmount = ''
           return false;
         });
 
-        // Usamos UNICAMENTE la piscina del país/región destino.
         const pool = countryPlans.length > 0 ? countryPlans : [];
 
         if (pool.length > 0) {
-          // Coincidencia exacta por SKU/ID/Código
+          // A) Coincidencia exacta por SKU/ID/Código
           let match = pool.find(p => String(p.id || p.plan_id || p.code || p.sku) === String(sku));
 
-          // Coincidencia por etiqueta de datos (500, 10, 1, etc)
-          if (!match && cleanDataNumber) {
+          // B) Coincidencia por etiquetas de datos (500MB, 0.5GB, 10GB, etc)
+          if (!match && dataTags.length > 0) {
             match = pool.find(p => {
-              const pData = (p.dataAmount || p.data || p.name || p.title || '').toLowerCase();
-              return pData.includes(cleanDataNumber);
+              const pData = (p.dataAmount || p.data || p.name || p.title || p.package_name || '').toLowerCase();
+              return dataTags.some(tag => pData.includes(tag));
             });
           }
 
-          // Fallback al primer paquete del MISMO PAÍS O REGIÓN
+          // C) Si es un plan diario (1 día), buscar un paquete diario o Unlimited del mismo país
+          if (!match && isDailyPlan) {
+            match = pool.find(p => {
+              const pTitle = (p.name || p.title || p.package_name || '').toLowerCase();
+              return pTitle.includes('daily') || pTitle.includes('unlimited') || p.days === 1 || p.duration === 1;
+            });
+          }
+
+          // D) Fallback seguro al primer paquete del MISMO PAÍS O REGIÓN
           if (!match) {
             match = pool[0];
           }
