@@ -4,9 +4,18 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getTranslation } from '../../lib/i18n';
 import { formatCurrency, convertCurrency, getExchangeRates } from '../../lib/currency';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
-export default function CheckoutPage() {
+const stripePromise = loadStripe(
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_live_51RyUpOE55qmb8D8E9WnHWzFLcCo01DpuzSry2arNCUK3gtsYKsnf7hx1AgMMdQ9obl8BgqDqmepZ0mAmgAe0j6TI00lfgsvZzC'
+);
+
+function CheckoutFormContent() {
   const router = useRouter();
+  const stripe = useStripe();
+  const elements = useElements();
+
   const [lang, setLang] = useState('es');
   const [currency, setCurrency] = useState('EUR');
   const [cart, setCart] = useState([]);
@@ -14,11 +23,6 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [rates, setRates] = useState(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-
-  // Card Inputs
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardExp, setCardExp] = useState('');
-  const [cardCvc, setCardCvc] = useState('');
 
   const [form, setForm] = useState({
     firstName: '',
@@ -92,18 +96,13 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (parseFloat(totalAmount) > 0 && (!cardNumber || !cardExp || !cardCvc)) {
-      alert(lang === 'en' ? 'Please complete credit card details.' : 'Por favor, introduce los datos completos de tu tarjeta bancaria.');
-      return;
-    }
-
     setLoading(true);
 
     try {
       let paymentIntentId = 'free_coupon';
 
       if (parseFloat(totalAmount) > 0) {
-        // 1. Create and Confirm Stripe Payment Intent via server route safely
+        // 1. Generate unconfirmed PaymentIntent from server (NO raw card data sent to our server!)
         const stripeRes = await fetch('/api/stripe/create-payment-intent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -111,31 +110,61 @@ export default function CheckoutPage() {
             amount: parseFloat(totalAmount),
             currency,
             customerEmail: form.email,
-            customerName: `${form.firstName} ${form.lastName}`.trim(),
-            cardNumber,
-            cardExp,
-            cardCvc,
           }),
         });
 
         const stripeData = await stripeRes.json();
 
-        // STRICT CHECK: Stop immediately if payment was not captured successfully by Stripe
-        const isStripeConfirmed = stripeData.success && (stripeData.status === 'succeeded' || stripeData.status === 'requires_capture' || stripeData.simulated === true);
-
-        if (!isStripeConfirmed) {
-          if (stripeData.requiresAction && stripeData.redirectUrl) {
-            window.location.href = stripeData.redirectUrl;
-            return;
-          }
-          alert((lang === 'en' ? 'Stripe payment could not be processed: ' : 'El cobro no se pudo completar en la tarjeta: ') + (stripeData.message || 'Pago no autorizado por el banco emisor.'));
+        if (!stripeData.success || !stripeData.clientSecret) {
+          alert((lang === 'en' ? 'Stripe intent creation failed: ' : 'Error al inicializar la pasarela de pago: ') + (stripeData.message || 'Error'));
           setLoading(false);
           return;
         }
-        paymentIntentId = stripeData.paymentIntentId;
+
+        // 2. Client-side tokenization and confirmation using official Stripe.js SDK
+        if (!stripeData.simulated) {
+          if (!stripe || !elements) {
+            alert(lang === 'en' ? 'Stripe SDK not initialized yet.' : 'Pasarela Stripe no inicializada. Por favor, reintenta.');
+            setLoading(false);
+            return;
+          }
+
+          const cardElement = elements.getElement(CardElement);
+          if (!cardElement) {
+            alert(lang === 'en' ? 'Card form not found.' : 'Por favor, introduce los datos de tu tarjeta.');
+            setLoading(false);
+            return;
+          }
+
+          const result = await stripe.confirmCardPayment(stripeData.clientSecret, {
+            payment_method: {
+              card: cardElement,
+              billing_details: {
+                name: `${form.firstName} ${form.lastName}`.trim(),
+                email: form.email,
+              },
+            },
+          });
+
+          if (result.error) {
+            alert((lang === 'en' ? 'Payment rejected: ' : 'Pago rechazado por el banco: ') + (result.error.message || 'Error en la transacción'));
+            setLoading(false);
+            return;
+          }
+
+          if (!result.paymentIntent || result.paymentIntent.status !== 'succeeded') {
+            alert(lang === 'en' ? 'Payment was not confirmed.' : 'El cobro no pudo ser confirmado por el banco emisor.');
+            setLoading(false);
+            return;
+          }
+
+          paymentIntentId = result.paymentIntent.id;
+        } else {
+          paymentIntentId = stripeData.paymentIntentId;
+        }
       }
 
-      // 2. Submit Order & Auto-Register Guest Account
+      // 3. Submit Order to WooCommerce & Auto-Register Guest Account AFTER payment is confirmed succeeded
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -158,7 +187,7 @@ export default function CheckoutPage() {
 
       const data = await res.json();
       if (data.success) {
-        // 3. Establish HttpOnly Server Session for newly registered customer
+        // Establish HttpOnly Server Session for newly registered customer
         await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -242,55 +271,48 @@ export default function CheckoutPage() {
               />
             </div>
 
-            {/* Stripe Card Integration Form */}
+            {/* Official PCI-DSS Compliant Stripe Elements Form */}
             <div className="pt-4 border-t border-zinc-100">
               <h3 className="text-base font-semibold font-semi text-black mb-3 leading-[1.15rem]">
-                2. {lang === 'en' ? 'Payment Method (Encrypted Stripe)' : 'Método de Pago (Pasarela Segura Stripe)'}
+                2. {lang === 'en' ? 'Payment Method (Encrypted Stripe Elements)' : 'Método de Pago (Pasarela Segura Stripe Elements)'}
               </h3>
 
-              <div className="bg-zinc-50 border border-zinc-200 px-2 py-3.5 sm:p-4 rounded-2xl space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div className="bg-zinc-50 border border-zinc-200 px-3 py-4 sm:p-5 rounded-2xl space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
                   <span className="text-xs font-bold text-black flex items-center justify-center sm:justify-start gap-1.5 font-sans w-full sm:w-auto">
                     <svg className="w-4 h-4 fill-current text-black flex-shrink-0" viewBox="0 0 24 24">
                       <path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z" />
                     </svg>
-                    Stripe Payments
+                    Stripe Payments (SSL Cifrado)
                   </span>
                   <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full font-sans w-full text-center sm:w-auto">
-                    PCI-DSS Cifrado 256-bit
+                    PCI-DSS Homologado 256-bit
                   </span>
                 </div>
 
+                {/* Stripe Elements Secure Card Iframe Container */}
                 <div>
-                  <label className="block text-[11px] font-semibold text-zinc-500 uppercase mb-1 font-sans">Número de Tarjeta</label>
-                  <input
-                    type="text"
-                    value={cardNumber}
-                    onChange={(e) => setCardNumber(e.target.value)}
-                    placeholder="4242 •••• •••• 4242"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 text-black text-sm outline-none focus:ring-2 focus:ring-[#ffec00] font-mono bg-white"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-zinc-500 uppercase mb-1 font-sans">Expiración</label>
-                    <input
-                      type="text"
-                      value={cardExp}
-                      onChange={(e) => setCardExp(e.target.value)}
-                      placeholder="MM/AA"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 text-black text-sm outline-none focus:ring-2 focus:ring-[#ffec00] font-mono bg-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-zinc-500 uppercase mb-1 font-sans">CVC / CVV</label>
-                    <input
-                      type="text"
-                      value={cardCvc}
-                      onChange={(e) => setCardCvc(e.target.value)}
-                      placeholder="123"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 text-black text-sm outline-none focus:ring-2 focus:ring-[#ffec00] font-mono bg-white"
+                  <label className="block text-[11px] font-semibold text-zinc-500 uppercase mb-1.5 font-sans">
+                    {lang === 'en' ? 'Credit / Debit Card Details' : 'Datos de Tarjeta de Crédito / Débito'}
+                  </label>
+                  <div className="bg-white border border-zinc-300 rounded-xl p-3.5 focus-within:ring-2 focus-within:ring-[#ffec00] transition-all">
+                    <CardElement
+                      options={{
+                        style: {
+                          base: {
+                            fontSize: '15px',
+                            color: '#18181b',
+                            fontFamily: 'system-ui, -apple-system, sans-serif',
+                            '::placeholder': {
+                              color: '#a1a1aa',
+                            },
+                          },
+                          invalid: {
+                            color: '#ef4444',
+                          },
+                        },
+                        hidePostalCode: true,
+                      }}
                     />
                   </div>
                 </div>
@@ -405,5 +427,13 @@ export default function CheckoutPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Elements stripe={stripePromise}>
+      <CheckoutFormContent />
+    </Elements>
   );
 }
