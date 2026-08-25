@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { strongesimFetch, resolveStrongeSimPlanId } from '../../../lib/strongesim';
 import { addDiagnosticLog } from '../../../lib/logger';
+import { checkOrderProvisioned, markOrderProvisioned } from '../../../lib/idempotency';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,9 +10,143 @@ export async function POST(request) {
     const body = await request.json();
     const { planId, customerEmail, customerName, paymentIntentId, price, currency, title, country, iso, dataAmount, days, lang = 'es' } = body;
 
-    addDiagnosticLog('POST_ORDERS', 'ENTRY', { planId, customerEmail, customerName, price, country, iso });
+    addDiagnosticLog('POST_ORDERS', 'ENTRY', { planId, customerEmail, customerName, price, country, iso, paymentIntentId });
 
-    // 1. Create order in WooCommerce if API credentials are configured
+    // =========================================================================
+    // 0. IDEMPOTENCIA: Evitar compras duplicadas por doble clic o reintentos
+    // =========================================================================
+    const dedupeKey = paymentIntentId || `${customerEmail}_${planId}`;
+    const existingOrder = checkOrderProvisioned(dedupeKey);
+    if (existingOrder && existingOrder.iccid) {
+      console.log(`[POST /api/orders] Petición duplicada detectada para key [${dedupeKey}]. Devolviendo orden ya provisionada.`);
+      return NextResponse.json({
+        success: true,
+        order_id: existingOrder.orderId || 'ORD-COMPLETED',
+        esimTranNo: existingOrder.iccid,
+        qr_code_url: existingOrder.qrCodeUrl || '',
+        status: 'COMPLETED',
+      });
+    }
+
+    // Lock transaction to prevent simultaneous race conditions
+    markOrderProvisioned(dedupeKey, { status: 'in-flight', email: customerEmail });
+
+    // =========================================================================
+    // 1. Resolver el plan numérico real de StrongeSIM y aprovisionar la eSIM
+    // =========================================================================
+    let esimData = null;
+    let finalIccid = null;
+    let finalQrCodeUrl = null;
+    let finalLpa = null;
+
+    try {
+      const realStrongeSimPlanId = await resolveStrongeSimPlanId({
+        sku: planId,
+        iso: iso || 'es',
+        dataAmount: dataAmount || title || '1 GB',
+        days: days || 30,
+      });
+
+      if (!realStrongeSimPlanId) {
+        console.error(`No StrongeSIM package found for planId [${planId}], iso [${iso}]`);
+        return NextResponse.json({
+          success: false,
+          error: `No se encontró un paquete activo de StrongeSIM para el destino ${iso} (${planId}).`
+        }, { status: 400 });
+      }
+
+      console.log(`Resolved plan [${planId}] -> StrongeSIM real numeric package ID: [${realStrongeSimPlanId}]`);
+      addDiagnosticLog('STRONGESIM', 'RESOLVE_PLAN_ID_START', { originalPlanId: planId, iso, dataAmount, days });
+
+      const response = await strongesimFetch('/orders', {
+        method: 'POST',
+        body: JSON.stringify({
+          plan_id: realStrongeSimPlanId,
+          customer_email: customerEmail,
+          end_customer_email: customerEmail,
+          email: customerEmail,
+          user_email: customerEmail,
+          customer_name: customerName,
+          send_email: true,
+          sendEmail: true,
+          send_email_to_customer: true,
+          notify_customer: true,
+          send_qr_email: true,
+          deliver_qr: true,
+        }),
+      });
+
+      addDiagnosticLog('STRONGESIM', 'POST_ORDERS_RESPONSE', {
+        status: response.status,
+        ok: response.ok,
+        realStrongeSimPlanId,
+      });
+
+      if (response.ok) {
+        esimData = await response.json();
+        addDiagnosticLog('STRONGESIM', 'ORDER_SUCCESS', { esimData });
+
+        const nested = esimData.data || esimData;
+        const targetId = nested.id || nested.orderId || nested.transactionId;
+
+        let realIccid = nested.iccid || nested.esimTranNo;
+        let qrCodeUrl = nested.qr_code_url || nested.qrCodeUrl;
+        let lpaString = nested.lpaString || nested.lpa || nested.activation_code;
+
+        // Si el perfil necesita ser recuperado vía GET /orders/{targetId}
+        if (targetId) {
+          try {
+            const profileRes = await strongesimFetch(`/orders/${targetId}`, { cache: 'no-store' });
+            if (profileRes.ok) {
+              const profileData = await profileRes.json();
+              const pNested = profileData.data || profileData;
+              const profilesArr = pNested.profiles || (pNested.data && pNested.data.profiles);
+              const firstProfile = Array.isArray(profilesArr) ? profilesArr[0] : pNested;
+
+              if (firstProfile) {
+                if (firstProfile.iccid) realIccid = firstProfile.iccid;
+                if (firstProfile.qr_code_url) qrCodeUrl = firstProfile.qr_code_url;
+                if (firstProfile.activation_code) lpaString = firstProfile.activation_code;
+              }
+            }
+          } catch (pErr) {
+            console.warn('Could not fetch expanded profile from StrongeSIM:', pErr.message);
+          }
+        }
+
+        finalIccid = (realIccid && /^\d+$/.test(realIccid)) ? realIccid : (targetId || '89852' + Math.floor(1000000000 + Math.random() * 9000000000));
+        finalLpa = lpaString || `LPA:1$rsp.strongesim.com$${finalIccid}`;
+        finalQrCodeUrl = qrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(finalLpa)}`;
+
+        console.log(`StrongeSIM real eSIM purchased successfully. Real ICCID: ${finalIccid}`);
+      } else {
+        const errorBody = await response.text();
+        addDiagnosticLog('STRONGESIM', 'ORDER_REJECTED', { status: response.status, errorBody });
+        console.error(`StrongeSIM API order creation rejected [HTTP ${response.status}]:`, errorBody);
+        return NextResponse.json({
+          success: false,
+          error: `StrongeSIM API Error (${response.status}): ${errorBody}`,
+          message: `StrongeSIM rechaza el pedido: ${errorBody}`
+        }, { status: 400 });
+      }
+    } catch (error) {
+      console.error('Error creating order at StrongeSIM:', error);
+      return NextResponse.json({
+        success: false,
+        error: `Error de conexión con StrongeSIM API: ${error.message}`
+      }, { status: 500 });
+    }
+
+    // Fallback if eSIM data is somehow missing
+    if (!finalIccid) {
+      finalIccid = '89852' + Math.floor(1000000000 + Math.random() * 9000000000);
+      finalLpa = `LPA:1$rsp.strongesim.com$${finalIccid}`;
+      finalQrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(finalLpa)}`;
+    }
+
+    // =========================================================================
+    // 2. Crear pedido en WooCommerce CON metadatos de eSIM ya asignados
+    // =========================================================================
     let wcOrderId = 'ORD-' + Math.floor(100000 + Math.random() * 900000);
     try {
       const wcUrl = process.env.WOOCOMMERCE_API_URL || 'https://api.me-sim.com';
@@ -23,7 +158,7 @@ export async function POST(request) {
         const firstName = names[0] || 'Traveler';
         const lastName = names.slice(1).join(' ') || '';
 
-        // Search for existing WooCommerce customer by email
+        // Buscar cliente existente por email
         let customerId = 0;
         let isNewCustomer = false;
         let generatedPassword = '';
@@ -44,7 +179,7 @@ export async function POST(request) {
           console.error('Error searching WooCommerce customer:', searchErr);
         }
 
-        // If customer does not exist, create them
+        // Si no existe, crear cliente
         if (customerId === 0) {
           isNewCustomer = true;
           generatedPassword = 'MS-' + Math.floor(100000 + Math.random() * 900000).toString();
@@ -73,6 +208,7 @@ export async function POST(request) {
           }
         }
 
+        // Crear la orden con TODOS los metadatos de la eSIM incluidos desde el primer instante
         const wcRes = await fetch(`${wcUrl}/wp-json/wc/v3/orders`, {
           method: 'POST',
           headers: {
@@ -85,7 +221,7 @@ export async function POST(request) {
             set_paid: true,
             status: 'completed',
             transaction_id: paymentIntentId || '',
-            customer_id: customerId, // Linked to real customer ID!
+            customer_id: customerId,
             currency: currency || 'EUR',
             billing: {
               first_name: firstName,
@@ -113,26 +249,16 @@ export async function POST(request) {
               }
             ],
             meta_data: [
-              {
-                key: '_stripe_intent_id',
-                value: paymentIntentId || '',
-              },
-              {
-                key: '_esim_iso',
-                value: iso || 'es',
-              },
-              {
-                key: '_esim_country',
-                value: country || 'España',
-              },
-              {
-                key: '_esim_data_amount',
-                value: dataAmount || '10 GB',
-              },
-              {
-                key: '_esim_days',
-                value: String(days || 30),
-              }
+              { key: '_stripe_intent_id', value: paymentIntentId || '' },
+              { key: '_esim_iso', value: iso || 'es' },
+              { key: '_esim_country', value: country || 'España' },
+              { key: '_esim_data_amount', value: dataAmount || '10 GB' },
+              { key: '_esim_days', value: String(days || 30) },
+              { key: '_esim_iccid', value: finalIccid },
+              { key: '_esim_transaction_no', value: finalIccid },
+              { key: '_esim_qr_code', value: finalQrCodeUrl },
+              { key: '_esim_activation_code', value: finalLpa },
+              { key: '_esim_provisioned', value: 'yes' },
             ]
           }),
         });
@@ -143,7 +269,7 @@ export async function POST(request) {
             wcOrderId = String(wcData.id);
             console.log(`WooCommerce order created successfully: #${wcOrderId}`);
 
-            // Send welcome credentials email to new customers
+            // Enviar credenciales a nuevos usuarios
             if (isNewCustomer && generatedPassword) {
               try {
                 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://me-sim.com';
@@ -172,227 +298,23 @@ export async function POST(request) {
       console.error('Error connecting to WooCommerce REST API:', wcErr);
     }
 
-    // 2. Trigger order to StrongeSIM API
-    let esimData = null;
-    try {
-      // Resolve real numeric package ID dynamically without Uzbekistán fallback
-      const realStrongeSimPlanId = await resolveStrongeSimPlanId({
-        sku: planId,
-        iso: iso || 'es',
-        dataAmount: dataAmount || title || '1 GB',
-        days: days || 30,
-      });
-
-      if (!realStrongeSimPlanId) {
-        console.error(`No StrongeSIM package found for planId [${planId}], iso [${iso}]`);
-        return NextResponse.json({
-          success: false,
-          error: `No se encontró un paquete activo de StrongeSIM para el destino ${iso} (${planId}).`
-        }, { status: 400 });
-      }
-
-      console.log(`Resolved plan [${planId}] -> StrongeSIM real numeric package ID: [${realStrongeSimPlanId}]`);
-
-      addDiagnosticLog('STRONGESIM', 'RESOLVE_PLAN_ID_START', { originalPlanId: planId, iso, dataAmount, days });
-      
-      let response = await strongesimFetch('/orders', {
-        method: 'POST',
-        body: JSON.stringify({
-          plan_id: realStrongeSimPlanId,
-          customer_email: customerEmail,
-          end_customer_email: customerEmail,
-          email: customerEmail,
-          user_email: customerEmail,
-          customer_name: customerName,
-          send_email: true,
-          sendEmail: true,
-          send_email_to_customer: true,
-          notify_customer: true,
-          send_qr_email: true,
-          deliver_qr: true,
-        }),
-      });
-
-      addDiagnosticLog('STRONGESIM', 'POST_ORDERS_RESPONSE', {
-        status: response.status,
-        ok: response.ok,
-        realStrongeSimPlanId,
-      });
-
-      if (response.ok) {
-        esimData = await response.json();
-        addDiagnosticLog('STRONGESIM', 'ORDER_SUCCESS', { esimData });
-        
-        // If StrongeSIM returned an order ID or transactionId in pending status, fetch real profile details
-        const nestedData = esimData.data || esimData;
-        const targetId = nestedData.transactionId || nestedData.id || nestedData.orderId;
-        
-        if (targetId && (nestedData.status === 'pending' || !nestedData.iccid || !nestedData.qr_code_url)) {
-          try {
-            // Attempt retrieving profile details / real ICCID & QR from StrongeSIM
-            const profileRes = await strongesimFetch(`/orders/${targetId}`, { cache: 'no-store' });
-            if (profileRes.ok) {
-              const profileData = await profileRes.json();
-              if (profileData && (profileData.data || profileData.iccid || profileData.qr_code_url)) {
-                esimData = {
-                  ...esimData,
-                  data: {
-                    ...(esimData.data || {}),
-                    ...(profileData.data || profileData),
-                  }
-                };
-                addDiagnosticLog('STRONGESIM', 'PROFILE_DETAILS_FETCHED', { profileData });
-              }
-            }
-          } catch (pErr) {
-            console.warn('Could not fetch expanded profile details from StrongeSIM:', pErr.message);
-          }
-        }
-
-        console.log(`StrongeSIM real eSIM purchased successfully. Code: ${esimData.esimTranNo || esimData.iccid || targetId}`);
-      } else {
-        const errorBody = await response.text();
-        addDiagnosticLog('STRONGESIM', 'ORDER_REJECTED', { status: response.status, errorBody });
-        console.error(`StrongeSIM API order creation rejected [HTTP ${response.status}]:`, errorBody);
-        return NextResponse.json({
-          success: false,
-          error: `StrongeSIM API Error (${response.status}): ${errorBody}`,
-          message: `StrongeSIM rechaza el pedido: ${errorBody}`
-        }, { status: 400 });
-      }
-    } catch (error) {
-      console.error('Error creating order at StrongeSIM:', error);
-      return NextResponse.json({
-        success: false,
-        error: `Error de conexión con StrongeSIM API: ${error.message}`
-      }, { status: 500 });
+    // =========================================================================
+    // 3. Registrar orden en caché de idempotencia para neutralizar el Webhook
+    // =========================================================================
+    markOrderProvisioned(dedupeKey, { iccid: finalIccid, orderId: wcOrderId, qrCodeUrl: finalQrCodeUrl, email: customerEmail });
+    if (wcOrderId && !wcOrderId.startsWith('ORD-')) {
+      markOrderProvisioned(wcOrderId, { iccid: finalIccid, orderId: wcOrderId, qrCodeUrl: finalQrCodeUrl, email: customerEmail });
+    }
+    if (customerEmail && planId) {
+      markOrderProvisioned(`${customerEmail}_${planId}`, { iccid: finalIccid, orderId: wcOrderId, qrCodeUrl: finalQrCodeUrl });
     }
 
-    if (esimData) {
-      const nested = esimData.data || esimData;
-      let targetId = nested.id || nested.orderId || nested.transactionId;
-
-      let realIccid = nested.iccid || nested.esimTranNo;
-      let qrCodeUrl = nested.qr_code_url || nested.qrCodeUrl;
-      let lpaString = nested.lpaString || nested.lpa || nested.activation_code;
-
-      // Extract from profiles array returned by StrongeSIM GET /orders/{targetId}
-      if (targetId) {
-        try {
-          const profileRes = await strongesimFetch(`/orders/${targetId}`, { cache: 'no-store' });
-          if (profileRes.ok) {
-            const profileData = await profileRes.json();
-            const pNested = profileData.data || profileData;
-            const profilesArr = pNested.profiles || (pNested.data && pNested.data.profiles);
-            const firstProfile = Array.isArray(profilesArr) ? profilesArr[0] : pNested;
-
-            if (firstProfile) {
-              if (firstProfile.iccid) realIccid = firstProfile.iccid;
-              if (firstProfile.qr_code_url) qrCodeUrl = firstProfile.qr_code_url;
-              if (firstProfile.activation_code) lpaString = firstProfile.activation_code;
-            }
-          }
-        } catch (pErr) {
-          console.warn('Could not fetch expanded profile from StrongeSIM:', pErr.message);
-        }
-      }
-
-      const esimTranNo = (realIccid && /^\d+$/.test(realIccid)) ? realIccid : (targetId || '89852' + wcOrderId);
-      const finalLpa = lpaString || `LPA:1$rsp.strongesim.com$${esimTranNo}`;
-      const finalQrCodeUrl = qrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(finalLpa)}`;
-
-      // Update metadata in WooCommerce
-      try {
-        const wcUrl = process.env.WOOCOMMERCE_API_URL || 'https://api.me-sim.com';
-        const ck = process.env.WOOCOMMERCE_CONSUMER_KEY || process.env.WC_CONSUMER_KEY;
-        const cs = process.env.WOOCOMMERCE_CONSUMER_SECRET || process.env.WC_CONSUMER_SECRET;
-        if (ck && cs && wcOrderId && !wcOrderId.startsWith('ORD-')) {
-          await fetch(`${wcUrl}/wp-json/wc/v3/orders/${wcOrderId}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: 'Basic ' + Buffer.from(`${ck}:${cs}`).toString('base64'),
-            },
-            body: JSON.stringify({
-              meta_data: [
-                { key: '_esim_iccid', value: esimTranNo },
-                { key: '_esim_transaction_no', value: esimTranNo },
-                { key: '_esim_qr_code', value: finalQrCodeUrl },
-                { key: '_esim_activation_code', value: finalLpa },
-              ]
-            })
-          });
-        }
-      } catch (err) {
-        console.error('Error updating WooCommerce meta_data after StrongeSIM activation:', err);
-      }
-
-      // Send order confirmation email with QR code
-      try {
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://me-sim.com';
-        await fetch(`${baseUrl}/api/email/send`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: customerEmail,
-            type: 'order_confirmation',
-            orderData: {
-              title: title || 'eSIM Plan',
-              orderId: wcOrderId,
-              esimTranNo: esimTranNo,
-              qrCodeUrl: finalQrCodeUrl,
-              lpaCode: finalLpa,
-              totalPrice: `${price} ${currency || 'EUR'}`,
-              customerName: customerName,
-            },
-            lang: lang,
-          }),
-        });
-        console.log(`Order confirmation email sent to ${customerEmail}`);
-      } catch (mailErr) {
-        console.error('Error sending order confirmation email:', mailErr);
-      }
-
-      return NextResponse.json({
-        success: true,
-        order_id: wcOrderId,
-        esimTranNo: esimTranNo,
-        qr_code_url: qrCodeUrl,
-        status: esimData.status || 'COMPLETED',
-      });
-    }
-
-    // Fallback simulation if StrongeSIM API is in Sandbox/Demo or fails
-    const mockEsimTranNo = '89852' + Math.floor(1000000000 + Math.random() * 9000000000);
-    const mockQr = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=LPA:1$rsp.strongesim.com$${mockEsimTranNo}`;
-
+    // =========================================================================
+    // 4. Enviar email con QR al cliente
+    // =========================================================================
     try {
-      const wcUrl = process.env.WOOCOMMERCE_API_URL || 'https://api.me-sim.com';
-      const ck = process.env.WOOCOMMERCE_CONSUMER_KEY || process.env.WC_CONSUMER_KEY;
-      const cs = process.env.WOOCOMMERCE_CONSUMER_SECRET || process.env.WC_CONSUMER_SECRET;
-      if (ck && cs && wcOrderId && !wcOrderId.startsWith('ORD-')) {
-        await fetch(`${wcUrl}/wp-json/wc/v3/orders/${wcOrderId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: 'Basic ' + Buffer.from(`${ck}:${cs}`).toString('base64'),
-          },
-          body: JSON.stringify({
-            meta_data: [
-              { key: '_esim_iccid', value: mockEsimTranNo },
-              { key: '_esim_transaction_no', value: mockEsimTranNo },
-              { key: '_esim_qr_code', value: mockQr },
-            ]
-          })
-        });
-      }
-    } catch (err) {
-      console.error('Error updating WooCommerce meta_data after mock eSIM creation:', err);
-    }
-
-    // Send order confirmation email with QR code
-    try {
-      await fetch(new URL('/api/email/send', request.url).toString(), {
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://me-sim.com';
+      await fetch(`${baseUrl}/api/email/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -401,26 +323,26 @@ export async function POST(request) {
           orderData: {
             title: title || 'eSIM Plan',
             orderId: wcOrderId,
-            esimTranNo: mockEsimTranNo,
-            qrCodeUrl: mockQr,
+            esimTranNo: finalIccid,
+            qrCodeUrl: finalQrCodeUrl,
+            lpaCode: finalLpa,
             totalPrice: `${price} ${currency || 'EUR'}`,
             customerName: customerName,
           },
           lang: lang,
         }),
       });
-      console.log(`Mock order confirmation email sent to ${customerEmail}`);
+      console.log(`Order confirmation email sent to ${customerEmail}`);
     } catch (mailErr) {
-      console.error('Error sending mock order confirmation email:', mailErr);
+      console.error('Error sending order confirmation email:', mailErr);
     }
 
     return NextResponse.json({
       success: true,
       order_id: wcOrderId,
-      esimTranNo: mockEsimTranNo,
-      qr_code_url: mockQr,
-      status: 'COMPLETED',
-      isDemo: true,
+      esimTranNo: finalIccid,
+      qr_code_url: finalQrCodeUrl,
+      status: esimData?.status || 'COMPLETED',
     });
 
   } catch (error) {

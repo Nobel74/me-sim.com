@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { strongesimFetch, resolveStrongeSimPlanId } from '../../../../lib/strongesim';
 import { addDiagnosticLog } from '../../../../lib/logger';
+import { checkOrderProvisioned, markOrderProvisioned } from '../../../../lib/idempotency';
 
 // Secure CORS Headers
 const corsHeaders = {
@@ -89,6 +90,81 @@ export async function POST(req) {
 
     console.log(`Firma HMAC verificada con éxito para el pedido #${orderId} de [${email}]`);
 
+    // =========================================================================
+    // 5. IDEMPOTENCIA: Verificar si la eSIM ya fue aprovisionada previamente
+    // =========================================================================
+    const existingIccidFromPayload = payload.esim_iccid || metaMap._esim_iccid || metaMap._esim_transaction_no;
+    const isAlreadyProvisionedInPayload = payload.is_provisioned === true || metaMap._esim_provisioned === 'yes' || !!existingIccidFromPayload;
+    
+    // Check in-memory idempotency lock
+    const inMemoryLock = checkOrderProvisioned(orderId) || (email && sku ? checkOrderProvisioned(`${email}_${sku}`) : null);
+
+    if (isAlreadyProvisionedInPayload || inMemoryLock) {
+      const activeIccid = existingIccidFromPayload || inMemoryLock?.iccid || 'PROVISIONED';
+      console.log(`[Webhook Idempotency] El pedido #${orderId} de [${email}] ya fue aprovisionado previamente (ICCID: ${activeIccid}). Omitiendo llamada duplicada a StrongeSIM.`);
+      addDiagnosticLog('WEBHOOK', 'SKIPPED_DUPLICATE_ORDER', { orderId, email, iccid: activeIccid });
+
+      return new NextResponse(
+        JSON.stringify({
+          success: true,
+          message: 'Order already provisioned, duplicate call skipped',
+          orderId,
+          esimTranNo: activeIccid,
+        }),
+        {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    }
+
+    // Check WooCommerce REST API metadata directly if needed
+    const wcUrl = process.env.WOOCOMMERCE_API_URL || 'https://api.me-sim.com';
+    const ck = process.env.WOOCOMMERCE_CONSUMER_KEY || process.env.WC_CONSUMER_KEY;
+    const cs = process.env.WOOCOMMERCE_CONSUMER_SECRET || process.env.WC_CONSUMER_SECRET;
+    
+    if (ck && cs && orderId) {
+      try {
+        const wcCheckRes = await fetch(`${wcUrl}/wp-json/wc/v3/orders/${orderId}`, {
+          headers: {
+            Authorization: 'Basic ' + Buffer.from(`${ck}:${cs}`).toString('base64'),
+          },
+          cache: 'no-store',
+        });
+        if (wcCheckRes.ok) {
+          const wcOrderData = await wcCheckRes.json();
+          const wcMetas = wcOrderData.meta_data || [];
+          const foundIccidMeta = wcMetas.find(m => m.key === '_esim_iccid' || m.key === '_esim_transaction_no');
+          const foundProvMeta = wcMetas.find(m => m.key === '_esim_provisioned');
+          if (foundIccidMeta?.value || foundProvMeta?.value === 'yes') {
+            const foundIccid = foundIccidMeta?.value || 'PROVISIONED';
+            console.log(`[Webhook Idempotency] Verificado en WooCommerce API: Pedido #${orderId} ya tiene eSIM (ICCID: ${foundIccid}). Omitiendo compra duplicada.`);
+            markOrderProvisioned(orderId, { iccid: foundIccid, email });
+            return new NextResponse(
+              JSON.stringify({
+                success: true,
+                message: 'Order already provisioned in WooCommerce, duplicate call skipped',
+                orderId,
+                esimTranNo: foundIccid,
+              }),
+              {
+                status: 200,
+                headers: {
+                  ...corsHeaders,
+                  'Content-Type': 'application/json',
+                },
+              }
+            );
+          }
+        }
+      } catch (checkErr) {
+        console.warn(`[Webhook] Error checking WooCommerce order #${orderId} meta:`, checkErr.message);
+      }
+    }
+
     if (!sku && !itemIso) {
       return new NextResponse(
         JSON.stringify({ success: false, error: 'No SKU or ISO found in webhook payload' }),
@@ -96,7 +172,11 @@ export async function POST(req) {
       );
     }
 
-    // 5. Resolve real numeric StrongeSIM package ID dynamically without Uzbekistán fallback
+    // Lock order in memory to prevent concurrent purchases
+    markOrderProvisioned(orderId, { status: 'in-flight', email });
+    if (email && sku) markOrderProvisioned(`${email}_${sku}`, { status: 'in-flight', orderId });
+
+    // 6. Resolve real numeric StrongeSIM package ID dynamically
     const realPlanId = await resolveStrongeSimPlanId({
       sku: sku,
       iso: itemIso,
@@ -169,11 +249,12 @@ export async function POST(req) {
 
       console.log(`StrongeSIM eSIM purchased successfully for order #${orderId}. Real ICCID: ${finalIccid}`);
 
+      // Lock as completed in memory
+      markOrderProvisioned(orderId, { iccid: finalIccid, email });
+      if (email && sku) markOrderProvisioned(`${email}_${sku}`, { iccid: finalIccid, orderId });
+
       // Update WooCommerce order metadata
       try {
-        const wcUrl = process.env.WOOCOMMERCE_API_URL || 'https://api.me-sim.com';
-        const ck = process.env.WOOCOMMERCE_CONSUMER_KEY || process.env.WC_CONSUMER_KEY;
-        const cs = process.env.WOOCOMMERCE_CONSUMER_SECRET || process.env.WC_CONSUMER_SECRET;
         if (ck && cs && orderId) {
           await fetch(`${wcUrl}/wp-json/wc/v3/orders/${orderId}`, {
             method: 'PUT',
@@ -187,6 +268,7 @@ export async function POST(req) {
                 { key: '_esim_transaction_no', value: finalIccid },
                 { key: '_esim_qr_code', value: finalQrCodeUrl },
                 { key: '_esim_activation_code', value: finalLpa },
+                { key: '_esim_provisioned', value: 'yes' },
               ]
             })
           });

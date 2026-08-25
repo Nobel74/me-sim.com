@@ -186,18 +186,23 @@ function me_sim_notify_order_completed( $order_id ) {
         );
     }
 
+    $existing_iccid = $order->get_meta( '_esim_iccid' ) ?: $order->get_meta( '_esim_transaction_no' );
+    $is_provisioned = ( $order->get_meta( '_esim_provisioned' ) === 'yes' ) || ! empty( $existing_iccid );
+
     $payload = array(
-        'order_id'      => $order_id,
-        'email'         => $customer_email,
-        'customerName'  => $customer_name,
-        'sku'           => $first_sku, // Primer SKU recuperado para procesado ágil en Next.js
-        'iso'           => $order->get_meta( '_esim_iso' ) ?: 'es',
-        'data_amount'   => $order->get_meta( '_esim_data_amount' ) ?: '10 GB',
-        'days'          => $order->get_meta( '_esim_days' ) ?: '30',
-        'items'         => $items,
-        'currency'      => $order->get_currency(),
-        'total_amount'  => $order->get_total(),
-        'timestamp'     => time(),
+        'order_id'       => $order_id,
+        'email'          => $customer_email,
+        'customerName'   => $customer_name,
+        'sku'            => $first_sku, // Primer SKU recuperado para procesado ágil en Next.js
+        'iso'            => $order->get_meta( '_esim_iso' ) ?: 'es',
+        'data_amount'    => $order->get_meta( '_esim_data_amount' ) ?: '10 GB',
+        'days'           => $order->get_meta( '_esim_days' ) ?: '30',
+        'items'          => $items,
+        'currency'       => $order->get_currency(),
+        'total_amount'   => $order->get_total(),
+        'is_provisioned' => $is_provisioned,
+        'esim_iccid'     => $existing_iccid ?: '',
+        'timestamp'      => time(),
     );
 
     $payload_json = json_encode( $payload );
