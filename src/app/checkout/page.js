@@ -92,13 +92,18 @@ export default function CheckoutPage() {
       return;
     }
 
+    if (parseFloat(totalAmount) > 0 && (!cardNumber || !cardExp || !cardCvc)) {
+      alert(lang === 'en' ? 'Please complete credit card details.' : 'Por favor, introduce los datos completos de tu tarjeta bancaria.');
+      return;
+    }
+
     setLoading(true);
 
     try {
       let paymentIntentId = 'free_coupon';
 
       if (parseFloat(totalAmount) > 0) {
-        // 1. Create Stripe Payment Intent via server route safely
+        // 1. Create and Confirm Stripe Payment Intent via server route safely
         const stripeRes = await fetch('/api/stripe/create-payment-intent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -106,12 +111,20 @@ export default function CheckoutPage() {
             amount: parseFloat(totalAmount),
             currency,
             customerEmail: form.email,
+            customerName: `${form.firstName} ${form.lastName}`.trim(),
+            cardNumber,
+            cardExp,
+            cardCvc,
           }),
         });
 
         const stripeData = await stripeRes.json();
 
         if (!stripeData.success) {
+          if (stripeData.requiresAction && stripeData.redirectUrl) {
+            window.location.href = stripeData.redirectUrl;
+            return;
+          }
           alert((lang === 'en' ? 'Stripe payment failed: ' : 'Error en el pago con tarjeta: ') + (stripeData.message || 'Error'));
           setLoading(false);
           return;

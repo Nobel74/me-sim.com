@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { amount, currency = 'eur', customerEmail } = body;
+    const { amount, currency = 'eur', customerEmail, customerName, cardNumber, cardExp, cardCvc } = body;
 
     if (!amount || amount <= 0) {
       return NextResponse.json(
@@ -14,53 +14,97 @@ export async function POST(request) {
 
     const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 
-    // 1. If Stripe Secret Key is configured, call Stripe REST API directly using fetch (No external npm package required)
+    // 1. If Stripe Secret Key is configured, process payment with real Stripe API
     if (stripeSecretKey) {
-      const isLiveMode = stripeSecretKey.startsWith('sk_live_');
-      const params = new URLSearchParams();
-      params.append('amount', Math.round(amount * 100).toString());
-      params.append('currency', currency.toLowerCase());
-      if (customerEmail) params.append('receipt_email', customerEmail);
+      const cleanCardNumber = (cardNumber || '').replace(/\s+/g, '');
+      const expParts = (cardExp || '').split(/[\/\-]/);
+      let expMonth = (expParts[0] || '').trim();
+      let expYear = (expParts[1] || '').trim();
+      if (expYear.length === 2) expYear = '20' + expYear;
+      const cleanCvc = (cardCvc || '').trim();
 
-      if (isLiveMode) {
-        // Live Mode: Use standard card payment method types for Stripe checkout confirmation
-        params.append('payment_method_types[]', 'card');
+      let paymentMethodId = '';
+
+      if (cleanCardNumber && expMonth && expYear && cleanCvc) {
+        // A. Create PaymentMethod on Stripe using card details
+        const pmParams = new URLSearchParams();
+        pmParams.append('type', 'card');
+        pmParams.append('card[number]', cleanCardNumber);
+        pmParams.append('card[exp_month]', expMonth);
+        pmParams.append('card[exp_year]', expYear);
+        pmParams.append('card[cvc]', cleanCvc);
+        if (customerEmail) pmParams.append('billing_details[email]', customerEmail);
+        if (customerName) pmParams.append('billing_details[name]', customerName);
+
+        const pmRes = await fetch('https://api.stripe.com/v1/payment_methods', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${stripeSecretKey}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: pmParams.toString(),
+        });
+
+        const pmData = await pmRes.json();
+
+        if (!pmRes.ok || pmData.error) {
+          return NextResponse.json(
+            { success: false, message: pmData.error?.message || 'Los datos de la tarjeta son incorrectos o fueron rechazados.' },
+            { status: 400 }
+          );
+        }
+
+        paymentMethodId = pmData.id;
       } else {
-        // Test Mode: Use standard test card token
-        params.append('payment_method', 'pm_card_visa');
-        params.append('confirm', 'true');
-        params.append('return_url', 'https://me-sim.com/checkout');
+        // Fallback for test mode token if no card details provided
+        paymentMethodId = 'pm_card_visa';
       }
 
-      params.append('metadata[integration]', 'ME-SIM Next.js Headless');
+      // B. Create & Confirm PaymentIntent in Stripe
+      const piParams = new URLSearchParams();
+      piParams.append('amount', Math.round(amount * 100).toString());
+      piParams.append('currency', currency.toLowerCase());
+      piParams.append('payment_method', paymentMethodId);
+      piParams.append('confirm', 'true');
+      piParams.append('return_url', 'https://me-sim.com/checkout');
+      if (customerEmail) piParams.append('receipt_email', customerEmail);
+      piParams.append('metadata[integration]', 'ME-SIM Next.js Headless');
 
-      const res = await fetch('https://api.stripe.com/v1/payment_intents', {
+      const piRes = await fetch('https://api.stripe.com/v1/payment_intents', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${stripeSecretKey}`,
           'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: params.toString(),
+        body: piParams.toString(),
       });
 
-      const paymentIntent = await res.json();
+      const paymentIntent = await piRes.json();
 
-      if (res.ok && (paymentIntent.status === 'succeeded' || paymentIntent.status === 'requires_capture' || paymentIntent.client_secret)) {
+      if (piRes.ok && (paymentIntent.status === 'succeeded' || paymentIntent.status === 'requires_capture')) {
         return NextResponse.json({
           success: true,
           clientSecret: paymentIntent.client_secret,
           paymentIntentId: paymentIntent.id,
           status: paymentIntent.status,
         });
+      } else if (piRes.ok && paymentIntent.status === 'requires_action') {
+        const redirectUrl = paymentIntent.next_action?.redirect_to_url?.url;
+        return NextResponse.json({
+          success: false,
+          requiresAction: true,
+          redirectUrl: redirectUrl,
+          message: 'Se requiere verificación 3D Secure de tu banco.',
+        }, { status: 402 });
       } else if (paymentIntent.error) {
         return NextResponse.json(
-          { success: false, message: paymentIntent.error.message || 'Pago rechazado por el banco' },
+          { success: false, message: paymentIntent.error.message || 'Pago rechazado por el banco emisor.' },
           { status: 400 }
         );
       }
     }
 
-    // 2. Default Sandbox / Simulation Mode (Zero real charges, zero extra dependencies)
+    // 2. Default Sandbox / Simulation Mode (Zero real charges)
     const mockClientSecret = `pi_mock_${Date.now()}_secret_${Math.random().toString(36).substring(7)}`;
 
     return NextResponse.json({
@@ -72,7 +116,7 @@ export async function POST(request) {
     });
   } catch (error) {
     return NextResponse.json(
-      { success: false, message: 'Error al procesar la solicitud de pago.', error: error.message },
+      { success: false, message: 'Error al procesar la solicitud de pago con Stripe.', error: error.message },
       { status: 500 }
     );
   }
