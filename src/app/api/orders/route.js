@@ -193,11 +193,6 @@ export async function POST(request) {
 
       console.log(`Resolved plan [${planId}] -> StrongeSIM real numeric package ID: [${realStrongeSimPlanId}]`);
 
-        console.log(`Resolved plan [${planId}] -> StrongeSIM real numeric plan_id: [${realStrongeSimPlanId}]`);
-      } catch (planResolveErr) {
-        console.warn('Could not resolve StrongeSIM live plan_id, using provided planId:', planResolveErr.message);
-      }
-
       addDiagnosticLog('STRONGESIM', 'RESOLVE_PLAN_ID_START', { originalPlanId: planId, iso, dataAmount, days });
 
       let response = await strongesimFetch('/orders-v2', {
@@ -205,6 +200,7 @@ export async function POST(request) {
         body: JSON.stringify({
           plan_id: realStrongeSimPlanId,
           customer_email: customerEmail,
+          end_customer_email: customerEmail,
           email: customerEmail,
           user_email: customerEmail,
           customer_name: customerName,

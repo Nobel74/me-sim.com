@@ -106,6 +106,7 @@ export async function POST(req) {
       body: JSON.stringify({
         plan_id: realPlanId,
         customer_email: email,
+        end_customer_email: email,
         email: email,
         user_email: email,
         customer_name: customerName,
@@ -124,6 +125,7 @@ export async function POST(req) {
         body: JSON.stringify({
           plan_id: realPlanId,
           customer_email: email,
+          end_customer_email: email,
           email: email,
           user_email: email,
           customer_name: customerName,
