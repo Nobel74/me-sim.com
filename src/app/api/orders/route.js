@@ -297,17 +297,26 @@ export async function POST(request) {
 
     if (esimData) {
       const nested = esimData.data || esimData;
-      let targetId = nested.transactionId || nested.id || nested.orderId;
-      let realIccid = nested.iccid || nested.esimTranNo;
+      let targetId = nested.id || nested.orderId || nested.transactionId;
 
-      if ((!realIccid || realIccid.includes('-') || !/^\d+$/.test(realIccid)) && targetId) {
+      let realIccid = nested.iccid || nested.esimTranNo;
+      let qrCodeUrl = nested.qr_code_url || nested.qrCodeUrl;
+      let lpaString = nested.lpaString || nested.lpa || nested.activation_code;
+
+      // Extract from profiles array returned by StrongeSIM GET /orders/{targetId}
+      if (targetId) {
         try {
           const profileRes = await strongesimFetch(`/orders/${targetId}`, { cache: 'no-store' });
           if (profileRes.ok) {
             const profileData = await profileRes.json();
             const pNested = profileData.data || profileData;
-            if (pNested.iccid || pNested.esimTranNo) {
-              realIccid = pNested.iccid || pNested.esimTranNo;
+            const profilesArr = pNested.profiles || (pNested.data && pNested.data.profiles);
+            const firstProfile = Array.isArray(profilesArr) ? profilesArr[0] : pNested;
+
+            if (firstProfile) {
+              if (firstProfile.iccid) realIccid = firstProfile.iccid;
+              if (firstProfile.qr_code_url) qrCodeUrl = firstProfile.qr_code_url;
+              if (firstProfile.activation_code) lpaString = firstProfile.activation_code;
             }
           }
         } catch (pErr) {
@@ -315,9 +324,9 @@ export async function POST(request) {
         }
       }
 
-      const esimTranNo = realIccid && /^\d+$/.test(realIccid) ? realIccid : (targetId || '89852' + wcOrderId);
-      const lpaString = nested.lpaString || nested.lpa || `LPA:1$rsp.strongesim.com$${esimTranNo}`;
-      const qrCodeUrl = nested.qr_code_url || nested.qrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(lpaString)}`;
+      const esimTranNo = (realIccid && /^\d+$/.test(realIccid)) ? realIccid : (targetId || '89852' + wcOrderId);
+      const finalLpa = lpaString || `LPA:1$rsp.strongesim.com$${esimTranNo}`;
+      const finalQrCodeUrl = qrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(finalLpa)}`;
 
       // Update metadata in WooCommerce
       try {
@@ -335,7 +344,8 @@ export async function POST(request) {
               meta_data: [
                 { key: '_esim_iccid', value: esimTranNo },
                 { key: '_esim_transaction_no', value: esimTranNo },
-                { key: '_esim_qr_code', value: qrCodeUrl },
+                { key: '_esim_qr_code', value: finalQrCodeUrl },
+                { key: '_esim_activation_code', value: finalLpa },
               ]
             })
           });
@@ -357,7 +367,8 @@ export async function POST(request) {
               title: title || 'eSIM Plan',
               orderId: wcOrderId,
               esimTranNo: esimTranNo,
-              qrCodeUrl: qrCodeUrl,
+              qrCodeUrl: finalQrCodeUrl,
+              lpaCode: finalLpa,
               totalPrice: `${price} ${currency || 'EUR'}`,
               customerName: customerName,
             },

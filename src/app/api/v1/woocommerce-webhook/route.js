@@ -139,21 +139,30 @@ export async function POST(req) {
       });
     }
 
+    let esimData;
     if (response.ok) {
       esimData = await response.json();
       const nested = esimData.data || esimData;
-      let targetId = nested.transactionId || nested.id || nested.orderId;
-      let realIccid = nested.iccid || nested.esimTranNo;
+      let targetId = nested.id || nested.orderId || nested.transactionId;
 
-      // If ICCID is missing or is UUID transactionId, fetch real ICCID profile details from StrongeSIM
-      if ((!realIccid || realIccid.includes('-') || !/^\d+$/.test(realIccid)) && targetId) {
+      let realIccid = nested.iccid || nested.esimTranNo;
+      let qrCodeUrl = nested.qr_code_url || nested.qrCodeUrl;
+      let lpaString = nested.lpaString || nested.lpa || nested.activation_code;
+
+      // Extract from profiles array returned by StrongeSIM GET /orders/{targetId}
+      if (targetId) {
         try {
           const profileRes = await strongesimFetch(`/orders/${targetId}`, { cache: 'no-store' });
           if (profileRes.ok) {
             const profileData = await profileRes.json();
             const pNested = profileData.data || profileData;
-            if (pNested.iccid || pNested.esimTranNo) {
-              realIccid = pNested.iccid || pNested.esimTranNo;
+            const profilesArr = pNested.profiles || (pNested.data && pNested.data.profiles);
+            const firstProfile = Array.isArray(profilesArr) ? profilesArr[0] : pNested;
+
+            if (firstProfile) {
+              if (firstProfile.iccid) realIccid = firstProfile.iccid;
+              if (firstProfile.qr_code_url) qrCodeUrl = firstProfile.qr_code_url;
+              if (firstProfile.activation_code) lpaString = firstProfile.activation_code;
             }
           }
         } catch (pErr) {
@@ -161,9 +170,9 @@ export async function POST(req) {
         }
       }
 
-      const finalIccid = realIccid && /^\d+$/.test(realIccid) ? realIccid : (targetId || '89852' + orderId);
-      const lpaString = nested.lpaString || nested.lpa || `LPA:1$rsp.strongesim.com$${finalIccid}`;
-      const qrCodeUrl = nested.qr_code_url || nested.qrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(lpaString)}`;
+      const finalIccid = (realIccid && /^\d+$/.test(realIccid)) ? realIccid : (targetId || '89852' + orderId);
+      const finalLpa = lpaString || `LPA:1$rsp.strongesim.com$${finalIccid}`;
+      const finalQrCodeUrl = qrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(finalLpa)}`;
 
       console.log(`StrongeSIM eSIM purchased successfully for order #${orderId}. Real ICCID: ${finalIccid}`);
 
@@ -183,7 +192,8 @@ export async function POST(req) {
               meta_data: [
                 { key: '_esim_iccid', value: finalIccid },
                 { key: '_esim_transaction_no', value: finalIccid },
-                { key: '_esim_qr_code', value: qrCodeUrl },
+                { key: '_esim_qr_code', value: finalQrCodeUrl },
+                { key: '_esim_activation_code', value: finalLpa },
               ]
             })
           });
@@ -206,7 +216,8 @@ export async function POST(req) {
               title: itemObj.name || `eSIM ${itemIso.toUpperCase()}`,
               orderId: orderId,
               esimTranNo: finalIccid,
-              qrCodeUrl: qrCodeUrl,
+              qrCodeUrl: finalQrCodeUrl,
+              lpaCode: finalLpa,
               totalPrice: `${payload.total_amount || '0.00'} ${payload.currency || 'EUR'}`,
               customerName: customerName,
             },
