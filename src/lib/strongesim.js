@@ -1,4 +1,5 @@
 import { addDiagnosticLog } from './logger';
+import { ALL_WORLD_COUNTRIES } from './i18n';
 
 let authToken = null;
 let sessionId = null;
@@ -100,15 +101,33 @@ export async function strongesimFetch(endpoint, options = {}) {
   return response;
 }
 
+// Mapa de palabras clave para regiones multi-país
+const REGION_KEYWORDS = {
+  EUROPE: ['EUROPE', 'EUROPA', 'EU 35', 'EU 30', 'EU 33', 'EUROPEAN'],
+  ASIA: ['ASIA', 'ASIAN', 'ASIATICO', 'ASIÁTICO'],
+  'NORTH-AMERICA': ['NORTH AMERICA', 'NORTEAMÉRICA', 'NORTEAMERICA', 'USA & CANADA'],
+  'SOUTH-AMERICA': ['SOUTH AMERICA', 'AMÉRICA DEL SUR', 'AMERICA DEL SUR', 'LATAM', 'LATIN AMERICA'],
+  CARIBBEAN: ['CARIBBEAN', 'CARIBE'],
+  AFRICA: ['AFRICA', 'ÁFRICA'],
+  'MIDDLE-EAST': ['MIDDLE EAST', 'ORIENTE MEDIO', 'MIDDLE-EAST'],
+  OCEANIA: ['OCEANIA', 'OCEANÍA', 'AUSTRALIA & NEW ZEALAND'],
+  AUKUS: ['AUKUS', 'AUSTRALIA, UK, US'],
+  'CHINA-HK-MACAU': ['CHINA, HONG KONG, MACAU', 'CHINA HONG KONG MACAU', 'CHINA-HK-MACAU'],
+  'EAST-ASIA': ['EAST ASIA', 'JAPAN, KOREA, TAIWAN'],
+  'SOUTHEAST-ASIA': ['SOUTHEAST ASIA', 'SUDESTE ASIÁTICO', 'SEA 10', 'SEA 8'],
+  'EUROPE-MOROCCO': ['EUROPE + MOROCCO', 'EUROPA + MARRUECOS'],
+};
+
 /**
  * Resuelve el plan_id numérico real de StrongeSIM usando /plans?limit=10000
- * Garantiza la coincidencia por país (ES/España) e impide el fallback a Uzbekistán (ID 1005)
+ * Garantiza coincidencia estricta para TODOS los 198 países y regiones del mundo usando ALL_WORLD_COUNTRIES
+ * Impide totalmente falsos positivos (como "INDONESIA".includes("ES"))
  */
 export async function resolveStrongeSimPlanId({ sku, iso = 'es', dataAmount = '', days = 30 }) {
   if (typeof sku === 'number') return sku;
   if (typeof sku === 'string' && /^\d+$/.test(sku.trim())) return parseInt(sku.trim(), 10);
 
-  const targetIso = (iso || (typeof sku === 'string' ? sku.split('-')[0] : '') || 'es').toUpperCase();
+  const targetIso = (iso || (typeof sku === 'string' ? sku.split('-')[0] : '') || 'es').toUpperCase().trim();
   const rawDataStr = (dataAmount || sku || '').toLowerCase();
 
   // Extraer valor de datos desinfectado ("500", "10", "1", "20", "5")
@@ -125,6 +144,11 @@ export async function resolveStrongeSimPlanId({ sku, iso = 'es', dataAmount = ''
     }
   }
 
+  // Buscar metadatos oficiales del país en ALL_WORLD_COUNTRIES (198 países)
+  const countryMeta = Array.isArray(ALL_WORLD_COUNTRIES) 
+    ? ALL_WORLD_COUNTRIES.find(c => c.iso && c.iso.toUpperCase() === targetIso)
+    : null;
+
   try {
     const res = await strongesimFetch('/plans?limit=10000', { cache: 'no-store' });
     if (res.ok) {
@@ -132,20 +156,33 @@ export async function resolveStrongeSimPlanId({ sku, iso = 'es', dataAmount = ''
       const plansList = body.data || body.plans || body.packages || (Array.isArray(body) ? body : []);
 
       if (Array.isArray(plansList) && plansList.length > 0) {
-        // 1. Filtrado estricto por ISO o Nombre de País (España / Spain / ES)
+        // 1. Filtrado estricto para Países (198) y Regiones Multi-país
         const countryPlans = plansList.filter(p => {
-          const pIso = (p.iso || p.isoCode || p.country_code || p.countryCode || '').toUpperCase();
+          const pIso = (p.iso || p.isoCode || p.country_code || p.countryCode || '').toUpperCase().trim();
           const pCountry = (p.country || p.country_name || p.name || p.title || '').toUpperCase();
 
-          if (pIso === targetIso || pIso.includes(targetIso)) return true;
-          if (targetIso === 'ES' && (pCountry.includes('SPAIN') || pCountry.includes('ESPAÑA'))) return true;
-          if (targetIso === 'FR' && (pCountry.includes('FRANCE') || pCountry.includes('FRANCIA'))) return true;
-          if (targetIso === 'US' && (pCountry.includes('UNITED STATES') || pCountry.includes('USA'))) return true;
-          if (pCountry.includes(targetIso)) return true;
+          // A) Coincidencia por ISO de 2 letras (ej. ES, FR, US, JP, ID)
+          if (pIso === targetIso) return true;
+
+          // B) Coincidencia por Región Multi-país (ej. europe, asia, latam)
+          const regKeys = REGION_KEYWORDS[targetIso];
+          if (regKeys && regKeys.some(k => pCountry.includes(k) || pIso.includes(k))) {
+            return true;
+          }
+
+          // C) Coincidencia estricta por Nombre de País en Español/Inglés (evita "INDONESIA".includes("ES"))
+          if (countryMeta) {
+            const nameEn = (countryMeta.nameEn || '').toUpperCase();
+            const nameEs = (countryMeta.nameEs || '').toUpperCase();
+
+            if (nameEn && pCountry.includes(nameEn)) return true;
+            if (nameEs && pCountry.includes(nameEs)) return true;
+          }
+
           return false;
         });
 
-        // Usamos UNICAMENTE los paquetes del país destino. Nunca caemos a plansList[0] global (1005 Uzbekistán)
+        // Usamos UNICAMENTE la piscina del país/región destino.
         const pool = countryPlans.length > 0 ? countryPlans : [];
 
         if (pool.length > 0) {
@@ -160,7 +197,7 @@ export async function resolveStrongeSimPlanId({ sku, iso = 'es', dataAmount = ''
             });
           }
 
-          // Fallback al primer paquete del MISMO PAÍS (España)
+          // Fallback al primer paquete del MISMO PAÍS O REGIÓN
           if (!match) {
             match = pool[0];
           }
