@@ -194,8 +194,8 @@ export async function POST(request) {
       console.log(`Resolved plan [${planId}] -> StrongeSIM real numeric package ID: [${realStrongeSimPlanId}]`);
 
       addDiagnosticLog('STRONGESIM', 'RESOLVE_PLAN_ID_START', { originalPlanId: planId, iso, dataAmount, days });
-
-      let response = await strongesimFetch('/orders-v2', {
+      
+      let response = await strongesimFetch('/orders', {
         method: 'POST',
         body: JSON.stringify({
           plan_id: realStrongeSimPlanId,
@@ -213,38 +213,11 @@ export async function POST(request) {
         }),
       });
 
-      addDiagnosticLog('STRONGESIM', 'POST_ORDERS_V2_RESPONSE', {
+      addDiagnosticLog('STRONGESIM', 'POST_ORDERS_RESPONSE', {
         status: response.status,
         ok: response.ok,
         realStrongeSimPlanId,
       });
-
-      // Fallback to /orders if StrongeSIM server returns 404 / Cannot POST /api/v1/orders-v2
-      if (!response.ok && response.status === 404) {
-        console.warn('Endpoint /orders-v2 not found at StrongeSIM, falling back to /orders...');
-        response = await strongesimFetch('/orders', {
-          method: 'POST',
-          body: JSON.stringify({
-            plan_id: realStrongeSimPlanId,
-            customer_email: customerEmail,
-            email: customerEmail,
-            user_email: customerEmail,
-            customer_name: customerName,
-            send_email: true,
-            sendEmail: true,
-            send_email_to_customer: true,
-            notify_customer: true,
-            send_qr_email: true,
-            deliver_qr: true,
-          }),
-        });
-
-        addDiagnosticLog('STRONGESIM', 'POST_ORDERS_FALLBACK_RESPONSE', {
-          status: response.status,
-          ok: response.ok,
-          realStrongeSimPlanId,
-        });
-      }
 
       if (response.ok) {
         esimData = await response.json();

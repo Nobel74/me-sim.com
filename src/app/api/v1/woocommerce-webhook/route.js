@@ -101,7 +101,7 @@ export async function POST(req) {
 
     console.log(`Webhook resolved SKU [${sku}] -> StrongeSIM package ID: [${realPlanId}] for country [${itemIso}]`);
 
-    let response = await strongesimFetch('/orders-v2', {
+    let response = await strongesimFetch('/orders', {
       method: 'POST',
       body: JSON.stringify({
         plan_id: realPlanId,
@@ -118,26 +118,6 @@ export async function POST(req) {
         deliver_qr: true,
       }),
     });
-
-    if (!response.ok && response.status === 404) {
-      response = await strongesimFetch('/orders', {
-        method: 'POST',
-        body: JSON.stringify({
-          plan_id: realPlanId,
-          customer_email: email,
-          end_customer_email: email,
-          email: email,
-          user_email: email,
-          customer_name: customerName,
-          send_email: true,
-          sendEmail: true,
-          send_email_to_customer: true,
-          notify_customer: true,
-          send_qr_email: true,
-          deliver_qr: true,
-        }),
-      });
-    }
 
     let esimData;
     if (response.ok) {
