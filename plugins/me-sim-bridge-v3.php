@@ -180,6 +180,9 @@ function me_sim_notify_order_completed( $order_id ) {
             'quantity'   => $item->get_quantity(),
             'total'      => $item->get_total(),
             'sku'        => $sku, // SKU dinámico extraído con éxito
+            'iso'        => $item->get_meta( 'iso' ) ?: $order->get_meta( '_esim_iso' ),
+            'dataAmount' => $item->get_meta( 'data_amount' ) ?: $order->get_meta( '_esim_data_amount' ),
+            'days'       => $item->get_meta( 'days' ) ?: $order->get_meta( '_esim_days' ),
         );
     }
 
@@ -188,6 +191,9 @@ function me_sim_notify_order_completed( $order_id ) {
         'email'         => $customer_email,
         'customerName'  => $customer_name,
         'sku'           => $first_sku, // Primer SKU recuperado para procesado ágil en Next.js
+        'iso'           => $order->get_meta( '_esim_iso' ) ?: 'es',
+        'data_amount'   => $order->get_meta( '_esim_data_amount' ) ?: '10 GB',
+        'days'          => $order->get_meta( '_esim_days' ) ?: '30',
         'items'         => $items,
         'currency'      => $order->get_currency(),
         'total_amount'  => $order->get_total(),

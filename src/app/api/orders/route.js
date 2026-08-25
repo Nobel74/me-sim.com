@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { strongesimFetch } from '../../../lib/strongesim';
+import { strongesimFetch, resolveStrongeSimPlanId } from '../../../lib/strongesim';
 import { addDiagnosticLog } from '../../../lib/logger';
 
 export const dynamic = 'force-dynamic';
@@ -101,9 +101,14 @@ export async function POST(request) {
                 subtotal: String(price || '0.00'),
                 total: String(price || '0.00'),
                 meta_data: [
-                  { key: 'plan_id', value: planId },
-                  { key: 'sku', value: planId },
-                  { key: '_plan_id', value: planId },
+                  { key: 'plan_id', value: String(planId) },
+                  { key: '_plan_id', value: String(planId) },
+                  { key: 'sku', value: String(planId) },
+                  { key: '_sku', value: String(planId) },
+                  { key: 'plan_code', value: String(planId) },
+                  { key: 'iso', value: String(iso || 'es') },
+                  { key: 'data_amount', value: String(dataAmount || '10 GB') },
+                  { key: 'days', value: String(days || 30) },
                 ],
               }
             ],
@@ -170,54 +175,23 @@ export async function POST(request) {
     // 2. Trigger order to StrongeSIM API
     let esimData = null;
     try {
-      let realStrongeSimPlanId = planId;
+      // Resolve real numeric package ID dynamically without Uzbekistán fallback
+      const realStrongeSimPlanId = await resolveStrongeSimPlanId({
+        sku: planId,
+        iso: iso || 'es',
+        dataAmount: dataAmount || '10 GB',
+        days: days || 30,
+      });
 
-      // Helper function to resolve dynamic/synthetic plan IDs to real StrongeSIM API package codes
-      try {
-        const isoCode = (iso || 'es').toUpperCase();
-        
-        // 1. Try fetching from StrongeSIM /packages or /plans-v2
-        const plansEndpoints = [`/plans-v2?country=${encodeURIComponent(isoCode.toLowerCase())}`, '/packages', '/plans'];
-        let matchedPlanId = null;
-        let matchedPlanObj = null;
+      if (!realStrongeSimPlanId) {
+        console.error(`No StrongeSIM package found for planId [${planId}], iso [${iso}]`);
+        return NextResponse.json({
+          success: false,
+          error: `No se encontró un paquete activo de StrongeSIM para el destino ${iso} (${planId}).`
+        }, { status: 400 });
+      }
 
-        for (const ep of plansEndpoints) {
-          try {
-            const plansRes = await strongesimFetch(ep, { cache: 'no-store' });
-            if (plansRes.ok) {
-              const plansData = await plansRes.json();
-              const livePlans = plansData.plans || plansData.packages || plansData.data || (Array.isArray(plansData) ? plansData : []);
-              if (Array.isArray(livePlans) && livePlans.length > 0) {
-                const targetData = (dataAmount || '').toLowerCase();
-                matchedPlanObj = livePlans.find(p => {
-                  const pIso = (p.iso || p.isoCode || p.country_code || '').toUpperCase();
-                  const pData = (p.dataAmount || p.data || p.name || p.title || '').toLowerCase();
-                  return (pIso === isoCode || pIso === '') && (pData.includes(targetData) || p.days === days);
-                }) || livePlans.find(p => (p.iso || p.isoCode || '').toUpperCase() === isoCode) || livePlans[0];
-
-                if (matchedPlanObj) {
-                  matchedPlanId = matchedPlanObj.id || matchedPlanObj.plan_id || matchedPlanObj.package_id || matchedPlanObj.code || matchedPlanObj.sku;
-                  if (matchedPlanId) break;
-                }
-              }
-            }
-          } catch (e) {}
-        }
-
-        // 2. If plan_id is string or synthetic, find numeric ID from live plans
-        if (matchedPlanId && typeof matchedPlanId === 'string' && /^\d+$/.test(matchedPlanId)) {
-          realStrongeSimPlanId = parseInt(matchedPlanId, 10);
-        } else if (matchedPlanObj && matchedPlanObj.id && typeof matchedPlanObj.id === 'number') {
-          realStrongeSimPlanId = matchedPlanObj.id;
-        } else if (typeof realStrongeSimPlanId === 'string' && /^\d+$/.test(realStrongeSimPlanId)) {
-          realStrongeSimPlanId = parseInt(realStrongeSimPlanId, 10);
-        } else {
-          // If no numeric ID resolved yet, pass matched numeric id or integer fallback
-          const numericIdMatch = String(planId).match(/\d+/);
-          realStrongeSimPlanId = matchedPlanId && /^\d+$/.test(String(matchedPlanId)) 
-            ? parseInt(matchedPlanId, 10) 
-            : (numericIdMatch ? parseInt(numericIdMatch[0], 10) : 19901);
-        }
+      console.log(`Resolved plan [${planId}] -> StrongeSIM real numeric package ID: [${realStrongeSimPlanId}]`);
 
         console.log(`Resolved plan [${planId}] -> StrongeSIM real numeric plan_id: [${realStrongeSimPlanId}]`);
       } catch (planResolveErr) {
@@ -327,9 +301,27 @@ export async function POST(request) {
 
     if (esimData) {
       const nested = esimData.data || esimData;
-      const esimTranNo = nested.esimTranNo || nested.iccid || nested.transactionId || nested.id;
-      const lpaString = nested.lpaString || nested.lpa || (esimTranNo ? `LPA:1$rsp.strongesim.com$${esimTranNo}` : '');
-      const qrCodeUrl = nested.qr_code_url || nested.qrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(lpaString)}`;
+      let targetId = nested.transactionId || nested.id || nested.orderId;
+      let realIccid = nested.iccid || nested.esimTranNo;
+
+      if ((!realIccid || realIccid.includes('-') || !/^\d+$/.test(realIccid)) && targetId) {
+        try {
+          const profileRes = await strongesimFetch(`/orders/${targetId}`, { cache: 'no-store' });
+          if (profileRes.ok) {
+            const profileData = await profileRes.json();
+            const pNested = profileData.data || profileData;
+            if (pNested.iccid || pNested.esimTranNo) {
+              realIccid = pNested.iccid || pNested.esimTranNo;
+            }
+          }
+        } catch (pErr) {
+          console.warn('Could not fetch expanded profile from StrongeSIM:', pErr.message);
+        }
+      }
+
+      const esimTranNo = realIccid && /^\d+$/.test(realIccid) ? realIccid : (targetId || '89852' + wcOrderId);
+      const lpaString = nested.lpaString || nested.lpa || `LPA:1$rsp.strongesim.com$${esimTranNo}`;
+      const qrCodeUrl = nested.qr_code_url || nested.qrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(lpaString)}`;
 
       // Update metadata in WooCommerce
       try {
