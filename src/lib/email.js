@@ -203,6 +203,20 @@ export function generateOrderConfirmationHtml(orderData, lang = 'es') {
           </table>
         </div>
 
+        ${orderData.qrCodeUrl ? `
+        <!-- QR Code Activation Section -->
+        <div style="background: #fafafa; border: 2px dashed #ffec00; border-radius: 16px; padding: 24px; margin-bottom: 28px; text-align: center;">
+          <h3 style="font-size: 16px; font-weight: 800; color: #000000; margin: 0 0 12px; text-transform: uppercase;">
+            ${isEn ? '📱 Your eSIM QR Code' : '📱 Tu Código QR de Activación eSIM'}
+          </h3>
+          <img src="${orderData.qrCodeUrl}" alt="eSIM QR Code" style="width: 220px; height: 220px; display: inline-block; margin-bottom: 12px; border-radius: 12px; border: 1px solid #e4e4e7; background: #ffffff; padding: 8px;" />
+          <p style="font-size: 13px; color: #3f3f46; font-weight: 500; margin: 0 0 6px;">
+            ${isEn ? 'Scan this QR code from your phone settings (Cellular / Mobile Data) to install your eSIM.' : 'Escanea este código QR desde los ajustes de tu móvil (Datos móviles / Red celular) para instalar tu eSIM.'}
+          </p>
+          <p style="font-size: 11px; color: #71717a; font-family: monospace; margin: 0;">ICCID: ${orderData.esimTranNo}</p>
+        </div>
+        ` : ''}
+
         <!-- Meta info (ID and Date) -->
         <div style="background: #f4f4f5; border-radius: 12px; padding: 16px; text-align: left; font-size: 13px; color: #52525b; margin-bottom: 32px; line-height: 1.6;">
           <p style="margin: 0;"><strong>${isEn ? 'Order ID:' : 'ID del Pedido:'}</strong> #${orderData.orderId}</p>
