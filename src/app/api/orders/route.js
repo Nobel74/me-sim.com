@@ -179,7 +179,7 @@ export async function POST(request) {
       const realStrongeSimPlanId = await resolveStrongeSimPlanId({
         sku: planId,
         iso: iso || 'es',
-        dataAmount: dataAmount || '10 GB',
+        dataAmount: dataAmount || title || '1 GB',
         days: days || 30,
       });
 

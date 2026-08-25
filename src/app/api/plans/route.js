@@ -8,52 +8,66 @@ export async function GET(request) {
   const region = (searchParams.get('region') || '').toLowerCase();
 
   try {
-    let endpoint = '/plans-v2';
-    if (country) {
-      endpoint += `?country=${encodeURIComponent(country)}`;
-    } else if (region) {
-      endpoint += `?region=${encodeURIComponent(region)}`;
+    let response = await strongesimFetch('/plans?limit=10000', { cache: 'no-store' });
+    if (!response.ok) {
+      let v2Endpoint = '/plans-v2';
+      if (country) v2Endpoint += `?country=${encodeURIComponent(country)}`;
+      else if (region) v2Endpoint += `?region=${encodeURIComponent(region)}`;
+      response = await strongesimFetch(v2Endpoint, { cache: 'no-store' });
     }
 
-    const response = await strongesimFetch(endpoint, { cache: 'no-store' });
-    if (response.ok) {
+    if (response && response.ok) {
       const data = await response.json();
-      const livePlans = data.plans || data.data || (Array.isArray(data) ? data : []);
-      if (livePlans && livePlans.length > 0) {
-        // Deduplicate live api plans
-        const uniqueMap = new Map();
-        livePlans.forEach((p) => {
-          // Normalize structure if necessary
-          const pIso = (p.iso || p.isoCode || '').toLowerCase();
-          
-          // Sanitize daily plans: set days to 1 and remove the day suffix from the title
-          const dataAmt = (p.dataAmount || p.data || '').toLowerCase();
-          const titleText = (p.title || '').toLowerCase();
-          if (dataAmt.includes('/ día') || dataAmt.includes('/ dia') || dataAmt.includes('/ day') || titleText.includes('/ día') || titleText.includes('/ dia') || titleText.includes('/ day')) {
-            p.days = 1;
-            if (p.title) {
-              p.title = p.title.replace(/\s*\d+\s*(days|días|días de validez|days validity|d|day)$/i, '');
-            }
+      const rawPlans = data.plans || data.data || data.packages || (Array.isArray(data) ? data : []);
+      if (rawPlans && rawPlans.length > 0) {
+        // Map live plans to our schema
+        const mappedPlans = rawPlans.map((p) => {
+          const pIso = (p.country_code || p.iso || p.isoCode || p.location || '').toLowerCase().trim();
+          const pDays = parseInt(p.validity_days || p.duration || p.days || p.validity || 30, 10);
+          let pDataAmount = p.dataAmount || p.data || '';
+          if (!pDataAmount && p.data_volume_mb) {
+            const mb = parseInt(p.data_volume_mb, 10);
+            pDataAmount = mb >= 1024
+              ? `${(mb / 1024).toFixed(mb % 1024 === 0 ? 0 : 1)} GB Total`
+              : `${mb} MB Total`;
           }
+          return {
+            id: p.id,
+            packageCode: p.package_code || p.packageCode || p.code || p.sku,
+            title: p.name || p.title,
+            country: p.country || p.country_name,
+            iso: pIso,
+            region: p.region || 'europe',
+            dataAmount: pDataAmount || (pDays === 1 ? '1 GB / Día' : '1 GB Total'),
+            days: pDays,
+            priceEur: parseFloat(p.price || p.priceEur || 0),
+            is_region: p.is_region || false,
+            isUnlimited: (p.name || '').toLowerCase().includes('unlimited') || (p.name || '').toLowerCase().includes('ilimitad'),
+          };
+        });
 
-          const key = `${pIso}-${p.dataAmount || p.data}-${p.days}`;
-          if (!uniqueMap.has(key)) {
-            uniqueMap.set(key, p);
-          } else {
-            const existing = uniqueMap.get(key);
-            const pPrice = parseFloat(p.priceEur || p.price || 9999);
-            const extPrice = parseFloat(existing.priceEur || existing.price || 9999);
-            if (pPrice < extPrice) {
+        let filtered = mappedPlans;
+        if (country || region) {
+          const target = (country || region).toLowerCase();
+          filtered = mappedPlans.filter(p => p.iso === target || (p.region && p.region.toLowerCase() === target));
+        }
+
+        if (filtered.length > 0) {
+          // Deduplicate live api plans
+          const uniqueMap = new Map();
+          filtered.forEach((p) => {
+            const key = `${p.iso}-${p.dataAmount}-${p.days}`;
+            if (!uniqueMap.has(key) || p.priceEur < uniqueMap.get(key).priceEur) {
               uniqueMap.set(key, p);
             }
-          }
-        });
-        const finalLive = Array.from(uniqueMap.values());
-        return NextResponse.json({ success: true, plans: applyMarkup(finalLive), count: finalLive.length });
+          });
+          const finalLive = Array.from(uniqueMap.values());
+          return NextResponse.json({ success: true, plans: applyMarkup(finalLive), count: finalLive.length });
+        }
       }
     }
   } catch (error) {
-    console.error('Error proxying /plans-v2:', error);
+    console.error('Error proxying StrongESIM plans:', error);
   }
 
   // Complete Tiered Options for Individual Countries

@@ -67,9 +67,22 @@ export async function POST(req) {
     const email = payload.email || payload.billing?.email;
     const itemObj = payload.items?.[0] || payload.line_items?.[0] || {};
     const sku = payload.sku || itemObj.sku;
-    const itemIso = itemObj.iso || payload.iso || 'es';
-    const itemDataAmount = itemObj.dataAmount || payload.data_amount || '10 GB';
-    const itemDays = itemObj.days || payload.days || 30;
+
+    const metaMap = {};
+    if (Array.isArray(itemObj.meta_data)) {
+      itemObj.meta_data.forEach(m => {
+        if (m.key && m.value !== undefined) metaMap[m.key] = m.value;
+      });
+    }
+    if (Array.isArray(payload.meta_data)) {
+      payload.meta_data.forEach(m => {
+        if (m.key && m.value !== undefined) metaMap[m.key] = m.value;
+      });
+    }
+
+    const itemIso = itemObj.iso || metaMap.iso || metaMap._esim_iso || payload.iso || 'es';
+    const itemDataAmount = itemObj.dataAmount || metaMap.data_amount || metaMap._esim_data_amount || payload.data_amount || itemObj.name || '1 GB Total';
+    const itemDays = itemObj.days || metaMap.days || metaMap._esim_days || payload.days || 30;
     const customerName = payload.customer_name || payload.customerName || `${payload.billing?.first_name || ''} ${payload.billing?.last_name || ''}`.trim() || 'Traveler';
 
     addDiagnosticLog('WEBHOOK', 'RECEIVED_ORDER_COMPLETED', { orderId, email, sku, itemIso, itemDataAmount, itemDays, customerName });
