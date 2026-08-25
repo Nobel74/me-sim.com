@@ -387,11 +387,30 @@ export default function DashboardPage() {
                     : rawTitle.replace(/Day/g, 'Día').replace(/Unlimited/g, 'Ilimitados').replace(/\s*1\s*(Days|Días)$/i, '').replace(/Days/g, 'Días');
                 }
 
-                // Fixed GB calculation
+                // Real usage & semáforo calculation
+                const parseDataAmountGb = (amountStr) => {
+                  if (!amountStr) return 1.0;
+                  const match = amountStr.match(/([\d.]+)\s*(GB|MB)/i);
+                  if (!match) return 1.0;
+                  let val = parseFloat(match[1]);
+                  if (match[2].toUpperCase() === 'MB') val /= 1000;
+                  return val;
+                };
+
+                const formatDataVolume = (gbVal) => {
+                  if (gbVal < 1) {
+                    return `${Math.round(gbVal * 1000)} MB`;
+                  }
+                  return `${gbVal.toFixed(1)} GB`;
+                };
+
                 const usage = esimUsage[order.esimTranNo];
-                const used = usage ? usage.usedGb : (order.usedGb || 8.0);
-                const total = usage ? usage.totalGb : (order.totalGb || 10.0);
-                const pct = usage ? Math.round(usage.percentageUsed) : Math.min(100, Math.round((used / total) * 100));
+                const totalGb = usage && usage.totalGb > 0 ? usage.totalGb : (order.totalGb || parseDataAmountGb(order.dataAmount || cleanedAmount) || 1.0);
+                const usedGb = usage && usage.usedGb !== undefined ? usage.usedGb : (order.usedGb !== undefined ? order.usedGb : 0.0);
+                const pct = Math.min(100, Math.max(0, Math.round(totalGb > 0 ? (usedGb / totalGb) * 100 : 0)));
+
+                const usedFormatted = formatDataVolume(usedGb);
+                const totalFormatted = formatDataVolume(totalGb);
 
                 return (
                   <div key={order.orderId} className="bg-white rounded-3xl border border-zinc-200 p-4 sm:p-6 md:p-8 shadow-xl w-full">
@@ -441,38 +460,43 @@ export default function DashboardPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 pb-6 border-b border-zinc-100">
                       {/* Left Column: Data Usage */}
                       <div className="bg-zinc-50 p-3.5 sm:p-5 rounded-2xl border border-zinc-200 flex flex-col justify-between space-y-3">
-                        {!isUnlimited && !isDaily ? (
+                        {!isUnlimited ? (
                           <>
                             <div className="flex flex-col text-xs font-semibold items-start gap-2.5 w-full">
-                              <span className="font-bold text-black uppercase text-[11px] tracking-wide block">
-                                {lang === 'en' ? 'Data Usage:' : 'Consumo de datos:'}
-                              </span>
+                              <div className="flex justify-between items-center w-full">
+                                <span className="font-bold text-black uppercase text-[11px] tracking-wide block font-sans">
+                                  {isDaily ? (lang === 'en' ? 'Daily Allowance:' : 'Límite Diario:') : (lang === 'en' ? 'Data Usage:' : 'Consumo de datos:')}
+                                </span>
+                                <span className="text-black font-mono font-bold text-xs">
+                                  {usedFormatted} / {totalFormatted} {isDaily ? `(${order.days || 1} ${lang === 'en' ? 'Day' : 'Día'})` : ''} ({pct}%)
+                                </span>
+                              </div>
+
                               <div className="flex items-center gap-2 w-full flex-wrap">
                                 <span
-                                  className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
+                                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
                                     pct < 40
-                                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                                       : pct < 75
-                                      ? 'bg-amber-100 text-amber-800 border border-amber-200'
-                                      : 'bg-rose-100 text-rose-800 border border-rose-200'
+                                      ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                                      : 'bg-rose-100 text-rose-800 border border-rose-300'
                                   }`}
                                 >
                                   {pct < 40
-                                    ? (lang === 'en' ? 'Low' : 'Bajo')
+                                    ? (lang === 'en' ? '● Low Usage' : '● Bajo consumo')
                                     : pct < 75
-                                    ? (lang === 'en' ? 'Moderate' : 'Medio')
-                                    : (lang === 'en' ? 'High' : 'Alto')}
+                                    ? (lang === 'en' ? '● Moderate' : '● Consumo medio')
+                                    : (lang === 'en' ? '● High Usage' : '● Alto consumo / Límite')}
                                 </span>
-                                <span className="text-black font-mono font-bold text-xs sm:text-sm">{used}GB/{total}GB ({pct}%)</span>
                               </div>
                             </div>
 
-                            {/* Animated Progress Bar */}
-                            <div className="w-full bg-zinc-200/70 h-6 rounded-full overflow-hidden border border-zinc-300/60 shadow-inner relative flex items-center p-0.5">
+                            {/* Animated Semáforo Progress Bar */}
+                            <div className="w-full bg-zinc-200/80 h-6 rounded-full overflow-hidden border border-zinc-300 shadow-inner relative flex items-center p-0.5">
                               <div
-                                  className="h-full rounded-full transition-all animate-fill-bar shadow-sm flex items-center justify-center px-2 overflow-hidden"
+                                  className="h-full rounded-full transition-all duration-500 shadow-sm flex items-center justify-center px-2 overflow-hidden"
                                   style={{
-                                    '--target-width': `${pct}%`,
+                                    width: `${Math.max(pct, 4)}%`,
                                     background:
                                       pct < 40
                                         ? 'linear-gradient(90deg, #10b981 0%, #34d399 100%)'
@@ -481,30 +505,12 @@ export default function DashboardPage() {
                                         : 'linear-gradient(90deg, #10b981 0%, #f59e0b 50%, #ef4444 100%)',
                                   }}
                               >
-                                <span className="text-[11px] font-black text-white font-mono leading-none flex items-center justify-center h-full drop-shadow-md tracking-tight">
-                                  {pct}%
-                                </span>
+                                {pct > 8 && (
+                                  <span className="text-[10px] font-black text-white font-mono leading-none flex items-center justify-center h-full drop-shadow-md tracking-tight">
+                                    {pct}%
+                                  </span>
+                                )}
                               </div>
-                            </div>
-                          </>
-                        ) : isDaily ? (
-                          <>
-                            <div className="flex items-center justify-between text-xs font-semibold">
-                              <span className="text-zinc-700 font-sans flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse flex-shrink-0"></span>
-                                <span className="font-bold text-black uppercase text-[11px] tracking-wide">
-                                  {lang === 'en' ? 'Daily Allowance:' : 'Límite Diario:'}
-                                </span>
-                              </span>
-                              <span className="text-amber-600 font-mono font-bold text-xs">
-                                {cleanedAmount} / {order.days || 1} {lang === 'en' ? 'Day' : 'Día'}
-                              </span>
-                            </div>
-
-                            <div className="w-full bg-[#ffec00] h-6 rounded-full overflow-hidden border border-amber-500 shadow-sm flex items-center justify-center p-0.5">
-                              <span className="text-[11px] font-black text-black font-mono leading-none tracking-wider uppercase">
-                                {cleanedAmount} / {order.days || 1} {lang === 'en' ? 'DAY HIGH-SPEED' : 'DÍA ALTA VELOCIDAD'}
-                              </span>
                             </div>
                           </>
                         ) : (
@@ -512,7 +518,7 @@ export default function DashboardPage() {
                             <div className="flex items-center justify-between text-xs font-semibold">
                               <span className="text-zinc-700 font-sans flex items-center gap-2">
                                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
-                                <span className="font-bold text-black uppercase text-[11px] tracking-wide">
+                                <span className="font-bold text-black uppercase text-[11px] tracking-wide font-sans">
                                   {lang === 'en' ? 'Data Status:' : 'Estado de datos:'}
                                 </span>
                               </span>
