@@ -213,7 +213,16 @@ export function generateOrderConfirmationHtml(orderData, lang = 'es') {
           <p style="font-size: 13px; color: #3f3f46; font-weight: 500; margin: 0 0 6px;">
             ${isEn ? 'Scan this QR code from your phone settings (Cellular / Mobile Data) to install your eSIM.' : 'Escanea este código QR desde los ajustes de tu móvil (Datos móviles / Red celular) para instalar tu eSIM.'}
           </p>
-          <p style="font-size: 11px; color: #71717a; font-family: monospace; margin: 0;">ICCID: ${orderData.esimTranNo}</p>
+          <p style="font-size: 11px; color: #71717a; font-family: monospace; margin: 0 0 10px;">ICCID: ${orderData.esimTranNo}</p>
+          
+          ${orderData.lpaCode ? `
+          <div style="background: #ffffff; border: 1px solid #e4e4e7; border-radius: 10px; padding: 10px; word-break: break-all; text-align: left;">
+            <p style="font-size: 10px; font-weight: 700; color: #71717a; text-transform: uppercase; margin: 0 0 4px;">
+              ${isEn ? 'Manual Activation Code (LPA):' : 'Código de Instalación Manual (LPA):'}
+            </p>
+            <code style="font-family: monospace; font-size: 11px; color: #000000; font-weight: 600;">${orderData.lpaCode}</code>
+          </div>
+          ` : ''}
         </div>
         ` : ''}
 
