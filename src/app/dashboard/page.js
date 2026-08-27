@@ -822,7 +822,7 @@ export default function DashboardPage() {
                               onClick={() => handleCopyText(lpaString, order.orderId)}
                               className="text-black font-bold font-sans text-xs bg-[#ffec00] hover:bg-yellow-300 px-4 py-1.5 rounded-lg flex-shrink-0 transition-all text-center"
                             >
-                              {copiedKey === order.orderId ? '¡Copiado!' : 'Copiar'}
+                              {copiedKey === order.orderId ? (lang === 'en' ? 'Copied!' : '¡Copiado!') : (lang === 'en' ? 'Copy' : 'Copiar')}
                             </button>
                           </div>
                         </div>
