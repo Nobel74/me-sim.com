@@ -499,15 +499,17 @@ export async function GET(request) {
 
       return {
         orderId: orderId,
+        wcStatus: order.status || 'completed',
         esimTranNo: esimTranNo,
         qrCodeUrl: qrCodeUrl,
         lpaString: lpaString || `LPA:1$rsp.strongesim.com$${esimTranNo}`,
         title: productTitle,
-        country: getMetaVal('_esim_country') || 'Emiratos Árabes Unidos',
-        iso: getMetaVal('_esim_iso') || 'ae',
+        country: getMetaVal('_esim_country') || 'España',
+        iso: getMetaVal('_esim_iso') || 'es',
         dataAmount: dataAmount,
-        days: parseInt(getMetaVal('_esim_days') || '7', 10),
+        days: parseInt(getMetaVal('_esim_days') || '1', 10),
         date: order.date_created ? order.date_created.split('T')[0] : new Date().toLocaleDateString(),
+        createdAt: order.date_created || null,
         totalPrice: `${order.total} ${order.currency}`,
       };
     });

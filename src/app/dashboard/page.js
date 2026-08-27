@@ -14,6 +14,8 @@ export default function DashboardPage() {
   const [activeQrModal, setActiveQrModal] = useState(null);
   const [copiedKey, setCopiedKey] = useState(null);
   const [esimUsage, setEsimUsage] = useState({});
+  const [hiddenEsims, setHiddenEsims] = useState([]);
+  const [esimFilter, setEsimFilter] = useState('all'); // 'all', 'active', 'expired'
 
   // Billing form state
   const [billing, setBilling] = useState({
@@ -104,6 +106,11 @@ export default function DashboardPage() {
     if (savedBilling) {
       setBilling(savedBilling);
     }
+
+    const savedHidden = JSON.parse(localStorage.getItem('mesim_hidden_esims') || '[]');
+    if (Array.isArray(savedHidden)) {
+      setHiddenEsims(savedHidden);
+    }
   };
 
   useEffect(() => {
@@ -137,33 +144,17 @@ export default function DashboardPage() {
   }, [currentUser]);
 
   useEffect(() => {
-    // Fetch real-time eSIM usage stats for active orders
+    // Fetch real-time eSIM usage and lifecycle telemetry from provider API
     userOrders.forEach(async (order) => {
       if (order.esimTranNo && !esimUsage[order.esimTranNo]) {
         try {
           const res = await fetch(`/api/usage/${order.esimTranNo}`);
           if (res.ok) {
             const data = await res.json();
-            if (data.success || data.usedGb !== undefined) {
-              // Parse contracted data volume from order (e.g., "1 GB" -> 1.0)
-              const matchGb = (order.dataAmount || '').match(/([\d.]+)\s*(GB|MB)/i);
-              let orderTotalGb = 1.0;
-              if (matchGb) {
-                orderTotalGb = parseFloat(matchGb[1]);
-                if (matchGb[2].toUpperCase() === 'MB') orderTotalGb /= 1000;
-              }
-
-              const totalGbResolved = data.totalGb && data.totalGb > 0 ? data.totalGb : orderTotalGb;
-              const usedGbResolved = parseFloat(data.usedGb || 0);
-              const percentage = totalGbResolved > 0 ? parseFloat(((usedGbResolved / totalGbResolved) * 100).toFixed(1)) : 0;
-
+            if (data.success) {
               setEsimUsage((prev) => ({
                 ...prev,
-                [order.esimTranNo]: {
-                  usedGb: usedGbResolved,
-                  totalGb: totalGbResolved,
-                  percentageUsed: percentage,
-                },
+                [order.esimTranNo]: data,
               }));
             }
           }
@@ -189,6 +180,13 @@ export default function DashboardPage() {
     navigator.clipboard.writeText(text);
     setCopiedKey(key);
     setTimeout(() => setCopiedKey(null), 2500);
+  };
+
+  const handleDeleteEsim = (orderId, esimTranNo) => {
+    const key = esimTranNo || orderId;
+    const updated = [...new Set([...hiddenEsims, String(key), String(orderId)])];
+    setHiddenEsims(updated);
+    localStorage.setItem('mesim_hidden_esims', JSON.stringify(updated));
   };
 
   const handleSaveBilling = async (e) => {
@@ -222,6 +220,7 @@ export default function DashboardPage() {
       await fetch('/api/auth/delete-account', { method: 'POST' });
       localStorage.removeItem('mesim_billing');
       localStorage.removeItem('mesim_coupon');
+      localStorage.removeItem('mesim_hidden_esims');
       window.dispatchEvent(new Event('mesim_auth_changed'));
       alert(lang === 'en' ? 'Your account has been deleted.' : 'Tu cuenta ha sido eliminada correctamente.');
       router.push('/');
@@ -249,6 +248,147 @@ export default function DashboardPage() {
     window.dispatchEvent(new Event('mesim_cart_changed'));
     router.push('/cart');
   };
+
+  // Helper to parse contracted data volume from order string
+  const parseDataVolume = (amountStr) => {
+    if (!amountStr) return { val: 1.0, unit: 'GB', mb: 1024, gb: 1.0 };
+    const match = String(amountStr).match(/([\d.]+)\s*(GB|MB)/i);
+    if (!match) return { val: 1.0, unit: 'GB', mb: 1024, gb: 1.0 };
+    const num = parseFloat(match[1]);
+    const unit = match[2].toUpperCase();
+    const mb = unit === 'MB' ? num : Math.round(num * 1024);
+    const gb = unit === 'GB' ? num : num / 1024;
+    return { val: num, unit, mb, gb };
+  };
+
+  // Format usage text strictly following the requirement:
+  // - If package < 1 GB: "60.2 MB / 500 MB (12.0%)"
+  // - If package >= 1 GB and used < 1000 MB: "60.2 MB / 10 GB (0.6%)"
+  // - If package >= 1 GB and used >= 1000 MB: "1.2 GB / 10 GB (12.0%)"
+  const formatUsageDisplay = (usedMb, totalMb, totalGbContracted, isUnlimited) => {
+    if (isUnlimited) return { text: '', pct: 0 };
+
+    const pct = totalMb > 0 ? Math.min(100, Math.max(0, parseFloat(((usedMb / totalMb) * 100).toFixed(1)))) : 0;
+    const isMbPkg = totalMb < 1000 || (totalGbContracted && totalGbContracted < 1.0);
+
+    let usedStr = '';
+    let totalStr = '';
+
+    if (isMbPkg) {
+      usedStr = `${usedMb.toFixed(1)} MB`;
+      totalStr = `${Math.round(totalMb)} MB`;
+    } else {
+      if (usedMb < 1000) {
+        usedStr = `${usedMb.toFixed(1)} MB`;
+      } else {
+        const usedGb = usedMb / 1024;
+        usedStr = `${usedGb.toFixed(1)} GB`;
+      }
+
+      const totalGbNum = totalGbContracted || (totalMb / 1024);
+      totalStr = Number.isInteger(totalGbNum) ? `${totalGbNum} GB` : `${totalGbNum.toFixed(1)} GB`;
+    }
+
+    return {
+      text: `${usedStr} / ${totalStr}`,
+      pct,
+    };
+  };
+
+  // Determine state of an eSIM
+  const computeEsimState = (order, usage) => {
+    const isCancelled = order.wcStatus === 'cancelled';
+    const isRefunded = order.wcStatus === 'refunded';
+
+    const now = Date.now();
+    const createdAtMs = order.createdAt ? new Date(order.createdAt).getTime() : (order.date ? new Date(order.date).getTime() : 0);
+    const validityDays = parseInt(order.days || 1, 10);
+    const validityMs = validityDays * 24 * 60 * 60 * 1000;
+    const isTimeExpired = (createdAtMs > 0 && (now - createdAtMs) > validityMs);
+
+    const isUsageExpired = usage?.isExpired === true || 
+                           usage?.esimStatus === 'USED_EXPIRED' || 
+                           usage?.esimStatus === 'EXPIRED' || 
+                           usage?.esimStatus === 'COMPLETED' || 
+                           usage?.isPastExpiry === true;
+
+    const isDataExhausted = usage?.isDataExhausted === true || (usage?.totalBytes > 0 && usage?.usedBytes >= usage?.totalBytes);
+
+    const isFinished = isUsageExpired || isTimeExpired || isDataExhausted || isCancelled || isRefunded;
+
+    let badgeType = 'active';
+    let badgeLabel = lang === 'en' ? '● ACTIVE & OPERATIONAL' : '● ACTIVA Y OPERATIVA';
+    let badgeClass = 'bg-emerald-100 text-emerald-800 border-emerald-300';
+    let reason = '';
+
+    if (isCancelled) {
+      badgeType = 'cancelled';
+      badgeLabel = lang === 'en' ? '● CANCELLED' : '● CANCELADA';
+      badgeClass = 'bg-zinc-200 text-zinc-700 border-zinc-300';
+      reason = lang === 'en' ? 'Order cancelled in store.' : 'Pedido cancelado en la tienda.';
+    } else if (isRefunded) {
+      badgeType = 'refunded';
+      badgeLabel = lang === 'en' ? '● REFUNDED' : '● REEMBOLSADA';
+      badgeClass = 'bg-zinc-200 text-zinc-700 border-zinc-300';
+      reason = lang === 'en' ? 'Order refunded.' : 'Pedido reembolsado.';
+    } else if (isFinished) {
+      badgeType = 'expired';
+      badgeLabel = lang === 'en' ? '● EXPIRED / FINISHED' : '● FINALIZADA / EXPIRADA';
+      badgeClass = 'bg-zinc-900 text-[#ffec00] border-zinc-700 shadow-xs';
+      if (isDataExhausted) {
+        reason = lang === 'en' ? 'Data allowance 100% consumed.' : 'Volumen de datos 100% consumido.';
+      } else {
+        const daysText = validityDays === 1 ? (lang === 'en' ? '1-day plan expired' : 'Plan de 1 día finalizado') : (lang === 'en' ? `${validityDays}-days plan expired` : `Plan de ${validityDays} días finalizado`);
+        const expDate = usage?.expiredTime ? new Date(usage.expiredTime).toLocaleDateString() : '';
+        reason = expDate ? `${daysText} (${expDate})` : daysText;
+      }
+    } else if (usage?.activateTime) {
+      badgeType = 'in_use';
+      badgeLabel = lang === 'en' ? '● ACTIVE & IN USE' : '● ACTIVA Y EN USO';
+      badgeClass = 'bg-emerald-100 text-emerald-800 border-emerald-300';
+    } else {
+      badgeType = 'ready';
+      badgeLabel = lang === 'en' ? '● READY TO INSTALL' : '● LISTA PARA ACTIVAR';
+      badgeClass = 'bg-emerald-50 text-emerald-800 border-emerald-200';
+    }
+
+    return {
+      isFinished,
+      badgeType,
+      badgeLabel,
+      badgeClass,
+      reason,
+      canDelete: isFinished,
+    };
+  };
+
+  // Filtered orders taking into account hidden/deleted ones and the active filter pill
+  const visibleOrders = userOrders
+    .filter(order => {
+      const isHidden = hiddenEsims.includes(String(order.orderId)) || (order.esimTranNo && hiddenEsims.includes(String(order.esimTranNo)));
+      if (isHidden) return false;
+
+      if (esimFilter === 'all') return true;
+      const state = computeEsimState(order, esimUsage[order.esimTranNo]);
+      if (esimFilter === 'active') return !state.isFinished;
+      if (esimFilter === 'expired') return state.isFinished;
+      return true;
+    })
+    .sort((a, b) => {
+      const stateA = computeEsimState(a, esimUsage[a.esimTranNo]);
+      const stateB = computeEsimState(b, esimUsage[b.esimTranNo]);
+      // Active orders always on top
+      if (!stateA.isFinished && stateB.isFinished) return -1;
+      if (stateA.isFinished && !stateB.isFinished) return 1;
+      // Most recent first
+      const timeA = new Date(a.createdAt || a.date).getTime() || 0;
+      const timeB = new Date(b.createdAt || b.date).getTime() || 0;
+      return timeB - timeA;
+    });
+
+  const totalActiveCount = userOrders.filter(o => !hiddenEsims.includes(String(o.orderId)) && !hiddenEsims.includes(String(o.esimTranNo)) && !computeEsimState(o, esimUsage[o.esimTranNo]).isFinished).length;
+  const totalExpiredCount = userOrders.filter(o => !hiddenEsims.includes(String(o.orderId)) && !hiddenEsims.includes(String(o.esimTranNo)) && computeEsimState(o, esimUsage[o.esimTranNo]).isFinished).length;
+  const totalAllCount = userOrders.filter(o => !hiddenEsims.includes(String(o.orderId)) && !hiddenEsims.includes(String(o.esimTranNo))).length;
 
   return (
     <div className="container-naked max-w-6xl font-sans pb-16">
@@ -341,8 +481,8 @@ export default function DashboardPage() {
           {/* TAB 1: Mis eSIMs y mi consumo */}
           {activeTab === 'esims' && (
             <div className="space-y-6 w-full">
-              {/* Section Header Title h3 + Comprar nueva eSIM button aligned perfectly */}
-              <div className="flex justify-between items-center h-10">
+              {/* Section Header Title h3 + Comprar nueva eSIM button */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <h3 className="text-2xl font-bold text-black tracking-tight leading-none flex items-center">
                   {lang === 'en' ? 'My eSIMs' : 'Mis eSIMs'}
                 </h3>
@@ -358,7 +498,90 @@ export default function DashboardPage() {
                 </Link>
               </div>
 
-              {userOrders.map((order) => {
+              {/* Quick Filter Pills (Activas siempre en 1er lugar, luego Todas, luego Finalizadas) */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                {/* 1. ACTIVAS EN PRIMER LUGAR */}
+                <button
+                  onClick={() => setEsimFilter('active')}
+                  className={`px-3.5 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs ${
+                    esimFilter === 'active'
+                      ? 'bg-black text-[#ffec00] shadow-sm ring-1 ring-black'
+                      : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200'
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span>{lang === 'en' ? 'Active eSIMs' : 'Activas'}</span>
+                  <span className="bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold">{totalActiveCount}</span>
+                </button>
+
+                {/* 2. TODAS */}
+                <button
+                  onClick={() => setEsimFilter('all')}
+                  className={`px-3.5 py-2 rounded-full text-xs font-bold transition-all shadow-2xs ${
+                    esimFilter === 'all'
+                      ? 'bg-black text-[#ffec00] shadow-sm ring-1 ring-black'
+                      : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200'
+                  }`}
+                >
+                  <span>{lang === 'en' ? 'All' : 'Todas'}</span>
+                  <span className="ml-1.5 text-zinc-400 font-mono text-[11px]">({totalAllCount})</span>
+                </button>
+
+                {/* 3. FINALIZADAS / EXPIRADAS */}
+                <button
+                  onClick={() => setEsimFilter('expired')}
+                  className={`px-3.5 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs ${
+                    esimFilter === 'expired'
+                      ? 'bg-black text-[#ffec00] shadow-sm ring-1 ring-black'
+                      : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200'
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-full bg-zinc-500"></span>
+                  <span>{lang === 'en' ? 'Expired / Finished' : 'Finalizadas'}</span>
+                  <span className="bg-zinc-200 text-zinc-700 px-1.5 py-0.5 rounded-full text-[10px] font-bold">{totalExpiredCount}</span>
+                </button>
+              </div>
+
+              {loadingOrders && (
+                <div className="text-center py-12 bg-white rounded-3xl border border-zinc-200">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-black border-t-[#ffec00] mb-3"></div>
+                  <p className="text-xs text-zinc-500 font-semibold">{lang === 'en' ? 'Loading your eSIM lines...' : 'Cargando tus líneas eSIM...'}</p>
+                </div>
+              )}
+
+              {!loadingOrders && visibleOrders.length === 0 && (
+                <div className="bg-white rounded-3xl border border-zinc-200 p-8 sm:p-12 text-center shadow-sm space-y-4">
+                  <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mx-auto text-2xl">
+                    📱
+                  </div>
+                  <h4 className="text-lg font-bold text-black">
+                    {lang === 'en' ? 'No eSIMs found in this view' : 'No hay tarjetas eSIM en esta vista'}
+                  </h4>
+                  <p className="text-xs text-zinc-500 max-w-md mx-auto">
+                    {esimFilter === 'active'
+                      ? (lang === 'en' ? 'You have no active eSIMs right now.' : 'No tienes eSIMs activas en este momento.')
+                      : (lang === 'en' ? 'You have no eSIMs matching the selected filter.' : 'No tienes eSIMs que coincidan con el filtro seleccionado.')}
+                  </p>
+                  <div className="flex flex-wrap gap-2 justify-center pt-2">
+                    {esimFilter !== 'all' && (
+                      <button
+                        onClick={() => setEsimFilter('all')}
+                        className="bg-zinc-100 hover:bg-zinc-200 text-black font-semibold px-5 py-2.5 rounded-full text-xs transition-all"
+                      >
+                        {lang === 'en' ? 'View All eSIMs' : 'Ver todas las eSIMs'}
+                      </button>
+                    )}
+                    <Link
+                      href="/"
+                      className="inline-block bg-black text-[#ffec00] font-bold font-condensed tracking-wider uppercase px-6 py-2.5 rounded-full text-xs hover:bg-zinc-800 transition-all shadow-md"
+                    >
+                      {lang === 'en' ? 'Explore eSIM Destinations' : 'Explorar destinos eSIM'}
+                    </Link>
+                  </div>
+                </div>
+              )}
+
+              {visibleOrders.map((order) => {
                 const lpaString = order.lpaString || `LPA:1$rsp.strongesim.com$${order.esimTranNo}`;
                 const qrUrl = order.qrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(lpaString)}`;
 
@@ -387,34 +610,20 @@ export default function DashboardPage() {
                     : rawTitle.replace(/Day/g, 'Día').replace(/Unlimited/g, 'Ilimitados').replace(/\s*1\s*(Days|Días)$/i, '').replace(/Days/g, 'Días');
                 }
 
-                // Real usage & semáforo calculation
-                const parseDataAmountGb = (amountStr) => {
-                  if (!amountStr) return 1.0;
-                  const match = amountStr.match(/([\d.]+)\s*(GB|MB)/i);
-                  if (!match) return 1.0;
-                  let val = parseFloat(match[1]);
-                  if (match[2].toUpperCase() === 'MB') val /= 1000;
-                  return val;
-                };
+                // Telemetry from StrongeSIM
+                const usage = esimUsage[order.esimTranNo] || {};
+                const parsedVolume = parseDataVolume(order.dataAmount || cleanedAmount);
 
-                const formatDataVolume = (gbVal) => {
-                  if (gbVal < 1) {
-                    return `${Math.round(gbVal * 1000)} MB`;
-                  }
-                  return `${gbVal.toFixed(1)} GB`;
-                };
+                const totalMbResolved = usage.totalMb && usage.totalMb > 0 ? usage.totalMb : parsedVolume.mb;
+                const usedMbResolved = usage.usedMb !== undefined ? usage.usedMb : 0.0;
+                const totalGbContracted = parsedVolume.unit === 'GB' ? parsedVolume.val : (parsedVolume.mb / 1024);
 
-                const usage = esimUsage[order.esimTranNo];
-                const totalGb = usage && usage.totalGb > 0 ? usage.totalGb : (order.totalGb || parseDataAmountGb(order.dataAmount || cleanedAmount) || 1.0);
-                const usedGb = usage && usage.usedGb !== undefined ? usage.usedGb : (order.usedGb !== undefined ? order.usedGb : 0.0);
-                const pct = Math.min(100, Math.max(0, Math.round(totalGb > 0 ? (usedGb / totalGb) * 100 : 0)));
-
-                const usedFormatted = formatDataVolume(usedGb);
-                const totalFormatted = formatDataVolume(totalGb);
+                const usageFormatted = formatUsageDisplay(usedMbResolved, totalMbResolved, totalGbContracted, isUnlimited);
+                const state = computeEsimState(order, usage);
 
                 return (
-                  <div key={order.orderId} className="bg-white rounded-3xl border border-zinc-200 p-4 sm:p-6 md:p-8 shadow-xl w-full">
-                    {/* Header Row: Title, Order ID, Status & Action Button */}
+                  <div key={order.orderId} className={`bg-white rounded-3xl border ${state.isFinished ? 'border-zinc-300/80 bg-zinc-50/50' : 'border-zinc-200'} p-4 sm:p-6 md:p-8 shadow-xl w-full transition-all`}>
+                    {/* Header Row: Title, Order ID, Status, Delete & Action Button */}
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-zinc-100">
                       <div className="flex items-center gap-4 w-full md:w-auto">
                         <img src={(order.iso || 'es').toLowerCase() === 'global' ? '/flags/global.gif' : `/flags/${(order.iso || 'es').toLowerCase()}.webp`} alt={order.country} className="w-12 h-12 rounded-full border border-zinc-200 object-cover shadow-sm flex-shrink-0" />
@@ -426,12 +635,29 @@ export default function DashboardPage() {
                         </div>
                       </div>
 
-                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full md:w-auto">
-                        <span className="bg-emerald-100 text-emerald-800 text-xs font-semibold px-3 py-2 rounded-full uppercase tracking-wider border border-emerald-200 text-center w-full md:w-auto">
-                          ● {lang === 'en' ? 'ACTIVE & OPERATIONAL' : 'ACTIVA Y OPERATIVA'}
+                      <div className="flex flex-wrap sm:flex-nowrap items-stretch sm:items-center gap-2.5 w-full md:w-auto">
+                        {/* Dynamic Status Badge */}
+                        <span className={`text-xs font-semibold px-3 py-2 rounded-full uppercase tracking-wider border text-center w-full md:w-auto ${state.badgeClass}`}>
+                          {state.badgeLabel}
                         </span>
+
+                        {/* Red Delete Button with White Cross for Expired / Finished Cards */}
+                        {state.canDelete && (
+                          <button
+                            onClick={() => handleDeleteEsim(order.orderId, order.esimTranNo)}
+                            className="bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-bold px-3 py-2 sm:px-3.5 sm:py-2 rounded-full text-xs transition-all shadow-xs flex items-center justify-center gap-1.5 flex-shrink-0"
+                            title={lang === 'en' ? 'Delete eSIM from dashboard' : 'Eliminar eSIM del panel'}
+                          >
+                            <svg className="w-3.5 h-3.5 fill-current text-white" viewBox="0 0 24 24">
+                              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                            </svg>
+                            <span className="text-[11px] font-condensed tracking-wider uppercase font-bold">
+                              {lang === 'en' ? 'Delete' : 'Eliminar'}
+                            </span>
+                          </button>
+                        )}
                         
-                        {/* Conditional Action Button: Fixed -> Comprar de nuevo | Unlimited -> Renovar plan */}
+                        {/* Action Button: Volver a comprar / Renovar plan */}
                         {!isUnlimited ? (
                           <button
                             onClick={() => handleBuyAgain(order)}
@@ -440,7 +666,7 @@ export default function DashboardPage() {
                             <svg className="w-3.5 h-3.5 fill-current text-[#ffec00]" viewBox="0 0 24 24">
                               <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
                             </svg>
-                            <span>{lang === 'en' ? 'Buy again' : 'Comprar de nuevo'}</span>
+                            <span>{state.isFinished ? (lang === 'en' ? 'Buy again' : 'Volver a comprar') : (lang === 'en' ? 'Buy again' : 'Comprar de nuevo')}</span>
                           </button>
                         ) : (
                           <Link
@@ -450,11 +676,19 @@ export default function DashboardPage() {
                             <svg className="w-3.5 h-3.5 fill-current text-[#ffec00]" viewBox="0 0 24 24">
                               <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z" />
                             </svg>
-                            <span>{lang === 'en' ? 'Renew plan' : 'Renovar plan'}</span>
+                            <span>{state.isFinished ? (lang === 'en' ? 'Renew / Buy again' : 'Volver a comprar') : (lang === 'en' ? 'Renew plan' : 'Renovar plan')}</span>
                           </Link>
                         )}
                       </div>
                     </div>
+
+                    {/* Expiration Note / Info Banner if Finished */}
+                    {state.reason && (
+                      <div className="mt-4 text-xs font-semibold text-zinc-700 bg-zinc-100 py-2 px-3.5 rounded-xl border border-zinc-200 flex items-center gap-2">
+                        <span>ℹ️</span>
+                        <span>{state.reason}</span>
+                      </div>
+                    )}
 
                     {/* Card Content Top Row: 2 Balanced Columns (Left: Data Usage | Right: SIM Details) */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 pb-6 border-b border-zinc-100">
@@ -468,23 +702,27 @@ export default function DashboardPage() {
                                   {isDaily ? (lang === 'en' ? 'Daily Allowance:' : 'Límite Diario:') : (lang === 'en' ? 'Data Usage:' : 'Consumo de datos:')}
                                 </span>
                                 <span className="text-black font-mono font-bold text-xs">
-                                  {usedFormatted} / {totalFormatted} {isDaily ? `(${order.days || 1} ${lang === 'en' ? 'Day' : 'Día'})` : ''} ({pct}%)
+                                  {usageFormatted.text} {isDaily ? `(${order.days || 1} ${lang === 'en' ? 'Day' : 'Día'})` : ''} ({usageFormatted.pct}%)
                                 </span>
                               </div>
 
                               <div className="flex items-center gap-2 w-full flex-wrap">
                                 <span
                                   className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
-                                    pct < 40
+                                    state.isFinished
+                                      ? 'bg-zinc-200 text-zinc-800 border border-zinc-300'
+                                      : usageFormatted.pct < 40
                                       ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                                      : pct < 75
+                                      : usageFormatted.pct < 75
                                       ? 'bg-amber-100 text-amber-800 border border-amber-300'
                                       : 'bg-rose-100 text-rose-800 border border-rose-300'
                                   }`}
                                 >
-                                  {pct < 40
+                                  {state.isFinished
+                                    ? (lang === 'en' ? '● Finished' : '● Ciclo concluido')
+                                    : usageFormatted.pct < 40
                                     ? (lang === 'en' ? '● Low Usage' : '● Bajo consumo')
-                                    : pct < 75
+                                    : usageFormatted.pct < 75
                                     ? (lang === 'en' ? '● Moderate' : '● Consumo medio')
                                     : (lang === 'en' ? '● High Usage' : '● Alto consumo / Límite')}
                                 </span>
@@ -496,18 +734,20 @@ export default function DashboardPage() {
                               <div
                                   className="h-full rounded-full transition-all duration-500 shadow-sm flex items-center justify-center px-2 overflow-hidden"
                                   style={{
-                                    width: `${Math.max(pct, 4)}%`,
+                                    width: `${Math.max(usageFormatted.pct, 4)}%`,
                                     background:
-                                      pct < 40
+                                      state.isFinished
+                                        ? '#71717a'
+                                        : usageFormatted.pct < 40
                                         ? 'linear-gradient(90deg, #10b981 0%, #34d399 100%)'
-                                        : pct < 75
+                                        : usageFormatted.pct < 75
                                         ? 'linear-gradient(90deg, #10b981 0%, #f59e0b 100%)'
                                         : 'linear-gradient(90deg, #10b981 0%, #f59e0b 50%, #ef4444 100%)',
                                   }}
                               >
-                                {pct > 8 && (
+                                {usageFormatted.pct > 8 && (
                                   <span className="text-[10px] font-black text-white font-mono leading-none flex items-center justify-center h-full drop-shadow-md tracking-tight">
-                                    {pct}%
+                                    {usageFormatted.pct}%
                                   </span>
                                 )}
                               </div>
@@ -517,19 +757,19 @@ export default function DashboardPage() {
                           <>
                             <div className="flex items-center justify-between text-xs font-semibold">
                               <span className="text-zinc-700 font-sans flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
+                                <span className={`w-2 h-2 rounded-full ${state.isFinished ? 'bg-zinc-500' : 'bg-emerald-500 animate-pulse'} flex-shrink-0`}></span>
                                 <span className="font-bold text-black uppercase text-[11px] tracking-wide font-sans">
                                   {lang === 'en' ? 'Data Status:' : 'Estado de datos:'}
                                 </span>
                               </span>
-                              <span className="text-emerald-700 font-mono font-bold text-xs">
-                                {lang === 'en' ? '4G / 5G High Speed' : '4G / 5G Alta Velocidad'}
+                              <span className={`${state.isFinished ? 'text-zinc-600' : 'text-emerald-700'} font-mono font-bold text-xs`}>
+                                {state.isFinished ? (lang === 'en' ? 'Plan Expired' : 'Plan Expirado') : (lang === 'en' ? '4G / 5G High Speed' : '4G / 5G Alta Velocidad')}
                               </span>
                             </div>
 
-                            <div className="w-full bg-emerald-500 h-6 rounded-full overflow-hidden border border-emerald-600 shadow-sm flex items-center justify-center p-0.5">
+                            <div className={`w-full ${state.isFinished ? 'bg-zinc-600' : 'bg-emerald-500'} h-6 rounded-full overflow-hidden border ${state.isFinished ? 'border-zinc-700' : 'border-emerald-600'} shadow-sm flex items-center justify-center p-0.5`}>
                               <span className="text-[11px] font-black text-white font-mono leading-none tracking-wider uppercase">
-                                ∞ {lang === 'en' ? 'UNLIMITED HIGH-SPEED DATA' : 'DATOS ILIMITADOS ALTA VELOCIDAD'}
+                                {state.isFinished ? (lang === 'en' ? 'UNLIMITED PLAN EXPIRED' : 'PLAN ILIMITADO EXPIRADO') : '∞ ' + (lang === 'en' ? 'UNLIMITED HIGH-SPEED DATA' : 'DATOS ILIMITADOS ALTA VELOCIDAD')}
                               </span>
                             </div>
                           </>
