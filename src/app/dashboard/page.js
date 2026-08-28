@@ -737,7 +737,14 @@ export default function DashboardPage() {
                     {/* Header Row: Title, Order ID, Status, Delete & Action Button */}
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-zinc-100">
                       <div className="flex items-center gap-4 w-full md:w-auto">
-                        <img src={(order.iso || 'es').toLowerCase() === 'global' ? '/flags/global.gif' : `/flags/${(order.iso || 'es').toLowerCase()}.webp`} alt={order.country} className="w-12 h-12 rounded-full border border-zinc-200 object-cover shadow-sm flex-shrink-0" />
+                        <img
+                          src={(order.iso || 'es').toLowerCase() === 'global' ? '/flags/global.gif' : `/flags/${(order.iso || 'es').toLowerCase()}.webp`}
+                          alt={order.country}
+                          className="w-12 h-12 rounded-full border border-zinc-200 object-cover shadow-sm flex-shrink-0"
+                          onError={(e) => {
+                            e.target.src = '/flags/gl.webp';
+                          }}
+                        />
                         <div>
                           <h2 className="text-xl md:text-2xl font-bold text-black tracking-tight">{cleanTitle}</h2>
                           <p className="text-xs text-zinc-500 font-medium">

@@ -117,6 +117,9 @@ export default function RegionModal({ regionData, onClose, lang = 'es', currency
                         src={`/flags/${c.iso}.webp`}
                         alt={cName}
                         className="w-8 h-8 rounded-full object-cover border border-zinc-200 shadow-2xs flex-shrink-0"
+                        onError={(e) => {
+                          e.target.src = '/flags/gl.webp';
+                        }}
                       />
                       <span className="font-bold text-sm text-black group-hover:text-black">
                         {cName}

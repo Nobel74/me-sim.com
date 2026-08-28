@@ -375,6 +375,9 @@ export default function DestinationPage() {
               src={isoCode === 'global' ? '/flags/global.gif' : `/flags/${isoCode}.webp`}
               alt={countryName}
               className="w-9 h-9 sm:w-11 sm:h-11 rounded-full object-cover border-2 border-white/30 shadow-md flex-shrink-0"
+              onError={(e) => {
+                e.target.src = '/flags/gl.webp';
+              }}
             />
             <div className="bg-black/80 backdrop-blur-md text-white text-[11px] sm:text-xs font-bold tracking-wide px-3 py-1 rounded-full flex items-center gap-1.5 border border-white/20 shadow-sm leading-tight">
               <svg className="w-3.5 h-3.5 text-[#ffec00] fill-current" viewBox="0 0 24 24">
