@@ -731,7 +731,7 @@ export default function DashboardPage() {
                 const state = computeEsimState(order, usage);
 
                 return (
-                  <div key={order.orderId} className={`bg-white rounded-3xl border ${state.isFinished ? 'border-zinc-300/80 bg-zinc-50/50' : 'border-zinc-200'} p-4 sm:p-6 md:p-8 shadow-xl w-full transition-all`}>
+                  <div key={order.orderId} className="bg-white rounded-3xl border border-zinc-200 p-4 sm:p-6 md:p-8 shadow-xl w-full transition-all">
                     {/* Header Row: Title, Order ID, Status, Delete & Action Button */}
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-zinc-100">
                       <div className="flex items-center gap-4 w-full md:w-auto">
@@ -823,18 +823,14 @@ export default function DashboardPage() {
                               <div className="flex items-center gap-2 w-full flex-wrap">
                                 <span
                                   className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
-                                    state.isFinished
-                                      ? 'bg-zinc-200 text-zinc-800 border border-zinc-300'
-                                      : usageFormatted.pct < 40
+                                    usageFormatted.pct < 40
                                       ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                                       : usageFormatted.pct < 75
                                       ? 'bg-amber-100 text-amber-800 border border-amber-300'
                                       : 'bg-rose-100 text-rose-800 border border-rose-300'
                                   }`}
                                 >
-                                  {state.isFinished
-                                    ? (lang === 'en' ? '● Finished' : '● Ciclo concluido')
-                                    : usageFormatted.pct < 40
+                                  {usageFormatted.pct < 40
                                     ? (lang === 'en' ? '● Low Usage' : '● Bajo consumo')
                                     : usageFormatted.pct < 75
                                     ? (lang === 'en' ? '● Moderate' : '● Consumo medio')
@@ -850,9 +846,7 @@ export default function DashboardPage() {
                                   style={{
                                     width: `${Math.max(usageFormatted.pct, 4)}%`,
                                     background:
-                                      state.isFinished
-                                        ? '#71717a'
-                                        : usageFormatted.pct < 40
+                                      usageFormatted.pct < 40
                                         ? 'linear-gradient(90deg, #10b981 0%, #34d399 100%)'
                                         : usageFormatted.pct < 75
                                         ? 'linear-gradient(90deg, #10b981 0%, #f59e0b 100%)'
