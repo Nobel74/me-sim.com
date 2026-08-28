@@ -497,6 +497,12 @@ export async function GET(request) {
         dataAmount = titleMatch ? titleMatch[1] : '1 GB';
       }
 
+      // Extract plan ID and pricing
+      const lineMeta = lineItem.meta_data || [];
+      const getLineMetaVal = (key) => lineMeta.find(m => m.key === key)?.value || '';
+      const planId = getLineMetaVal('plan_id') || getLineMetaVal('_plan_id') || getLineMetaVal('sku') || lineItem.sku || getMetaVal('_plan_id') || getMetaVal('plan_id') || '';
+      const priceEur = parseFloat(lineItem.total || lineItem.price || order.total || '0') || 0;
+
       return {
         orderId: orderId,
         wcStatus: order.status || 'completed',
@@ -508,6 +514,9 @@ export async function GET(request) {
         iso: getMetaVal('_esim_iso') || 'es',
         dataAmount: dataAmount,
         days: parseInt(getMetaVal('_esim_days') || '1', 10),
+        planId: planId,
+        priceEur: priceEur,
+        currency: order.currency || 'EUR',
         date: order.date_created ? order.date_created.split('T')[0] : new Date().toLocaleDateString(),
         createdAt: order.date_created || null,
         totalPrice: `${order.total} ${order.currency}`,

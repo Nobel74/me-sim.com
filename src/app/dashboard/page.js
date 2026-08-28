@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getTranslation } from '../../lib/i18n';
+import { convertCurrency, getExchangeRates } from '../../lib/currency';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -16,6 +17,7 @@ export default function DashboardPage() {
   const [esimUsage, setEsimUsage] = useState({});
   const [hiddenEsims, setHiddenEsims] = useState([]);
   const [esimFilter, setEsimFilter] = useState('all'); // 'all', 'active', 'expired'
+  const [buyingOrderId, setBuyingOrderId] = useState(null);
 
   // Billing form state
   const [billing, setBilling] = useState({
@@ -231,22 +233,119 @@ export default function DashboardPage() {
     }
   };
 
-  const handleBuyAgain = (order) => {
-    const existingCart = JSON.parse(localStorage.getItem('mesim_cart') || '[]');
-    const newItem = {
-      cartId: `${order.iso || 'es'}-${Date.now()}`,
-      iso: order.iso || 'es',
-      countryName: order.country || 'España',
-      title: order.title || 'eSIM España 10GB 30Days',
-      planName: order.title || 'eSIM España 10GB 30Days',
-      dataAmount: order.dataAmount || '10 GB',
-      days: order.days || 30,
-      priceEur: 14.90,
-    };
-    existingCart.push(newItem);
-    localStorage.setItem('mesim_cart', JSON.stringify(existingCart));
-    window.dispatchEvent(new Event('mesim_cart_changed'));
-    router.push('/cart');
+  const handleBuyAgain = async (order) => {
+    try {
+      setBuyingOrderId(order.orderId);
+      const iso = (order.iso || 'es').toLowerCase();
+      const userCurrency = localStorage.getItem('mesim_curr') || 'EUR';
+      let rates = null;
+      try {
+        rates = await getExchangeRates();
+      } catch (rateErr) {
+        console.warn('Could not load exchange rates:', rateErr);
+      }
+
+      // Normalization helper for matching strings
+      const norm = (s) => (s || '').toLowerCase().replace(/[\s\-_/]/g, '').replace(/dia/g, 'día').replace(/days?/g, 'd');
+      const orderDataNorm = norm(order.dataAmount);
+      const orderDays = parseInt(order.days || 1, 10);
+
+      // Fetch live catalog plans for this country/region to get exact current pricing
+      let matchedPlan = null;
+      try {
+        const res = await fetch(`/api/plans?country=${iso}&region=${iso}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.plans && data.plans.length > 0) {
+            // Strategy 1: Match by plan ID or package code
+            if (order.planId) {
+              matchedPlan = data.plans.find(p => p.id === order.planId || p.packageCode === order.planId);
+            }
+            // Strategy 2: Match by exact normalized data amount and days
+            if (!matchedPlan) {
+              matchedPlan = data.plans.find(p => {
+                const pDataNorm = norm(p.dataAmount);
+                const pDays = parseInt(p.days || 1, 10);
+                return pDataNorm === orderDataNorm && pDays === orderDays;
+              });
+            }
+            // Strategy 3: Match by core data volume (e.g. 500mb vs 500mb/día) + days
+            if (!matchedPlan) {
+              const cleanAmt = orderDataNorm.replace(/total|día|day|d/g, '');
+              matchedPlan = data.plans.find(p => {
+                const pCleanAmt = norm(p.dataAmount).replace(/total|día|day|d/g, '');
+                const pDays = parseInt(p.days || 1, 10);
+                return pCleanAmt === cleanAmt && pDays === orderDays;
+              });
+            }
+            // Strategy 4: Fallback match by days
+            if (!matchedPlan) {
+              matchedPlan = data.plans.find(p => parseInt(p.days || 1, 10) === orderDays);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Error fetching plan for repurchase, using fallback:', err);
+      }
+
+      // Resolve final price in EUR
+      let resolvedPriceEur = 0;
+      if (matchedPlan && matchedPlan.priceEur) {
+        resolvedPriceEur = parseFloat(matchedPlan.priceEur);
+      } else if (order.priceEur && parseFloat(order.priceEur) > 0) {
+        resolvedPriceEur = parseFloat(order.priceEur);
+      } else if (order.totalPrice) {
+        const num = parseFloat(String(order.totalPrice).replace(/[^\d.]/g, ''));
+        if (!isNaN(num) && num > 0) {
+          resolvedPriceEur = num;
+        }
+      }
+
+      // If still 0 or invalid, fallback based on tier
+      if (!resolvedPriceEur || resolvedPriceEur <= 0) {
+        resolvedPriceEur = 5.23;
+      }
+
+      const finalDataAmount = matchedPlan?.dataAmount || order.dataAmount || '500 MB / Día';
+      const finalDays = matchedPlan?.days || order.days || 1;
+      const finalCountry = order.country || matchedPlan?.country || 'España';
+      const isDaily = String(finalDataAmount).toLowerCase().includes('/ día') ||
+                      String(finalDataAmount).toLowerCase().includes('/ dia') ||
+                      String(finalDataAmount).toLowerCase().includes('/ day');
+
+      const formattedTitle = isDaily || finalDays === 1
+        ? `eSIM ${finalCountry} ${finalDataAmount}`
+        : `eSIM ${finalCountry} ${finalDataAmount} ${finalDays}Days`;
+
+      const existingCart = JSON.parse(localStorage.getItem('mesim_cart') || '[]');
+      const newItem = {
+        ...(matchedPlan || {}),
+        id: matchedPlan?.id || order.planId || `${iso}-repurchase-${Date.now()}`,
+        cartId: Date.now(),
+        iso: iso,
+        country: finalCountry,
+        countryName: finalCountry,
+        title: formattedTitle,
+        planName: formattedTitle,
+        dataAmount: finalDataAmount,
+        days: finalDays,
+        priceEur: resolvedPriceEur,
+        price: resolvedPriceEur,
+        convertedPrice: rates ? convertCurrency(resolvedPriceEur, userCurrency, rates) : resolvedPriceEur.toFixed(2),
+        currency: userCurrency,
+        isUnlimited: !!(matchedPlan?.isUnlimited),
+      };
+
+      existingCart.push(newItem);
+      localStorage.setItem('mesim_cart', JSON.stringify(existingCart));
+      window.dispatchEvent(new Event('mesim_cart_changed'));
+      router.push('/cart');
+    } catch (e) {
+      console.error('Error in handleBuyAgain:', e);
+      router.push('/cart');
+    } finally {
+      setBuyingOrderId(null);
+    }
   };
 
   // Helper to parse contracted data volume from order string
@@ -661,11 +760,16 @@ export default function DashboardPage() {
                         {!isUnlimited ? (
                           <button
                             onClick={() => handleBuyAgain(order)}
-                            className="bg-black hover:bg-zinc-800 text-[#ffec00] font-bold font-condensed tracking-wider uppercase px-4 py-2.5 rounded-full text-xs transition-all shadow-xs flex items-center justify-center gap-1.5 w-full md:w-auto"
+                            disabled={buyingOrderId === order.orderId}
+                            className="bg-black hover:bg-zinc-800 disabled:opacity-75 text-[#ffec00] font-bold font-condensed tracking-wider uppercase px-4 py-2.5 rounded-full text-xs transition-all shadow-xs flex items-center justify-center gap-1.5 w-full md:w-auto"
                           >
-                            <svg className="w-3.5 h-3.5 fill-current text-[#ffec00]" viewBox="0 0 24 24">
-                              <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
-                            </svg>
+                            {buyingOrderId === order.orderId ? (
+                              <span className="w-3.5 h-3.5 border-2 border-[#ffec00] border-t-transparent rounded-full animate-spin"></span>
+                            ) : (
+                              <svg className="w-3.5 h-3.5 fill-current text-[#ffec00]" viewBox="0 0 24 24">
+                                <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                              </svg>
+                            )}
                             <span>{state.isFinished ? (lang === 'en' ? 'Buy again' : 'Volver a comprar') : (lang === 'en' ? 'Buy again' : 'Comprar de nuevo')}</span>
                           </button>
                         ) : (
