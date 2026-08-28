@@ -296,8 +296,9 @@ export default function HomePreviewPage() {
               <span>{lang === 'en' ? `Global Coverage (198+ Countries) • ${heroBg.nameEn}` : `Conectividad Global (198+ Países) • ${heroBg.nameEs}`}</span>
             </div>
 
-            <span className="bg-[#ffec00] text-black text-xs font-bold px-3.5 py-1 rounded-full uppercase tracking-wider shadow-sm">
-              🟢 {lang === 'en' ? 'Instant delivery • Activate within 180 days' : 'Entrega instantánea • Activa en 180 días'}
+            <span className="bg-[#ffec00] text-black text-xs font-bold px-3.5 py-1 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-600 inline-block flex-shrink-0"></span>
+              <span>{lang === 'en' ? 'Instant delivery • Activate within 180 days' : 'Entrega instantánea • Activa en 180 días'}</span>
             </span>
           </div>
 

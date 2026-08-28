@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 export default function CookieBanner() {
+  const [mounted, setMounted] = useState(false);
   const [showBanner, setShowBanner] = useState(false);
   const [showPreferences, setShowPreferences] = useState(false);
   const [lang, setLang] = useState('es');
@@ -14,6 +15,7 @@ export default function CookieBanner() {
   });
 
   useEffect(() => {
+    setMounted(true);
     // Detect language safely
     let currentLang = 'es';
     try {
@@ -109,7 +111,7 @@ export default function CookieBanner() {
   // Text translations
   const content = {
     es: {
-      title: 'Configuración de Cookies 🍪',
+      title: 'Configuración de Cookies',
       description: 'En ME-SIM utilizamos cookies propias y de terceros para garantizar el correcto funcionamiento del sitio, recordar tus preferencias e integrar herramientas de analítica y marketing. Puedes configurar tus opciones abajo. Para más información, consulta nuestra ',
       cookiePolicy: 'Política de Cookies',
       acceptAll: 'Aceptar Todas',
@@ -125,7 +127,7 @@ export default function CookieBanner() {
       marketingDesc: 'Utilizadas para medir el éxito de las campañas de marketing, conversiones y habilitar píxeles publicitarios.',
     },
     en: {
-      title: 'Cookie Configuration 🍪',
+      title: 'Cookie Configuration',
       description: 'At ME-SIM we use first and third-party cookies to guarantee the correct operation of the site, remember your preferences, and integrate analytics and marketing tools. You can customize your options below. For more information, please see our ',
       cookiePolicy: 'Cookie Policy',
       acceptAll: 'Accept All',
@@ -138,7 +140,7 @@ export default function CookieBanner() {
       analyticsTitle: '2. Analytics Cookies (Google Analytics)',
       analyticsDesc: 'Allow us to measure traffic, visits, and most popular pages anonymously to optimize your experience.',
       marketingTitle: '3. Marketing Cookies (Google Tag Manager)',
-      marketingDesc: 'Used to measure the success of marketing campaigns, conversions, and enable ad pixels.',
+      marketingDesc: 'Used to measure the success of marketing campaigns, conversions, and enable advertising tracking pixels.',
     }
   };
 
@@ -155,23 +157,25 @@ export default function CookieBanner() {
     };
   }, []);
 
-  if (!showBanner && !showPreferences) return null;
+  if (!mounted || (!showBanner && !showPreferences)) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[9999] p-4 sm:p-6 flex justify-center pointer-events-none">
-      {/* Banner view */}
+    <div className="fixed bottom-4 left-4 right-4 z-50 flex justify-center pointer-events-none">
+      {/* Mini minimal banner */}
       {showBanner && !showPreferences && (
-        <div className="bg-black/95 border border-zinc-800 text-white rounded-3xl p-5 sm:p-6 max-w-3xl w-full shadow-2xl animate-scale-in pointer-events-auto flex flex-col md:flex-row items-center justify-between gap-5 backdrop-blur-md">
-          <div className="text-left space-y-1.5 flex-1 min-w-0 pr-0 md:pr-4">
-            <h4 className="text-base font-bold font-semi text-[#ffec00] tracking-tight">{t.title}</h4>
-            <p className="text-xs text-zinc-300 leading-relaxed font-sans font-medium">
+        <div className="bg-black/95 border border-zinc-800 text-white rounded-3xl p-5 sm:p-6 max-w-4xl w-full shadow-2xl animate-scale-in pointer-events-auto flex flex-col md:flex-row items-center justify-between gap-5 backdrop-blur-md">
+          <div className="text-xs sm:text-sm text-zinc-300 font-sans leading-relaxed text-left space-y-1">
+            <strong className="text-white font-semi text-sm sm:text-base block mb-0.5">
+              {lang === 'en' ? 'Your Privacy Preferences' : 'Tus Preferencias de Privacidad'}
+            </strong>
+            <p className="text-xs sm:text-sm text-zinc-300 font-medium">
               {t.description}
-              <Link href={lang === 'en' ? '/en/cookie-policy/' : '/politica-de-cookies/'} className="text-[#ffec00] underline font-bold hover:text-yellow-400">
+              <Link href={lang === 'en' ? '/en/cookie-policy/' : '/politica-de-cookies/'} className="text-[#ffec00] hover:underline font-bold">
                 {t.cookiePolicy}
               </Link>.
             </p>
           </div>
-          <div className="flex flex-wrap sm:flex-nowrap gap-2.5 w-full md:w-auto flex-shrink-0 justify-end">
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 w-full md:w-auto flex-shrink-0 justify-end">
             <button
               onClick={handleRejectAll}
               className="px-3.5 py-2.5 rounded-xl border border-zinc-700 hover:border-zinc-500 text-xs font-semibold text-zinc-300 hover:text-white transition-all w-full sm:w-auto font-sans"
@@ -198,7 +202,12 @@ export default function CookieBanner() {
       {showPreferences && (
         <div className="bg-black/95 border border-zinc-800 text-white rounded-3xl p-6 max-w-xl w-full shadow-2xl animate-scale-in pointer-events-auto flex flex-col gap-6 backdrop-blur-md">
           <div className="flex justify-between items-center pb-2 border-b border-zinc-800">
-            <h4 className="text-lg font-bold font-semi text-[#ffec00]">{t.title}</h4>
+            <h4 className="text-lg font-bold font-semi text-[#ffec00] flex items-center gap-2">
+              <svg className="w-5 h-5 fill-current text-[#ffec00] flex-shrink-0" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
+              </svg>
+              <span>{t.title}</span>
+            </h4>
             {!showBanner && (
               <button
                 onClick={() => setShowPreferences(false)}

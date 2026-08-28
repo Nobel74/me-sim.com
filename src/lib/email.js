@@ -207,7 +207,7 @@ export function generateOrderConfirmationHtml(orderData, lang = 'es') {
         <!-- QR Code Activation Section -->
         <div style="background: #fafafa; border: 2px dashed #ffec00; border-radius: 16px; padding: 24px; margin-bottom: 28px; text-align: center;">
           <h3 style="font-size: 16px; font-weight: 800; color: #000000; margin: 0 0 12px; text-transform: uppercase;">
-            ${isEn ? '📱 Your eSIM QR Code' : '📱 Tu Código QR de Activación eSIM'}
+            ${isEn ? 'Your eSIM QR Code' : 'Tu Código QR de Activación eSIM'}
           </h3>
           <img src="${orderData.qrCodeUrl}" alt="eSIM QR Code" style="width: 220px; height: 220px; display: inline-block; margin-bottom: 12px; border-radius: 12px; border: 1px solid #e4e4e7; background: #ffffff; padding: 8px;" />
           <p style="font-size: 13px; color: #3f3f46; font-weight: 500; margin: 0 0 6px;">
@@ -263,7 +263,7 @@ export function generatePaymentFailedHtml(orderData, lang = 'es') {
     <body style="font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f5; color: #0f0f0f; margin: 0; padding: 40px 20px;">
       <div style="max-width: 540px; margin: 0 auto; background: #ffffff; border: 1px solid #fee2e2; border-radius: 24px; padding: 40px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
         <img src="https://me-sim.com/logos/Logo-me-sim-mail.png" alt="ME-SIM" style="height: 45px; display: inline-block; margin-bottom: 24px;" />
-        <h2 style="color: #991b1b; font-size: 20px; font-weight: 800; margin-bottom: 16px;">⚠️ ${isEn ? 'Payment Action Required' : 'Hubo un problema con tu pago'}</h2>
+        <h2 style="color: #991b1b; font-size: 20px; font-weight: 800; margin-bottom: 16px;">${isEn ? 'Payment Action Required' : 'Hubo un problema con tu pago'}</h2>
         
         <p style="color: #52525b; font-size: 15px; line-height: 1.6; margin-bottom: 24px;">
           ${isEn 

@@ -99,7 +99,7 @@ const CHAT_DATABASE = {
         ]
       },
       solved_success: {
-        text: "¡Excelente noticia! Me alegra haberte ayudado a resolver la incidencia. ¡Te deseo un excelente viaje y que disfrutes de tu conexión! ✈️🌍",
+        text: "¡Excelente noticia! Me alegra haberte ayudado a resolver la incidencia. ¡Te deseo un excelente viaje y que disfrutes de tu conexión!",
         options: [
           { text: "Volver al inicio", next: "intro" }
         ]
@@ -286,7 +286,7 @@ const CHAT_DATABASE = {
         ]
       },
       solved_success: {
-        text: "Great news! I am glad I could help you resolve the issue. Have an amazing trip and enjoy your connection! ✈️🌍",
+        text: "Great news! I am glad I could help you resolve the issue. Have an amazing trip and enjoy your connection!",
         options: [
           { text: "Back to menu", next: "intro" }
         ]

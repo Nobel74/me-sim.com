@@ -660,8 +660,10 @@ export default function DashboardPage() {
 
               {!loadingOrders && visibleOrders.length === 0 && (
                 <div className="bg-white rounded-3xl border border-zinc-200 p-8 sm:p-12 text-center shadow-sm space-y-4">
-                  <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mx-auto text-2xl">
-                    📱
+                  <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mx-auto text-zinc-500 shadow-2xs">
+                    <svg className="w-7 h-7 fill-current" viewBox="0 0 24 24">
+                      <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z" />
+                    </svg>
                   </div>
                   <h4 className="text-lg font-bold text-black">
                     {lang === 'en' ? 'No eSIMs found in this view' : 'No hay tarjetas eSIM en esta vista'}
@@ -799,7 +801,9 @@ export default function DashboardPage() {
                     {/* Expiration Note / Info Banner if Finished */}
                     {state.reason && (
                       <div className="mt-4 text-xs font-semibold text-zinc-700 bg-zinc-100 py-2 px-3.5 rounded-xl border border-zinc-200 flex items-center gap-2">
-                        <span>ℹ️</span>
+                        <svg className="w-4 h-4 fill-current text-zinc-600 flex-shrink-0" viewBox="0 0 24 24">
+                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+                        </svg>
                         <span>{state.reason}</span>
                       </div>
                     )}
@@ -839,15 +843,15 @@ export default function DashboardPage() {
                               </div>
                             </div>
 
-                            {/* Animated Semáforo Progress Bar */}
-                            <div className="w-full bg-zinc-200/80 h-6 rounded-full overflow-hidden border border-zinc-300 shadow-inner relative flex items-center p-0.5">
+                            {/* Progress bar container */}
+                            <div className="w-full bg-zinc-200 h-6 rounded-full overflow-hidden border border-zinc-300 p-0.5 relative shadow-inner">
                               <div
-                                  className="h-full rounded-full transition-all duration-500 shadow-sm flex items-center justify-center px-2 overflow-hidden"
+                                  className="h-full rounded-full transition-all duration-700 ease-out shadow-sm"
                                   style={{
                                     width: `${Math.max(usageFormatted.pct, 4)}%`,
                                     background:
                                       usageFormatted.pct < 40
-                                        ? 'linear-gradient(90deg, #10b981 0%, #34d399 100%)'
+                                        ? '#10b981'
                                         : usageFormatted.pct < 75
                                         ? 'linear-gradient(90deg, #10b981 0%, #f59e0b 100%)'
                                         : 'linear-gradient(90deg, #10b981 0%, #f59e0b 50%, #ef4444 100%)',
@@ -909,14 +913,19 @@ export default function DashboardPage() {
                           title={lang === 'en' ? 'Click to enlarge QR' : 'Clic para ampliar QR'}
                         >
                           <img src={qrUrl} alt="QR eSIM" className="w-28 h-28 object-contain mb-1 group-hover:scale-105 transition-transform" />
-                          <span className="text-[10px] font-bold text-black group-hover:underline uppercase block">
-                            🔍 {lang === 'en' ? 'Enlarge QR' : 'Ampliar QR'}
+                          <span className="text-[10px] font-bold text-black group-hover:underline uppercase flex items-center justify-center gap-1">
+                            <svg className="w-3 h-3 fill-current flex-shrink-0" viewBox="0 0 24 24">
+                              <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+                            </svg>
+                            <span>{lang === 'en' ? 'Enlarge QR' : 'Ampliar QR'}</span>
                           </span>
                         </div>
 
                         <div className="space-y-2.5 text-xs w-full min-w-0">
                           <h4 className="font-bold text-black font-sans uppercase text-xs flex items-center gap-1.5">
-                            <span>📱</span>
+                            <svg className="w-3.5 h-3.5 fill-current text-black flex-shrink-0" viewBox="0 0 24 24">
+                              <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z" />
+                            </svg>
                             <span>{lang === 'en' ? 'eSIM Installation Options' : 'Opciones de Instalación eSIM'}</span>
                           </h4>
                           <p className="text-zinc-600 text-[11px] leading-tight">

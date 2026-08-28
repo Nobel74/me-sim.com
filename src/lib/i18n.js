@@ -472,47 +472,47 @@ export const faqData = {
         brands: [
           {
             brand: "Apple (iPhone)",
-            icon: "🍎",
+            brandId: "apple",
             models: "iPhone XR, XS, XS Max, iPhone 11, 11 Pro, 11 Pro Max, iPhone SE (2ª y 3ª gen), iPhone 12, 12 Mini, 12 Pro, 12 Pro Max, iPhone 13, 13 Mini, 13 Pro, 13 Pro Max, iPhone 14, 14 Plus, 14 Pro, 14 Pro Max, iPhone 15, 15 Plus, 15 Pro, 15 Pro Max, iPhone 16 y series posteriores."
           },
           {
             brand: "Samsung",
-            icon: "📱",
+            brandId: "samsung",
             models: "Galaxy S20, S20+, S20 Ultra, S21, S21+ 5G, S21 Ultra 5G, S22, S22+, S22 Ultra, S23, S23+, S23 Ultra, S24, S24+, S24 Ultra, Note 20, Note 20 Ultra, Galaxy Fold, Z Fold2, Z Fold3, Z Fold4, Z Fold5, Z Fold6, Z Flip, Z Flip3, Z Flip4, Z Flip5, Z Flip6, y modelos A54 5G, A55 5G."
           },
           {
             brand: "Google Pixel",
-            icon: "🌐",
+            brandId: "google",
             models: "Pixel 3, 3 XL, 3a, 3a XL, Pixel 4, 4a, 4 XL, Pixel 5, 5a, Pixel 6, 6a, 6 Pro, Pixel 7, 7a, 7 Pro, Pixel 8, 8a, 8 Pro, Pixel 9, Pixel Fold y series posteriores."
           },
           {
             brand: "Xiaomi & Redmi",
-            icon: "⚡",
+            brandId: "xiaomi",
             models: "Xiaomi 12T Pro, Xiaomi 13, 13 Lite, 13 Pro, 13 Ultra, Xiaomi 14, 14 Pro, 14 Ultra, Xiaomi 14T, 14T Pro, Redmi Note 13 Pro 5G, Redmi Note 13 Pro+ 5G."
           },
           {
             brand: "Motorola",
-            icon: "📱",
+            brandId: "motorola",
             models: "Razr 2019, Razr 5G, Razr 40, Razr 40 Ultra, Razr 50, Edge 40, Edge 40 Pro, Edge 40 Neo, Edge 50 Pro, Edge 50 Ultra, Moto G54 5G, Moto G84 5G, Moto G85 5G."
           },
           {
             brand: "Huawei",
-            icon: "📱",
+            brandId: "huawei",
             models: "P40, P40 Pro (excluye P40 Pro+), Mate 40 Pro, P50 Pro, P60 Pro."
           },
           {
             brand: "Oppo & Honor",
-            icon: "📱",
+            brandId: "oppo",
             models: "Oppo Find X3 Pro, Find X5, Find X5 Pro, Find N2 Flip, Reno 6 Pro 5G; Honor Magic3, Magic4 Pro, Magic5 Pro, Magic6 Pro, Magic V2."
           },
           {
             brand: "Sony & OnePlus",
-            icon: "📱",
+            brandId: "sony",
             models: "Sony Xperia 1 IV, Xperia 1 V, Xperia 5 IV, Xperia 10 III Lite, Xperia 10 IV, Xperia 10 V; OnePlus 11, OnePlus 12, OnePlus 13, OnePlus Open."
           },
           {
             brand: "Otras Marcas (Nokia, Fairphone, Vivo, ZTE)",
-            icon: "⚡",
+            brandId: "other",
             models: "Nokia G60 5G, X30 5G, XR21; Fairphone 4, Fairphone 5; Vivo X90 Pro, X100 Pro; Nuu Mobile X5; Rakuten Mini, Big; ZTE Nubia Flip 5G."
           }
         ],
@@ -605,47 +605,47 @@ export const faqData = {
         brands: [
           {
             brand: "Apple (iPhone)",
-            icon: "🍎",
+            brandId: "apple",
             models: "iPhone XR, XS, XS Max, iPhone 11, 11 Pro, 11 Pro Max, iPhone SE (2nd & 3rd gen), iPhone 12, 12 Mini, 12 Pro, 12 Pro Max, iPhone 13, 13 Mini, 13 Pro, 13 Pro Max, iPhone 14, 14 Plus, 14 Pro, 14 Pro Max, iPhone 15, 15 Plus, 15 Pro, 15 Pro Max, iPhone 16 and newer series."
           },
           {
             brand: "Samsung",
-            icon: "📱",
+            brandId: "samsung",
             models: "Galaxy S20, S20+, S20 Ultra, S21, S21+ 5G, S21 Ultra 5G, S22, S22+, S22 Ultra, S23, S23+, S23 Ultra, S24, S24+, S24 Ultra, Note 20, Note 20 Ultra, Galaxy Fold, Z Fold2, Z Fold3, Z Fold4, Z Fold5, Z Fold6, Z Flip, Z Flip3, Z Flip4, Z Flip5, Z Flip6, and A54 5G, A55 5G."
           },
           {
             brand: "Google Pixel",
-            icon: "🌐",
+            brandId: "google",
             models: "Pixel 3, 3 XL, 3a, 3a XL, Pixel 4, 4a, 4 XL, Pixel 5, 5a, Pixel 6, 6a, 6 Pro, Pixel 7, 7a, 7 Pro, Pixel 8, 8a, 8 Pro, Pixel 9, Pixel Fold and newer series."
           },
           {
             brand: "Xiaomi & Redmi",
-            icon: "⚡",
+            brandId: "xiaomi",
             models: "Xiaomi 12T Pro, Xiaomi 13, 13 Lite, 13 Pro, 13 Ultra, Xiaomi 14, 14 Pro, 14 Ultra, Xiaomi 14T, 14T Pro, Redmi Note 13 Pro 5G, Redmi Note 13 Pro+ 5G."
           },
           {
             brand: "Motorola",
-            icon: "📱",
+            brandId: "motorola",
             models: "Razr 2019, Razr 5G, Razr 40, Razr 40 Ultra, Razr 50, Edge 40, Edge 40 Pro, Edge 40 Neo, Edge 50 Pro, Edge 50 Ultra, Moto G54 5G, Moto G84 5G, Moto G85 5G."
           },
           {
             brand: "Huawei",
-            icon: "📱",
+            brandId: "huawei",
             models: "P40, P40 Pro (excludes P40 Pro+), Mate 40 Pro, P50 Pro, P60 Pro."
           },
           {
             brand: "Oppo & Honor",
-            icon: "📱",
+            brandId: "oppo",
             models: "Oppo Find X3 Pro, Find X5, Find X5 Pro, Find N2 Flip, Reno 6 Pro 5G; Honor Magic3, Magic4 Pro, Magic5 Pro, Magic6 Pro, Magic V2."
           },
           {
             brand: "Sony & OnePlus",
-            icon: "📱",
+            brandId: "sony",
             models: "Sony Xperia 1 IV, Xperia 1 V, Xperia 5 IV, Xperia 10 III Lite, Xperia 10 IV, Xperia 10 V; OnePlus 11, OnePlus 12, OnePlus 13, OnePlus Open."
           },
           {
             brand: "Other Brands (Nokia, Fairphone, Vivo, ZTE)",
-            icon: "⚡",
+            brandId: "other",
             models: "Nokia G60 5G, X30 5G, XR21; Fairphone 4, Fairphone 5; Vivo X90 Pro, X100 Pro; Nuu Mobile X5; Rakuten Mini, Big; ZTE Nubia Flip 5G."
           }
         ],

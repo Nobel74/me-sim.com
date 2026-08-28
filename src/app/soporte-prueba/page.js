@@ -41,7 +41,9 @@ export default function SupportMainPage() {
       {/* Private Test Notice */}
       <div className="bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3 rounded-2xl mb-8 flex items-center justify-between text-xs sm:text-sm font-medium">
         <div className="flex items-center gap-2">
-          <span>🔒</span>
+          <svg className="w-4 h-4 fill-current text-amber-800 flex-shrink-0" viewBox="0 0 24 24">
+            <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
+          </svg>
           <span><strong>{lang === 'en' ? 'PRIVATE TEST PAGE' : 'PÁGINA PRIVADA DE PRUEBA'}:</strong> {lang === 'en' ? 'Structure and content cloned & adapted for ME-SIM.COM.' : 'Estructura traducida y adaptada para ME-SIM.COM.'}</span>
         </div>
       </div>
@@ -52,8 +54,11 @@ export default function SupportMainPage() {
         <div className="absolute top-0 right-0 w-96 h-96 bg-[#ffec00]/15 rounded-full blur-3xl pointer-events-none"></div>
 
         <div className="relative z-20 max-w-3xl">
-          <span className="bg-[#ffec00] text-black text-xs font-bold px-3.5 py-1.5 rounded-full uppercase tracking-wider mb-4 inline-block shadow-xs">
-            💬 {lang === 'en' ? 'ME-SIM 24/7 Support Center' : 'Centro de Soporte ME-SIM 24/7'}
+          <span className="bg-[#ffec00] text-black text-xs font-bold px-3.5 py-1.5 rounded-full uppercase tracking-wider mb-4 inline-flex items-center gap-1.5 shadow-xs">
+            <svg className="w-3.5 h-3.5 fill-current text-black flex-shrink-0" viewBox="0 0 24 24">
+              <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
+            </svg>
+            <span>{lang === 'en' ? 'ME-SIM 24/7 Support Center' : 'Centro de Soporte ME-SIM 24/7'}</span>
           </span>
 
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white mb-4 leading-tight">

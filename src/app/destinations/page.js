@@ -198,8 +198,9 @@ export default function AllDestinationsPage() {
               </svg>
               <span>{lang === 'en' ? 'Global Connectivity (198+ Countries)' : 'Conectividad Global (198+ Países)'} • {heroBg[lang === 'en' ? 'nameEn' : 'nameEs']}</span>
             </div>
-            <span className="bg-[#ffec00] text-black text-xs font-bold px-3.5 py-1 rounded-full uppercase tracking-wider shadow-sm">
-              🟢 {lang === 'en' ? 'INSTANT DELIVERY • ACTIVATE IN 180 DAYS' : 'ENTREGA INSTANTÁNEA • ACTIVA EN 180 DÍAS'}
+            <span className="bg-[#ffec00] text-black text-xs font-bold px-3.5 py-1 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-600 inline-block flex-shrink-0"></span>
+              <span>{lang === 'en' ? 'INSTANT DELIVERY • ACTIVATE IN 180 DAYS' : 'ENTREGA INSTANTÁNEA • ACTIVA EN 180 DÍAS'}</span>
             </span>
           </div>
 

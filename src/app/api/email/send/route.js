@@ -21,7 +21,7 @@ export async function POST(request) {
       const htmlText = generateMagicCodeHtml(code, lang);
       const result = await sendEmail({
         to: cleanEmail,
-        subject: lang === 'en' ? '🔑 Your ME-SIM Access Code' : '🔑 Tu Código de Acceso ME-SIM',
+        subject: lang === 'en' ? 'Your ME-SIM Access Code' : 'Tu Código de Acceso ME-SIM',
         htmlText,
         type: 'magic_code',
         data: { code },
@@ -54,7 +54,7 @@ export async function POST(request) {
       const htmlText = generateWelcomeCredentialsHtml(cleanEmail, password, lang);
       const result = await sendEmail({
         to: cleanEmail,
-        subject: lang === 'en' ? '⚡ Your ME-SIM Account Has Been Created' : '⚡ Tu Cuenta de ME-SIM Ha Sido Creada',
+        subject: lang === 'en' ? 'Your ME-SIM Account Has Been Created' : 'Tu Cuenta de ME-SIM Ha Sido Creada',
         htmlText,
         type: 'welcome_credentials',
         data: { email: cleanEmail, password },
@@ -71,7 +71,7 @@ export async function POST(request) {
       const htmlText = generatePasswordResetHtml(cleanEmail, password, lang);
       const result = await sendEmail({
         to: cleanEmail,
-        subject: lang === 'en' ? '🔒 Your ME-SIM Password Has Been Reset' : '🔒 Tu Contraseña de ME-SIM Ha Sido Restablecida',
+        subject: lang === 'en' ? 'Your ME-SIM Password Has Been Reset' : 'Tu Contraseña de ME-SIM Ha Sido Restablecida',
         htmlText,
         type: 'password_reset',
         data: { email: cleanEmail, password },
@@ -87,7 +87,7 @@ export async function POST(request) {
       const htmlText = generateOrderConfirmationHtml(body.orderData, lang);
       const result = await sendEmail({
         to: cleanEmail,
-        subject: lang === 'en' ? '🎉 Your ME-SIM eSIM Order Confirmation' : '🎉 Confirmación de tu Pedido eSIM en ME-SIM',
+        subject: lang === 'en' ? 'Your ME-SIM eSIM Order Confirmation' : 'Confirmación de tu Pedido eSIM en ME-SIM',
         htmlText,
         type: 'order_confirmation',
         data: body.orderData,

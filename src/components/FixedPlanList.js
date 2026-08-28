@@ -141,7 +141,8 @@ export default function FixedPlanList({
         <h3 className="text-xs font-semibold font-condensed tracking-widest text-zinc-500 uppercase flex flex-wrap items-center justify-between gap-2">
           <span>{lang === 'en' ? 'CHOOSE YOUR DATA PLAN' : 'ELIGE TU PLAN DE DATOS'}</span>
           <span className="text-black font-bold font-sans flex items-center gap-1.5 bg-[#ffec00] px-2.5 py-1 rounded-full text-[10px] sm:text-xs shadow-xs whitespace-nowrap border border-black/10">
-            🟢 {filteredPlans.length} {lang === 'en' ? 'options' : 'opciones'}
+            <span className="w-2 h-2 rounded-full bg-emerald-600 inline-block flex-shrink-0"></span>
+            <span>{filteredPlans.length} {lang === 'en' ? 'options' : 'opciones'}</span>
           </span>
         </h3>
 

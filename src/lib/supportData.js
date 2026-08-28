@@ -568,7 +568,7 @@ export const SUPPORT_ARTICLES = [
         <hr className="my-6 border-zinc-200" />
 
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-amber-900 shadow-2xs my-4">
-          <strong>⚠️ Requisitos Críticos de Compatibilidad:</strong>
+          <strong>Requisitos Críticos de Compatibilidad:</strong>
           <ol className="list-decimal pl-5 mt-2 space-y-1">
             <li><strong>Teléfono Libre:</strong> Tu terminal debe ser libre de fábrica (unlocked).</li>
             <li><strong>Método EID rápido:</strong> Marca <strong>*#06#</strong> en tu teclado de llamadas. Si se muestra el código EID de 32 dígitos, tu móvil soporta eSIM.</li>
@@ -581,7 +581,7 @@ export const SUPPORT_ARTICLES = [
 
         <hr className="my-6 border-zinc-200" />
 
-        <h2>📱 Compatible Smartphones</h2>
+        <h2>Compatible Smartphones</h2>
 
         <h3>Apple iPhone</h3>
         <ul className="list-disc pl-5 space-y-1 font-sans text-sm mb-6">
@@ -622,7 +622,7 @@ export const SUPPORT_ARTICLES = [
           <li>iPad Pro 11″, 12.9″, iPad Air, iPad Mini, iPad 10th/11th Gen *(Cellular / 4G / 5G versions only)*</li>
         </ul>
 
-        <h3>📱 Samsung Galaxy</h3>
+        <h3>Samsung Galaxy</h3>
         <ul className="list-disc pl-5 space-y-1 font-sans text-sm mb-6">
           <li>Galaxy S20 / S20+ / S20 Ultra *(Exception: S20 FE, and versions sold in the US or South Korea do not support eSIM)*</li>
           <li>Galaxy S21 / S21+ / S21 Ultra *(Exception: Versions sold in the US or South Korea do not support eSIM)*</li>
@@ -708,7 +708,7 @@ export const SUPPORT_ARTICLES = [
 
         <hr className="my-6 border-zinc-200" />
 
-        <h2>📁 Compatible Tablets</h2>
+        <h2>Compatible Tablets</h2>
         <ul className="list-disc pl-5 space-y-1 font-sans text-sm mb-6">
           <li>Apple iPad Pro 11″ (A2068, 2020) *(Requires Cellular unlocked version)*</li>
           <li>Apple iPad Pro 12.9″ (A2069, 2020) *(Requires Cellular unlocked version)*</li>
@@ -722,7 +722,7 @@ export const SUPPORT_ARTICLES = [
         <hr className="my-6 border-zinc-200" />
 
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-amber-900 shadow-2xs my-4">
-          <strong>⚠️ Critical Compatibility Requirements:</strong>
+          <strong>Critical Compatibility Requirements:</strong>
           <ol className="list-decimal pl-5 mt-2 space-y-1">
             <li><strong>Carrier Unlocked:</strong> Your phone must be carrier unlocked to load travel eSIM profiles.</li>
             <li><strong>Quick EID Check:</strong> Dial <strong>*#06#</strong> on your phone dialer. If a 32-digit EID code appears, your device supports eSIM.</li>

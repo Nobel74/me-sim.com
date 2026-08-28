@@ -4,3 +4,4 @@
 - **Aesthetic Quality**: Mantener la estética premium con paleta oscura/amarilla (`#ffec00`), tipografía legible y microinteracciones fluidas.
 - **Bilingüe**: Cuando se apliquen los cambios en textos, componentes como botones o creación de diferentes contenidos, los textos deben estar disponibles siempre en castellano y traducidos correctamente al inglés.
 - **Economía de paddings**: Cuando estemos en la versión móvil todos los contenedores de texto en el body deben tener 10px de padding por la izquierda y por la derecha (`.container-naked`), esto no debe afectar a las tarjetas donde hay contenido en sí, pero dentro de las tarjetas también aplicaremos una separación equilibrada a la izquierda y derecha.
+- **Iconos planos**: Todos los iconos de la web deben estar basados en iconos planos, simples y sencillos, nada de skewformismos.

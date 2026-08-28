@@ -66,8 +66,11 @@ export default function RegionModal({ regionData, onClose, lang = 'es', currency
             <div className="absolute top-0 right-0 w-24 h-24 bg-[#ffec00]/10 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform"></div>
             
             <div className="flex justify-between items-center mb-2">
-              <span className="bg-[#ffec00] text-black text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                ⚡ {lang === 'en' ? 'All-in-One Multi-Country' : 'Plan Regional Multipaís'}
+              <span className="bg-[#ffec00] text-black text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
+                <svg className="w-3 h-3 fill-current text-black flex-shrink-0" viewBox="0 0 24 24">
+                  <path d="M7 2v11h3v9l7-12h-4l4-8z" />
+                </svg>
+                <span>{lang === 'en' ? 'All-in-One Multi-Country' : 'Plan Regional Multipaís'}</span>
               </span>
               <span className="text-xs font-bold text-zinc-300">
                 {regionData.badgeEs}

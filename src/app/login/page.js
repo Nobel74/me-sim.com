@@ -163,11 +163,14 @@ export default function LoginPage() {
               setAuthMode('magic');
               setStatusMessage(null);
             }}
-            className={`flex-1 py-2.5 px-3 text-xs sm:text-sm font-semibold font-condensed tracking-wider uppercase rounded-xl transition-all ${
+            className={`flex-1 py-2.5 px-3 text-xs sm:text-sm font-semibold font-condensed tracking-wider uppercase rounded-xl transition-all flex items-center justify-center gap-1.5 ${
               authMode === 'magic' ? 'bg-black text-[#ffec00] shadow-md' : 'text-zinc-600 hover:text-black font-medium'
             }`}
           >
-            📩 {lang === 'en' ? 'Magic Code (OTP)' : 'Código de Acceso'}
+            <svg className="w-4 h-4 fill-current flex-shrink-0" viewBox="0 0 24 24">
+              <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
+            </svg>
+            <span>{lang === 'en' ? 'Magic Code (OTP)' : 'Código de Acceso'}</span>
           </button>
         </div>
 
@@ -205,9 +208,14 @@ export default function LoginPage() {
                   disabled={sendingEmail}
                   className="w-full bg-black hover:bg-zinc-800 text-[#ffec00] font-semibold font-condensed tracking-wider uppercase py-3.5 px-5 rounded-2xl text-base transition-all shadow-md flex items-center justify-center gap-2"
                 >
-                  {sendingEmail
-                    ? (lang === 'en' ? 'Sending code...' : 'Enviando código...')
-                    : `📩 ${lang === 'en' ? 'Send Login Code' : 'Enviar Código de Acceso'}`}
+                  <svg className="w-4 h-4 fill-current flex-shrink-0" viewBox="0 0 24 24">
+                    <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
+                  </svg>
+                  <span>
+                    {sendingEmail
+                      ? (lang === 'en' ? 'Sending code...' : 'Enviando código...')
+                      : (lang === 'en' ? 'Send Login Code' : 'Enviar Código de Acceso')}
+                  </span>
                 </button>
               ) : (
                 <div>
