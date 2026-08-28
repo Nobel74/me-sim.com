@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { getTranslation } from '../../lib/i18n';
+import { getTranslation, getCountryName, getRegionName } from '../../lib/i18n';
 import { convertCurrency, getExchangeRates } from '../../lib/currency';
 
 export default function DashboardPage() {
@@ -308,14 +308,24 @@ export default function DashboardPage() {
 
       const finalDataAmount = matchedPlan?.dataAmount || order.dataAmount || '500 MB / Día';
       const finalDays = matchedPlan?.days || order.days || 1;
-      const finalCountry = order.country || matchedPlan?.country || 'España';
+      
+      const currentLang = localStorage.getItem('mesim_lang') || lang || 'es';
+      const resolvedCountryName = getCountryName(iso, currentLang, order.country || getRegionName(iso, currentLang) || 'España');
+
       const isDaily = String(finalDataAmount).toLowerCase().includes('/ día') ||
                       String(finalDataAmount).toLowerCase().includes('/ dia') ||
                       String(finalDataAmount).toLowerCase().includes('/ day');
 
-      const formattedTitle = isDaily || finalDays === 1
-        ? `eSIM ${finalCountry} ${finalDataAmount}`
-        : `eSIM ${finalCountry} ${finalDataAmount} ${finalDays}Days`;
+      let formattedTitle = '';
+      if (isDaily || finalDays === 1) {
+        formattedTitle = currentLang === 'en'
+          ? `eSIM ${resolvedCountryName} ${String(finalDataAmount).replace(/Día|dia/gi, 'Day')}`
+          : `eSIM ${resolvedCountryName} ${String(finalDataAmount).replace(/Day/gi, 'Día')}`;
+      } else {
+        formattedTitle = currentLang === 'en'
+          ? `eSIM ${resolvedCountryName} ${finalDataAmount} ${finalDays}Days`
+          : `eSIM ${resolvedCountryName} ${finalDataAmount} ${finalDays}Días`;
+      }
 
       const existingCart = JSON.parse(localStorage.getItem('mesim_cart') || '[]');
       const newItem = {
@@ -323,8 +333,8 @@ export default function DashboardPage() {
         id: matchedPlan?.id || order.planId || `${iso}-repurchase-${Date.now()}`,
         cartId: Date.now(),
         iso: iso,
-        country: finalCountry,
-        countryName: finalCountry,
+        country: resolvedCountryName,
+        countryName: resolvedCountryName,
         title: formattedTitle,
         planName: formattedTitle,
         dataAmount: finalDataAmount,
