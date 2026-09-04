@@ -37,8 +37,11 @@ StrongeSIM utiliza autenticación basada en sesión y token JWT devuelto en `/au
 | `POST` | `/orders` | `src/app/api/orders/route.js`, `src/app/api/v1/woocommerce-webhook/route.js` | Aprovisionamiento y compra en vivo del paquete eSIM. |
 | `GET` | `/orders/{orderId}` | `src/app/api/orders/route.js`, `src/app/api/v1/woocommerce-webhook/route.js` | Extracción de perfiles (`profiles[]`), ICCID y LPA ampliado si `/orders` devuelve ID. |
 | `GET` | `/orders-v2/{orderId}` | `src/app/api/orders/[orderId]/route.js` | Consulta del estado y metadatos de una orden directa. |
-| `GET` | `/profiles/{esimTranNo}` | `src/app/api/usage/[esimTranNo]/route.js` | Telemetría en tiempo real de consumo (`totalVolume`, `orderUsage`, estados). |
+| `GET` | `/profiles/{esimTranNo}` | `src/app/api/usage/[esimTranNo]/route.js` | Telemetría en tiempo real de consumo v1 (`totalVolume`, `orderUsage`, estados). |
 | `GET` | `/profiles/{esimTranNo}/usage?provider_id={id}` | `src/app/api/usage/[esimTranNo]/route.js` | Registros históricos y detallados de consumo. |
+| `GET` | `/api/v2/order-usage/:orderId` | Postman v2 (`order-usage`) | Consulta de consumo de datos v2 por ID de orden. |
+| `POST` | `/api/v2/order-usage/bulk` | Postman v2 (`order-usage`) | Consulta masiva de consumo de múltiples órdenes (`order_ids`). |
+| `GET` | `/api/v1/credits/balance` | Postman v2 (`credits`) | Consulta del saldo actual de créditos y moneda de la cuenta revendedora. |
 | `POST` | `/profiles/{esimTranNo}/topup` | `src/app/api/topup/route.js` | Recarga de datos sobre una eSIM existente (`plan_id`). |
 | `GET`/`POST` | `/reseller/pricing` | `src/app/api/pricing/route.js` | Consulta y actualización de márgenes comerciales de revendedor. |
 
@@ -134,6 +137,33 @@ StrongeSIM utiliza autenticación basada en sesión y token JWT devuelto en `/au
 - `usedBytes`: `profile.orderUsage` (convertido a `usedMb` y `usedGb`).
 - `percentageUsed`: `(usedBytes / totalBytes) * 100`.
 - `isExpired`: evaluado si el estado es `USED_EXPIRED`, `EXPIRED`, `COMPLETED`, `CANCELLED`, `expiredTime < Date.now()` o `usedBytes >= totalBytes`.
+
+### D. Consulta de Consumo v2 (`GET /api/v2/order-usage/:orderId` y `POST /api/v2/order-usage/bulk`)
+Permite verificar telemetría directamente por ID de orden sin requerir el ICCID previo.
+- **Unitario (`GET /api/v2/order-usage/:orderId`)**:
+  - Requiere cabeceras `Authorization: Bearer <token>` y `X-Session-ID: <session_id>`.
+  - Devuelve consumo acumulado, límites y estado del perfil asociado a la orden.
+- **Masivo (`POST /api/v2/order-usage/bulk`)**:
+  ```json
+  {
+    "order_ids": [12345, 12346]
+  }
+  ```
+  Devuelve el listado consolidado de consumo para sincronizaciones periódicas de flota o clientes multi-dispositivo.
+
+### E. Consulta de Saldo de Créditos (`GET /api/v1/credits/balance`)
+Permite comprobar los fondos y crédito disponible de la cuenta revendedora para garantizar que hay saldo suficiente antes de aprovisionar nuevas eSIMs.
+- **Cabeceras:** `Authorization: Bearer <token>`, `X-Session-ID: <session_id>`.
+- **Estructura típica de respuesta (`200 OK`):**
+  ```json
+  {
+    "success": true,
+    "data": {
+      "balance": 1540.50,
+      "currency": "EUR"
+    }
+  }
+  ```
 
 ---
 

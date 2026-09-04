@@ -4,11 +4,20 @@ Esta documentación detalla el uso de WooCommerce (`https://api.me-sim.com` / `h
 
 ---
 
-## 1. Autenticación y Configuración de Entorno
+## 1. Principio Fundamental: Arquitectura Headless sin Catálogo
+
+> **Regla de Oro:** WooCommerce no almacena productos en base de datos (`post_type: product` no interviene).
+- **Fuente de Catálogo:** StrongeSIM es el único proveedor de inventario, precios mayoristas, paquetes (MB/GB) y vigencias.
+- **Rol de WooCommerce:** Actúa exclusivamente como motor transaccional, libro contable de pedidos, gestor de pasarelas, autenticación de clientes y validación de cupones.
+- **Creación dinámica de ítems:** Todas las llamadas a `POST /wp-json/wc/v3/orders` inyectan `line_items` dinámicos bajo demanda **sin `product_id`**, pasando el SKU y metadatos calculados al vuelo desde Next.js. Queda estrictamente prohibido crear dependencias hacia endpoints de productos como `/wp-json/wc/v3/products`.
+
+---
+
+## 2. Autenticación y Configuración de Entorno
 
 ### Variables de Entorno Requeridas
 ```env
-WOOCOMMERCE_API_URL=https://api.me-sim.com          # URL base de WordPress / WooCommerce
+WOOCOMMERCE_API_URL=[https://api.me-sim.com](https://api.me-sim.com)          # URL base de WordPress / WooCommerce
 WOOCOMMERCE_CONSUMER_KEY=ck_xxxxxxxxxxxxxxxxxxx     # Alternativa: WC_CONSUMER_KEY
 WOOCOMMERCE_CONSUMER_SECRET=cs_xxxxxxxxxxxxxxxx     # Alternativa: WC_CONSUMER_SECRET
 ME_SIM_BRIDGE_SECRET=clave_secreta_compartida_hmac  # Secreto para validar firma en webhooks
@@ -22,7 +31,7 @@ const authHeader = 'Basic ' + Buffer.from(`${consumerKey}:${consumerSecret}`).to
 
 ---
 
-## 2. Gestión de Clientes en WooCommerce (`/wp-json/wc/v3/customers`)
+## 3. Gestión de Clientes en WooCommerce (`/wp-json/wc/v3/customers`)
 
 Antes de emitir el pedido en `src/app/api/orders/route.js`:
 1. **Búsqueda por email:**
@@ -43,9 +52,30 @@ Antes de emitir el pedido en `src/app/api/orders/route.js`:
 
 ---
 
-## 3. Mapeo de Campos y Metadatos en `/orders`
+## 4. Gestión de Cupones de Descuento (`/wp-json/wc/v3/coupons`)
 
-### A. Creación de Pedido (`POST /wp-json/wc/v3/orders`)
+Para validar códigos promocionales ingresados por el usuario antes de procesar el cobro:
+1. **Consulta de Cupón:**
+   `GET /wp-json/wc/v3/coupons?code={encodeURIComponent(code)}`
+2. **Validaciones en servidor:**
+   - Fecha de vencimiento (`date_expires`).
+   - Límite de usos (`usage_limit` vs `usage_count`).
+   - Tipo de descuento: `percent` (porcentaje) o `fixed_cart` (importe fijo en divisa base).
+3. **Inyección en Pedido:**
+   Al crear la orden, el cupón validado se adjunta en el array `coupon_lines`:
+   ```json
+   {
+     "coupon_lines": [
+       { "code": "PROMO10" }
+     ]
+   }
+   ```
+
+---
+
+## 5. Mapeo de Campos y Metadatos en `/orders`
+
+### A. Creación de Pedido Dinámico (`POST /wp-json/wc/v3/orders`)
 Cuando la compra se procesa desde el frontend tras confirmar el pago en Stripe, se registra la orden en WooCommerce con el estado `completed`, `set_paid: true` y todos los metadatos de la eSIM ya aprovisionada.
 
 **Payload Estructurado:**
@@ -91,7 +121,7 @@ Cuando la compra se procesa desde el frontend tras confirmar el pago en Stripe, 
     { "key": "_esim_days", "value": "30" },
     { "key": "_esim_iccid", "value": "89852012345678901234" },
     { "key": "_esim_transaction_no", "value": "89852012345678901234" },
-    { "key": "_esim_qr_code", "value": "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=..." },
+    { "key": "_esim_qr_code", "value": "[https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=](https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=)..." },
     { "key": "_esim_activation_code", "value": "LPA:1$rsp.strongesim.com$89852012345678901234" },
     { "key": "_esim_provisioned", "value": "yes" }
   ]
@@ -115,7 +145,7 @@ Los agentes y funciones deben respetar exactamente estos nombres de metadatos (c
 
 ---
 
-## 4. Webhook de WooCommerce (`POST /api/v1/woocommerce-webhook`)
+## 6. Webhook de WooCommerce (`POST /api/v1/woocommerce-webhook`)
 
 ### Estructura de la Firma HMAC y Verificación
 Para garantizar la integridad y procedencia de los pedidos originados en WooCommerce:
