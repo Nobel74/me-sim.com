@@ -34,7 +34,7 @@ export default function CountryCard({ iso, countryName, priceEur, lang = 'es', c
             {displayName}
           </h3>
           <div className="flex items-baseline gap-1.5 mt-0.5">
-            <span className="text-xs text-zinc-400 font-normal font-sans">{t.fromPrice}</span>
+            <span className="text-sm text-zinc-600 font-medium font-sans">{t.fromPrice}</span>
             <span className="text-black font-semibold font-condensed text-lg">{formatCurrency(displayPrice, currency)}</span>
           </div>
         </div>
