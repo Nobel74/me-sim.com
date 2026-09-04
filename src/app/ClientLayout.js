@@ -14,6 +14,7 @@ export default function ClientLayout({ children }) {
   const [currency, setCurrency] = useState('EUR');
   const [cartCount, setCartCount] = useState(0);
   const [currentUser, setCurrentUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const t = getTranslation(lang);
@@ -29,6 +30,8 @@ export default function ClientLayout({ children }) {
       }
     } catch {
       setCurrentUser(null);
+    } finally {
+      setAuthLoading(false);
     }
   };
 
@@ -215,7 +218,14 @@ export default function ClientLayout({ children }) {
               <span>{t.navSupport || (lang === 'en' ? 'Support' : 'Soporte')}</span>
             </Link>
 
-            {currentUser ? (
+            {authLoading ? (
+              <div className="flex items-center gap-7 h-6" aria-hidden="true">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded-full bg-zinc-200 animate-pulse" />
+                  <div className="w-24 h-4 rounded-md bg-zinc-200 animate-pulse" />
+                </div>
+              </div>
+            ) : currentUser ? (
               <div className="flex items-center gap-7">
                 <Link href="/dashboard" className="hover:text-black hover:underline underline-offset-4 decoration-[#ffec00] decoration-4 transition-all flex items-center gap-2">
                   <svg className="w-4 h-4 fill-current text-black" viewBox="0 0 24 24">
@@ -231,7 +241,7 @@ export default function ClientLayout({ children }) {
                   <svg className="w-4 h-4 fill-current text-current" viewBox="0 0 24 24">
                     <path d="M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42C17.99 7.86 19 9.81 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7c0-2.19 1.01-4.14 2.58-5.42L6.17 5.17C4.23 6.82 3 9.26 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.74-1.23-5.18-3.17-6.83z" />
                   </svg>
-                  <span>{lang === 'en' ? 'Salir' : 'Salir'}</span>
+                  <span>{lang === 'en' ? 'Sign Out' : 'Cerrar Sesión'}</span>
                 </button>
               </div>
             ) : (
@@ -319,7 +329,12 @@ export default function ClientLayout({ children }) {
                 <span>{t.navSupport || (lang === 'en' ? 'Support' : 'Soporte')}</span>
               </Link>
 
-              {currentUser ? (
+              {authLoading ? (
+                <div className="py-2.5 border-b border-zinc-100 flex items-center gap-2.5 h-[49px]" aria-hidden="true">
+                  <div className="w-5 h-5 rounded-full bg-zinc-200 animate-pulse flex-shrink-0" />
+                  <div className="w-28 h-5 rounded-md bg-zinc-200 animate-pulse" />
+                </div>
+              ) : currentUser ? (
                 <>
                   <Link
                     href="/dashboard"
