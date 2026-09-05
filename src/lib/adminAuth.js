@@ -183,7 +183,6 @@ export function createAdminToken(user) {
     email: user.email,
     name: user.name,
     role: user.role, // 'admin' | 'partner'
-    avatar: user.avatar || '',
     iat: Math.floor(Date.now() / 1000),
     exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7, // 7 days
   };
