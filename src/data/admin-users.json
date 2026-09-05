@@ -8,5 +8,15 @@
     "passwordHash": "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918",
     "createdAt": "2026-09-01T10:00:00.000Z",
     "status": "active"
+  },
+  {
+    "id": "usr-partner-1",
+    "email": "evans.clem@gmail.com",
+    "name": "Clem Evans",
+    "role": "partner",
+    "avatar": "",
+    "passwordHash": "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918",
+    "createdAt": "2026-09-01T10:00:00.000Z",
+    "status": "active"
   }
 ]

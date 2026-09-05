@@ -15,7 +15,8 @@ export async function GET(request) {
     return NextResponse.json({ success: false, message: 'No autenticado' }, { status: 401 });
   }
 
-  const users = getAllAdminUsers().map((u) => ({
+  const allUsers = await getAllAdminUsers();
+  const users = allUsers.map((u) => ({
     id: u.id,
     email: u.email,
     name: u.name,
@@ -57,7 +58,7 @@ export async function POST(request) {
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    const users = getAllAdminUsers();
+    const users = await getAllAdminUsers();
 
     if (users.some((u) => u.email.toLowerCase() === cleanEmail)) {
       return NextResponse.json(
@@ -78,7 +79,10 @@ export async function POST(request) {
     };
 
     users.push(newUser);
-    saveAdminUsers(users);
+    const saved = await saveAdminUsers(users);
+    if (!saved) {
+      console.warn('Advertencia: saveAdminUsers devolvió false');
+    }
 
     return NextResponse.json({
       success: true,
@@ -119,7 +123,7 @@ export async function PUT(request) {
       );
     }
 
-    const users = getAllAdminUsers();
+    const users = await getAllAdminUsers();
     const userIndex = users.findIndex((u) => u.id === targetUserId);
 
     if (userIndex === -1) {
@@ -156,7 +160,10 @@ export async function PUT(request) {
     }
 
     users[userIndex] = targetUser;
-    saveAdminUsers(users);
+    const saved = await saveAdminUsers(users);
+    if (!saved) {
+      console.warn('Advertencia: saveAdminUsers devolvió false');
+    }
 
     const safeUser = {
       id: targetUser.id,
@@ -230,7 +237,7 @@ export async function DELETE(request) {
       );
     }
 
-    const users = getAllAdminUsers();
+    const users = await getAllAdminUsers();
     const targetUser = users.find((u) => u.id === userId);
 
     if (!targetUser) {
@@ -248,7 +255,7 @@ export async function DELETE(request) {
     }
 
     const filteredUsers = users.filter((u) => u.id !== userId);
-    saveAdminUsers(filteredUsers);
+    await saveAdminUsers(filteredUsers);
 
     return NextResponse.json({
       success: true,

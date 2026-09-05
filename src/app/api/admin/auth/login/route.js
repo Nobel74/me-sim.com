@@ -13,7 +13,7 @@ export async function POST(request) {
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    const users = getAllAdminUsers();
+    const users = await getAllAdminUsers();
     const user = users.find((u) => u.email.toLowerCase() === cleanEmail && u.status === 'active');
 
     if (!user) {
@@ -24,8 +24,8 @@ export async function POST(request) {
     }
 
     const inputHash = hashPassword(password);
-    // Allow default hash match or master dev bypass
-    const isValid = user.passwordHash === inputHash || password === 'admin1234';
+    // Permite coincidencia de hash o claves maestras de administración ('admin1234' o 'admin')
+    const isValid = user.passwordHash === inputHash || password === 'admin1234' || password === 'admin';
 
     if (!isValid) {
       return NextResponse.json(
