@@ -16,6 +16,8 @@
 # misc
 .DS_Store
 *.pem
+/scratch/
+test-qa.mjs
 
 # debug
 npm-debug.log*

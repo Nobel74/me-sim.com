@@ -132,6 +132,13 @@ export default function ClientLayout({ children }) {
     }
   };
 
+  const isAdminRoute = pathname?.startsWith('/admin');
+
+  // Si estamos en el área de administración, ocultar el header público, chatbot y footer público de cliente
+  if (isAdminRoute) {
+    return <>{children}</>;
+  }
+
   return (
     <>
       {/* Top Preference Bar (Hidden on tiny mobile, shown in drawer or desktop) */}

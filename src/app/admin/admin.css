@@ -1,0 +1,42 @@
+// src/app/admin/admin.css
+/* Dark background with accent #ffec00 */
+:root {
+  --color-bg: #121212; /* dark */
+  --color-primary: #ffec00; /* accent */
+  --color-text: #e0e0e0;
+}
+
+.admin-layout {
+  min-height: 100vh;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  display: flex;
+  flex-direction: column;
+}
+
+.container-naked {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+@media (min-width: 640px) {
+  .container-naked {
+    padding-left: 1rem; /* sm */
+    padding-right: 1rem;
+  }
+}
+
+.btn-primary {
+  display: inline-block;
+  background-color: var(--color-primary);
+  color: #000;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.btn-primary:hover {
+  background-color: #ffd700; /* slightly lighter */
+  transform: translateY(-2px);
+}

@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { strongesimFetch, resolveStrongeSimPlanId } from '../../../../lib/strongesim';
 import { addDiagnosticLog } from '../../../../lib/logger';
 import { checkOrderProvisioned, markOrderProvisioned } from '../../../../lib/idempotency';
+import { saveOrUpdateOrder } from '../../../../lib/ordersService';
 
 // Secure CORS Headers
 const corsHeaders = {
