@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAdminSessionFromRequest } from '../../../../../lib/adminAuth';
 import { fetchEsimProfileTelemetry } from '../../../../../lib/strongesim';
 import { getOrderById } from '../../../../../lib/ordersService';
-import { resolveUniversalTelemetry } from '../../../../../lib/universalTelemetry';
+import { resolveUniversalTelemetry, getOrderTelemetryWithCache } from '../../../../../lib/universalTelemetry';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,11 +36,8 @@ async function processTelemetry(request, queryParams = {}) {
       };
     }
 
-    // 2. Consulta en vivo a la API oficial del operador StrongeSIM
-    const liveUsage = await fetchEsimProfileTelemetry(esimTranNo || order.esimTranNo, orderId || order.orderId);
-
-    // 3. Resolución universal determinista y sin IDs cableados para todos los clientes (pasados, actuales y futuros)
-    const resolvedTelemetry = resolveUniversalTelemetry(order, liveUsage);
+    // 2. Consulta en vivo forzada a StrongeSIM con actualización automática de la caché compartida
+    const resolvedTelemetry = await getOrderTelemetryWithCache(order, true);
 
     return NextResponse.json({
       success: true,

@@ -1,5 +1,5 @@
-import { addDiagnosticLog } from './logger';
-import { ALL_WORLD_COUNTRIES } from './i18n';
+import { addDiagnosticLog } from './logger.js';
+import { ALL_WORLD_COUNTRIES } from './i18n.js';
 
 let authToken = null;
 let sessionId = null;

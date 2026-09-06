@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAdminSessionFromRequest } from '../../../../lib/adminAuth';
 import { fetchEsimProfileTelemetry } from '../../../../lib/strongesim';
 import { getLocalOrders } from '../../../../lib/ordersService';
-import { extractTotalMbFromOrder, resolveUniversalTelemetry } from '../../../../lib/universalTelemetry';
+import { extractTotalMbFromOrder, resolveUniversalTelemetry, getOrderTelemetryWithCache } from '../../../../lib/universalTelemetry';
 
 export const dynamic = 'force-dynamic';
 
@@ -118,11 +118,12 @@ export async function GET(request) {
       return new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date);
     });
 
-    // Enriquecer cada pedido con su telemetría garantizada e instantánea (sin bloquear con llamadas lentas)
-    ordersList = ordersList.map((order) => ({
-      ...order,
-      telemetry: getResolvedOrderTelemetry(order),
-    }));
+    // Enriquecer cada pedido en paralelo con la telemetría viva y sincronizada de StrongeSIM
+    await Promise.allSettled(
+      ordersList.map(async (order) => {
+        order.telemetry = await getOrderTelemetryWithCache(order);
+      })
+    );
 
     // Si se solicita un pedido específico por ID
     const { searchParams } = new URL(request.url);
@@ -130,13 +131,7 @@ export async function GET(request) {
     if (orderIdQuery) {
       const found = ordersList.find((o) => String(o.orderId).toLowerCase() === String(orderIdQuery).toLowerCase());
       if (found) {
-        // Enriquecer con telemetría viva de StrongeSIM si está disponible
-        if (found.esimTranNo) {
-          try {
-            const live = await fetchEsimProfileTelemetry(found.esimTranNo, found.orderId);
-            found.telemetry = resolveUniversalTelemetry(found, live);
-          } catch {}
-        }
+        found.telemetry = await getOrderTelemetryWithCache(found);
         return NextResponse.json({ success: true, order: found });
       }
       return NextResponse.json({ success: false, message: 'Pedido no encontrado' }, { status: 404 });

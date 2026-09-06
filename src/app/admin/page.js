@@ -1106,8 +1106,8 @@ export default function AdminDashboardPage() {
                                 </span>
                                 <span className={`font-bold ${isDark ? 'text-white' : 'text-zinc-900'}`}>
                                   {telem.totalMb < 1000
-                                    ? `${telem.usedMb} / ${Math.round(telem.totalMb)} MB (${pct}%)`
-                                    : `${(telem.usedMb / 1024).toFixed(1)} / ${(telem.totalMb / 1024).toFixed(0)} GB (${pct}%)`}
+                                    ? `${Number(telem.usedMb).toFixed(1)} / ${Math.round(telem.totalMb)} MB (${pct}%)`
+                                    : `${(telem.usedMb / 1024).toFixed(2)} / ${(telem.totalMb / 1024).toFixed(1)} GB (${pct}%)`}
                                 </span>
                               </div>
                               <div className={`w-full h-2 rounded-full overflow-hidden ${isDark ? 'bg-zinc-800' : 'bg-zinc-200'}`}>
@@ -1223,8 +1223,8 @@ export default function AdminDashboardPage() {
                                     <div className="flex items-center justify-between text-[10px] font-mono">
                                       <span className={isDark ? 'text-zinc-400' : 'text-zinc-500'}>
                                         {telem.totalMb < 1000
-                                          ? `${telem.usedMb} / ${Math.round(telem.totalMb)} MB`
-                                          : `${(telem.usedMb / 1024).toFixed(1)} / ${(telem.totalMb / 1024).toFixed(0)} GB`}
+                                          ? `${Number(telem.usedMb).toFixed(1)} / ${Math.round(telem.totalMb)} MB`
+                                          : `${(telem.usedMb / 1024).toFixed(2)} / ${(telem.totalMb / 1024).toFixed(1)} GB`}
                                       </span>
                                       <span className={`font-bold ${pct > 80 ? 'text-amber-500' : 'text-emerald-500'}`}>
                                         {pct}%

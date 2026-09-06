@@ -1,11 +1,5 @@
-/**
- * Universal Telemetry Resolver for ME-SIM eSIM platform.
- * 
- * Regla de Oro del Proyecto:
- * CERO IDs cableados. CERO nombres fijos. CERO parches temporales.
- * Funciona de forma 100% universal y matemática para cualquier orden y cliente
- * (pedidos pasados, actuales y futuros).
- */
+import { fetchEsimProfileTelemetry } from './strongesim.js';
+
 
 /**
  * Extrae el volumen total contratado en Megabytes (MB) para CUALQUIER orden
@@ -112,3 +106,48 @@ export function resolveUniversalTelemetry(order, liveData = null) {
     source: (liveUsedBytes > 0 || liveUsedMb > 0) ? 'strongesim_live_operator' : 'universal_lifecycle_engine',
   };
 }
+
+// Caché en memoria para telemetría en vivo con TTL de 3 minutos para máxima velocidad y coherencia 1:1
+const telemetryCache = new Map();
+const CACHE_TTL_MS = 3 * 60 * 1000;
+
+/**
+ * Obtiene la telemetría de una orden de forma universal y sincronizada.
+ * Si ya está en caché y vigente, la devuelve al instante.
+ * Si no, consulta la red de StrongeSIM en paralelo con un timeout seguro de 2.5s.
+ * Ambas vistas (listado y ficha de detalle) comparten exactamente la misma fuente de verdad.
+ */
+export async function getOrderTelemetryWithCache(order, forceRefresh = false) {
+  if (!order) return null;
+  const key = String(order.esimTranNo || order.orderId || '');
+  const now = Date.now();
+
+  if (!forceRefresh && key && telemetryCache.has(key)) {
+    const entry = telemetryCache.get(key);
+    if (now - entry.timestamp < CACHE_TTL_MS) {
+      return entry.telemetry;
+    }
+  }
+
+  let live = null;
+  const targetTran = order.esimTranNo;
+  const targetId = order.orderId;
+  if (targetTran || targetId) {
+    try {
+      const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(null), 2500));
+      live = await Promise.race([
+        fetchEsimProfileTelemetry(targetTran, targetId),
+        timeoutPromise,
+      ]);
+    } catch {
+      // Fallback a motor determinista seguro
+    }
+  }
+
+  const resolved = resolveUniversalTelemetry(order, live);
+  if (key) {
+    telemetryCache.set(key, { telemetry: resolved, timestamp: now });
+  }
+  return resolved;
+}
+
