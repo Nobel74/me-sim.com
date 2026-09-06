@@ -108,8 +108,14 @@ const emailResult = await sendEmail({
   type: 'order_confirmation',
   data: testOrderData,
 });
-if (testEmailHtml.includes('8985200000000099999') && emailResult && emailResult.success) {
-  console.log('✔ Test 6 PASSED: QR Code and setup instructions email generated and dispatched.');
+if (
+  testEmailHtml.includes('8985200000000099999') &&
+  testEmailHtml.includes('https://www.me-sim.com/soporte') &&
+  testEmailHtml.includes('APN') &&
+  emailResult &&
+  emailResult.success
+) {
+  console.log('✔ Test 6 PASSED: QR Code, APN guide, and https://www.me-sim.com/soporte link verified in email.');
 } else {
   console.error('❌ Test 6 FAILED: Resend email pipeline error.');
   process.exit(1);

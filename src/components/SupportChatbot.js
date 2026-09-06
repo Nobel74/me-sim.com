@@ -18,6 +18,7 @@ const CHAT_DATABASE = {
         text: "Para guiarte paso a paso, dime qué problema estás experimentando:",
         options: [
           { text: "No tengo conexión a Internet", next: "no_data" },
+          { text: "APN y Selección manual de Carrier", next: "how_carrier_manual" },
           { text: "Conexión lenta o sin cobertura", next: "slow_connection" },
           { text: "Instalación y código QR", next: "installation" },
           { text: "Comprobar compatibilidad", next: "compatibility" },
@@ -64,17 +65,25 @@ const CHAT_DATABASE = {
         ]
       },
       no_data_step2: {
-        text: "**Siguiente comprobación:** ¿Tienes la **selección de red en 'Automático'** en los ajustes de la eSIM?",
+        text: "**Siguiente comprobación: APN y Red Móvil**\n\nEl **APN** y la conexión de red de tu eSIM están configurados para funcionar de modo **Automático**. Sin embargo, a veces el enlace automático no logra asociarse con la antena adecuada de inmediato.\n\n¿Tienes datos activos o la selección automática no te conecta a internet?",
         options: [
-          { text: "Sí, está en automático", next: "no_data_step3" },
-          { text: "No, lo tenía en manual", next: "how_network_auto" }
+          { text: "No conecta / Probar carrier manual", next: "how_carrier_manual" },
+          { text: "Está en automático, comprobar línea de datos", next: "no_data_step3" }
+        ]
+      },
+      how_carrier_manual: {
+        text: "💡 **Solución: Pasar de Automático a Selección Manual de Carrier (Operador)**\n\nEl APN y la red automática suelen funcionar, pero si no tienes datos al llegar, debes seleccionar el operador manualmente:\n\n1. **Desactiva la Selección Automática de Red:**\n   • **iPhone (iOS):** Ve a *Ajustes > Datos móviles > [Tu eSIM ME-SIM] > Selección de red* y desactiva **'Automática'**.\n   • **Android:** Ve a *Ajustes > Conexiones > Redes móviles > Operadores de red* y desactiva **'Seleccionar automáticamente'**.\n\n2. **Prueba los Carriers disponibles uno a uno:**\n   Tu teléfono buscará y listará los operadores locales detectados en el país (ej. Movistar, Orange, Vodafone, AT&T, T-Mobile, etc.).\n   • **Selecciona el primer carrier** de la lista.\n   • Espera entre 30 y 60 segundos y comprueba si aparece el indicador 4G/5G y navega.\n   • Si no conecta, **selecciona el siguiente carrier** disponible en la lista y vuelve a probar.\n   • Repite hasta encontrar el carrier válido que active tu tráfico de datos.\n\n3. **Revisión del APN:**\n   Por lo general, al conectar con el carrier válido el APN se configura por sí solo. Si tu móvil solicita un APN manual en *Ajustes > Red de datos celulares*, asegúrate de que esté en automático o escribe el nombre del carrier conectado.\n\n¿Ha empezado a funcionar tu conexión de datos tras probar un carrier manual?",
+        options: [
+          { text: "¡Sí, ya tengo internet!", next: "solved_success" },
+          { text: "Comprobar asignación de datos", next: "no_data_step3" },
+          { text: "No, necesito ayuda de un agente", next: "contact_human" }
         ]
       },
       how_network_auto: {
-        text: "Configurar la red en manual puede impedir que la eSIM se conecte al operador local preferente. Asegúrate de ir a:\n\n*Ajustes > Red móvil > Selección de red > Activar **Automático**.*",
+        text: "Si la selección automática no te da datos, te recomendamos pasar a modo manual:\n\n*Ajustes > Red móvil / Selección de red > Desactivar 'Automático'* y prueba los operadores disponibles uno a uno hasta encontrar uno válido.",
         options: [
-          { text: "Hecho, comprobar siguiente paso", next: "no_data_step3" },
-          { text: "Volver al inicio", next: "intro" }
+          { text: "Ver guía de carrier manual", next: "how_carrier_manual" },
+          { text: "Comprobar siguiente paso", next: "no_data_step3" }
         ]
       },
       no_data_step3: {
@@ -183,6 +192,7 @@ const CHAT_DATABASE = {
     
     // Emparejamiento por palabras clave
     keywords: [
+      { keys: ["apn", "carrier", "operador", "operadores", "red manual", "manual", "seleccion manual", "carrier manual", "redes", "antena"], dest: "how_carrier_manual" },
       { keys: ["whatsapp", "mensajeria", "mensaje", "chats", "chat", "mantener numero", "numero habitual"], dest: "whatsapp_info" },
       { keys: ["pagar", "pago", "tarjeta", "stripe", "visa", "mastercard", "factura", "facturar", "divisa", "euro", "dolar"], dest: "payments_info" },
       { keys: ["lento", "lenta", "lentitud", "cobertura", "velocidad", "senal", "señal", "3g", "hplus"], dest: "slow_connection" },
@@ -207,6 +217,7 @@ const CHAT_DATABASE = {
         text: "To guide you step by step, what issue are you facing?",
         options: [
           { text: "No Internet Connection", next: "no_data" },
+          { text: "APN & Manual Carrier Selection", next: "how_carrier_manual" },
           { text: "Slow connection or bad coverage", next: "slow_connection" },
           { text: "Installation & QR Code", next: "installation" },
           { text: "Check Device Compatibility", next: "compatibility" },
@@ -251,17 +262,25 @@ const CHAT_DATABASE = {
         ]
       },
       no_data_step2: {
-        text: "**Next check:** Is your network selection set to **'Automatic'** for the eSIM?",
+        text: "**Next check: APN & Mobile Network**\n\nYour eSIM **APN** and cellular connection are designed to work in **Automatic** mode. However, sometimes automatic mode fails to negotiate with the proper local cell tower right away.\n\nAre you getting active data, or is automatic mode failing to connect?",
         options: [
-          { text: "Yes, it is set to Automatic", next: "no_data_step3" },
-          { text: "No, it was on manual", next: "how_network_auto" }
+          { text: "No connection / Test manual carrier", next: "how_carrier_manual" },
+          { text: "Automatic is set, check data line", next: "no_data_step3" }
+        ]
+      },
+      how_carrier_manual: {
+        text: "💡 **Solution: Switch to Manual Mode & Test Available Carriers**\n\nAutomatic APN and network negotiation usually work, but occasionally automatic mode fails upon arrival. In that case, you should select your carrier manually:\n\n1. **Disable Automatic Network Selection:**\n   • **iPhone (iOS):** Go to *Settings > Cellular / Mobile Data > [ME-SIM eSIM] > Network Selection* and turn **'Automatic' OFF**.\n   • **Android:** Go to *Settings > Connections > Mobile Networks > Network Operators* and turn **OFF 'Select automatically'**.\n\n2. **Test Available Carriers one by one:**\n   Your phone will scan and list all nearby local operators (e.g., AT&T, T-Mobile, Vodafone, Orange, etc.).\n   • **Select the first carrier** on the list.\n   • Wait 30 to 60 seconds and check if 4G/5G appears and internet loads.\n   • If it does not connect, **select the next available carrier** on the list and test again.\n   • Repeat until you find a valid carrier that activates your data connection.\n\n3. **APN Verification:**\n   In almost all cases, selecting the right carrier sets the APN automatically. If your phone asks for a manual APN under *Cellular Data Network*, leave it on automatic or enter the name of the connected carrier.\n\nDid your internet start working after selecting a manual carrier?",
+        options: [
+          { text: "Yes, works now!", next: "solved_success" },
+          { text: "Check line assignment", next: "no_data_step3" },
+          { text: "No, I need human support", next: "contact_human" }
         ]
       },
       how_network_auto: {
-        text: "Selecting network manually can prevent connecting to the optimal local carrier. Go to:\n\n*Settings > Cellular > Network Selection > Turn 'Automatic' ON.*",
+        text: "If automatic network selection fails to provide data, we recommend switching to manual mode:\n\n*Settings > Cellular / Mobile Data > Network Selection > Turn 'Automatic' OFF* and test available carriers one by one until finding a working one.",
         options: [
-          { text: "Done, check next step", next: "no_data_step3" },
-          { text: "Back to menu", next: "intro" }
+          { text: "View manual carrier guide", next: "how_carrier_manual" },
+          { text: "Check next step", next: "no_data_step3" }
         ]
       },
       no_data_step3: {
@@ -364,6 +383,7 @@ const CHAT_DATABASE = {
       }
     },
     keywords: [
+      { keys: ["apn", "carrier", "operator", "carriers", "manual network", "manual carrier", "network selection", "cell tower"], dest: "how_carrier_manual" },
       { keys: ["whatsapp", "messaging", "message", "chats", "chat", "keep number", "home number"], dest: "whatsapp_info" },
       { keys: ["pay", "payment", "card", "stripe", "visa", "mastercard", "invoice", "currency", "euro", "dollar"], dest: "payments_info" },
       { keys: ["slow", "slowness", "speed", "coverage", "signal", "3g", "hplus", "bad network"], dest: "slow_connection" },

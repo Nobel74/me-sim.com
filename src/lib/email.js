@@ -205,7 +205,7 @@ export function generateOrderConfirmationHtml(orderData, lang = 'es') {
 
         ${orderData.qrCodeUrl ? `
         <!-- QR Code Activation Section -->
-        <div style="background: #fafafa; border: 2px dashed #ffec00; border-radius: 16px; padding: 24px; margin-bottom: 28px; text-align: center;">
+        <div style="background: #fafafa; border: 2px dashed #ffec00; border-radius: 16px; padding: 24px; margin-bottom: 24px; text-align: center;">
           <h3 style="font-size: 16px; font-weight: 800; color: #000000; margin: 0 0 12px; text-transform: uppercase;">
             ${isEn ? 'Your eSIM QR Code' : 'Tu Código QR de Activación eSIM'}
           </h3>
@@ -226,6 +226,40 @@ export function generateOrderConfirmationHtml(orderData, lang = 'es') {
         </div>
         ` : ''}
 
+        <!-- APN & Network Support Section with link to /soporte -->
+        <div style="background: #ffffff; border: 1px solid #e4e4e7; border-left: 4px solid #ffec00; border-radius: 14px; padding: 22px; margin-bottom: 28px; text-align: left;">
+          <h4 style="font-size: 15px; font-weight: 800; color: #18181b; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.3px;">
+            ${isEn ? '💡 Connection Tip: APN & Manual Carrier Selection' : '💡 Consejo de Conexión: APN y Selección Manual de Carrier'}
+          </h4>
+          <p style="font-size: 13px; color: #3f3f46; line-height: 1.6; margin: 0 0 10px;">
+            ${isEn
+              ? 'By default, the <strong>APN</strong> and mobile network configure automatically. However, in some destinations the automatic mode might not register with the local network right away. If you do not have data upon arrival:'
+              : 'Por defecto, el <strong>APN</strong> y la red de tu eSIM se configuran de forma <strong>automática</strong>. Sin embargo, a veces el enlace automático no conecta de inmediato con la antena local. Si al aterrizar no tienes datos:'}
+          </p>
+          <ol style="font-size: 12px; color: #52525b; line-height: 1.6; margin: 0 0 16px; padding-left: 18px;">
+            <li style="margin-bottom: 4px;">
+              ${isEn
+                ? 'Make sure <strong>Data Roaming</strong> is turned ON in your ME-SIM profile.'
+                : 'Comprueba que la <strong>Itinerancia de datos (Data Roaming)</strong> esté ACTIVADA en tu línea ME-SIM.'}
+            </li>
+            <li style="margin-bottom: 4px;">
+              ${isEn
+                ? 'Go to <em>Settings &gt; Cellular / Mobile Data &gt; Network Selection</em> and <strong>turn OFF "Automatic"</strong>.'
+                : 'Ve a <em>Ajustes &gt; Datos móviles &gt; Selección de red</em> y <strong>desactiva "Automático"</strong>.'}
+            </li>
+            <li style="margin-bottom: 4px;">
+              ${isEn
+                ? 'Your device will scan available local operators (carriers). <strong>Select a carrier manually</strong> and wait 30–60 seconds. If it does not connect, <strong>test the next available carrier</strong> until finding a valid one with active data.'
+                : 'Tu teléfono buscará los operadores locales disponibles (carriers). <strong>Selecciona un carrier manualmente</strong> y espera 30-60 segundos. Si no conecta, <strong>prueba con el siguiente carrier</strong> de la lista hasta encontrar uno válido con conexión de datos.'}
+            </li>
+          </ol>
+          <div style="text-align: center; margin-top: 10px;">
+            <a href="https://www.me-sim.com/soporte" target="_blank" rel="noopener noreferrer" style="display: inline-block; background: #ffec00; color: #000000; font-weight: 800; font-size: 13px; text-decoration: none; padding: 11px 24px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.15); text-transform: uppercase; letter-spacing: 0.5px;">
+              ${isEn ? 'Open Support Center & Guides: www.me-sim.com/soporte ➔' : 'Centro de Ayuda y Guías: www.me-sim.com/soporte ➔'}
+            </a>
+          </div>
+        </div>
+
         <!-- Meta info (ID and Date) -->
         <div style="background: #f4f4f5; border-radius: 12px; padding: 16px; text-align: left; font-size: 13px; color: #52525b; margin-bottom: 32px; line-height: 1.6;">
           <p style="margin: 0;"><strong>${isEn ? 'Order ID:' : 'ID del Pedido:'}</strong> #${orderData.orderId}</p>
@@ -237,10 +271,10 @@ export function generateOrderConfirmationHtml(orderData, lang = 'es') {
           <p style="margin: 0 0 4px; font-weight: 600; color: #18181b;">
             ${isEn ? 'Thank you for choosing me-sim.com!' : '¡Gracias por elegir me-sim.com!'}
           </p>
-          <p style="margin: 0;">
+          <p style="margin: 0 0 6px;">
             ${isEn 
-              ? 'If you have any questions or need support, contact us at' 
-              : 'Si tienes cualquier duda o necesitas soporte, contáctanos en'} 
+              ? 'Need help or setup instructions? Visit our <a href="https://www.me-sim.com/soporte" style="color: #000000; font-weight: 700; text-decoration: underline;">Support Center (www.me-sim.com/soporte)</a> or email us at' 
+              : '¿Tienes dudas o necesitas ayuda? Visita nuestro <a href="https://www.me-sim.com/soporte" style="color: #000000; font-weight: 700; text-decoration: underline;">Centro de Soporte (www.me-sim.com/soporte)</a> o contáctanos en'} 
             <a href="mailto:info@me-sim.com" style="color: #000000; font-weight: 600; text-decoration: underline;">info@me-sim.com</a>.
           </p>
           <p style="margin: 16px 0 0; font-size: 12px; color: #a1a1aa;">

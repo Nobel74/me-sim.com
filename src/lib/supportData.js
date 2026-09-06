@@ -137,6 +137,22 @@ export const SUPPORT_CATEGORIES = {
           <li><strong>3. Reinicia el Dispositivo:</strong> Reiniciar el smartphone fuerza a la eSIM a registrarse en la antena local preferente.</li>
           <li><strong>4. Modo Avión:</strong> Activa el Modo Avión durante 10 segundos y vuelve a desactivarlo.</li>
         </ul>
+
+        <h2>APN y Selección Manual de Operador (Carrier)</h2>
+        <p>En el 95% de los casos, el <strong>APN</strong> (Nombre de Punto de Acceso) y la red se configuran en modo <strong>Automático</strong> en cuanto el móvil detecta cobertura. Sin embargo, en algunas ocasiones el modo automático puede no conectar de inmediato con la antena o el operador preferente.</p>
+        <p>Si tras unos minutos sigues sin datos móviles, <strong>debes pasar a modo manual y probar carriers locales</strong>:</p>
+        
+        <h3>Cómo seleccionar un Carrier manualmente:</h3>
+        <ol>
+          <li><strong>En iPhone (iOS):</strong> Ve a <em>Ajustes &gt; Datos móviles &gt; [Tu eSIM de ME-SIM] &gt; Selección de red</em> y <strong>desactiva la casilla 'Automática'</strong>.</li>
+          <li><strong>En Android (Samsung, Xiaomi, Pixel, etc.):</strong> Ve a <em>Ajustes &gt; Conexiones &gt; Redes móviles &gt; Operadores de red</em> y <strong>desactiva 'Seleccionar automáticamente'</strong>.</li>
+          <li><strong>Prueba los operadores disponibles uno a uno:</strong> Tu smartphone mostrará una lista de redes locales detectadas (ej. Movistar, Orange, Vodafone en España; AT&T o T-Mobile en EE.UU., etc.).</li>
+          <li><strong>Selecciona el primer operador:</strong> Espera entre 30 y 60 segundos hasta que la antena se autentique y comprueba si navegas.</li>
+          <li><strong>Si no conecta:</strong> Elige el siguiente carrier de la lista y vuelve a probar. Repite el proceso hasta dar con el operador válido que active el tráfico de datos.</li>
+        </ol>
+
+        <h3>¿Qué hacer con el APN?</h3>
+        <p>Al seleccionar el carrier válido, el APN se sincroniza por lo general de forma automática. Si tu smartphone te solicita introducir un APN manualmente (en <em>Ajustes &gt; Red de datos celulares</em> o <em>Nombres de punto de acceso</em>), asegúrate de que esté configurado en automático o escribe el nombre del operador local conectado.</p>
       `,
       en: `
         <h2>No Mobile Data After Landing?</h2>
@@ -147,6 +163,22 @@ export const SUPPORT_CATEGORIES = {
           <li><strong>3. Restart Phone:</strong> Restarting your device forces the profile to negotiate connection with local carriers.</li>
           <li><strong>4. Toggle Airplane Mode:</strong> Turn Airplane Mode ON for 10 seconds, then turn it back OFF.</li>
         </ul>
+
+        <h2>APN & Manual Carrier (Network) Selection</h2>
+        <p>In 95% of trips, the <strong>APN</strong> (Access Point Name) and network negotiate in <strong>Automatic</strong> mode as soon as your device finds cellular signal. However, sometimes the automatic protocol fails to register with the best local cell tower right away.</p>
+        <p>If you still do not have active internet after landing, <strong>switch to manual network selection and test available local carriers</strong>:</p>
+
+        <h3>How to Select a Carrier Manually:</h3>
+        <ol>
+          <li><strong>On iPhone (iOS):</strong> Go to <em>Settings &gt; Cellular / Mobile Data &gt; [ME-SIM eSIM] &gt; Network Selection</em> and <strong>turn OFF 'Automatic'</strong>.</li>
+          <li><strong>On Android (Samsung, Xiaomi, Pixel, etc.):</strong> Go to <em>Settings &gt; Connections &gt; Mobile Networks &gt; Network Operators</em> and <strong>turn OFF 'Select automatically'</strong>.</li>
+          <li><strong>Scan and view local carriers:</strong> Your phone will populate a list of detected local networks (e.g. AT&T, T-Mobile, Vodafone, Orange, etc.).</li>
+          <li><strong>Select the first carrier:</strong> Wait 30–60 seconds for network authentication and check if data flows.</li>
+          <li><strong>If no connection:</strong> Select the next available carrier from the list and test again. Repeat until you find a working carrier with active data.</li>
+        </ol>
+
+        <h3>What About the APN Settings?</h3>
+        <p>Once you latch onto the working carrier, the APN is usually assigned automatically. If your phone asks you to configure an APN manually under <em>Cellular Data Network</em> or <em>Access Point Names (APN)</em>, ensure it is set to automatic or match the name of the active local carrier.</p>
       `
     }
   },
@@ -238,8 +270,8 @@ export const SUPPORT_ARTICLES = [
         <h3>3. Reinicia tu teléfono</h3>
         <p>Reiniciar el dispositivo fuerza a la eSIM a realizar la autenticación inicial con las antenas del operador local asociado.</p>
 
-        <h3>4. Selección Manual de Red</h3>
-        <p>Si continúas sin señal, desactiva la "Selección automática de red" en los ajustes de la eSIM y prueba a seleccionar manualmente los operadores principales del país (ej. AT&T en EE.UU., Vodafone/Movistar en España, etc.).</p>
+        <h3>4. Selección Manual de Red y Carrier</h3>
+        <p>El APN y la red se configuran en modo automático, pero si tras unos minutos no navegas, <strong>desactiva la "Selección automática de red"</strong> en los ajustes de tu eSIM. Tu smartphone buscará los operadores locales disponibles (carriers): prueba a seleccionar uno por uno manualmente (esperando 30 a 60 segundos por cada operador) hasta encontrar el que active el tráfico de datos 4G/5G.</p>
       `,
       en: `
         <h2>How to fix connection issues after landing</h2>
@@ -254,8 +286,93 @@ export const SUPPORT_ARTICLES = [
         <h3>3. Restart your smartphone</h3>
         <p>Restarting forces the eSIM profile to register on the preferred local partner network towers.</p>
 
-        <h3>4. Manual Network Selection</h3>
-        <p>If automatic connection fails, turn off "Automatic Network Selection" and manually select one of the major local networks.</p>
+        <h3>4. Manual Network and Carrier Selection</h3>
+        <p>APN and cellular network are usually automatic, but if you do not get data after a few minutes, <strong>turn OFF "Automatic Network Selection"</strong> in your eSIM settings. Your device will list available local carriers: test them one by one manually (waiting 30–60 seconds for each) until finding a valid carrier that activates active 4G/5G data.</p>
+      `
+    }
+  },
+  {
+    slug: 'apn-carrier-manual-selection',
+    title: {
+      es: 'Configuración de APN y Selección Manual de Carrier (Operador)',
+      en: 'APN Setup & Manual Carrier (Network) Selection',
+    },
+    desc: {
+      es: 'Qué hacer si el APN o la red automática no conectan: pasa a modo manual y prueba carriers locales.',
+      en: 'What to do if automatic APN or network fails: switch to manual mode and test available local carriers.',
+    },
+    content: {
+      es: `
+        <h2>¿Por qué a veces el APN o la red automática no conectan?</h2>
+        <p>Las eSIM internacionales de ME-SIM.COM están programadas para configurar el <strong>APN (Nombre de Punto de Acceso)</strong> y la conexión de red de forma <strong>100% automática</strong>. Sin embargo, al aterrizar en un nuevo país o pasar por un aeropuerto, el teléfono puede intentar conectarse a una antena no autorizada o saturada, impidiendo que el modo automático complete la negociación.</p>
+
+        <h2>Solución: Pasar a Selección Manual de Operador (Carrier)</h2>
+        <p>Cuando esto ocurre, la solución más rápida y efectiva es <strong>desactivar la búsqueda automática de red y elegir un carrier manualmente</strong>:</p>
+
+        <h3>Paso a paso en iPhone (iOS):</h3>
+        <ol>
+          <li>Abre <strong>Ajustes &gt; Datos móviles</strong>.</li>
+          <li>En la sección "Líneas de datos", pulsa sobre tu <strong>eSIM de ME-SIM</strong>.</li>
+          <li>Entra en <strong>Selección de red</strong> y <strong>desactiva la casilla 'Automática'</strong>.</li>
+          <li>Espera unos segundos mientras tu iPhone busca los operadores locales disponibles en la zona (por ejemplo: <em>Movistar, Vodafone, Orange</em> en España; <em>AT&T, T-Mobile</em> en EE.UU., etc.).</li>
+          <li><strong>Selecciona el primer operador</strong> de la lista. Espera 30–60 segundos y comprueba si aparece el icono 4G o 5G en la barra superior.</li>
+          <li>Si no navega, <strong>selecciona el siguiente operador</strong> y vuelve a probar. Repite este paso hasta dar con el operador válido que active tu tráfico de datos.</li>
+        </ol>
+
+        <h3>Paso a paso en Android (Samsung, Xiaomi, Google Pixel, Motorola, etc.):</h3>
+        <ol>
+          <li>Abre <strong>Ajustes &gt; Conexiones &gt; Redes móviles</strong> (o <em>Redes e Internet &gt; SIMs</em>).</li>
+          <li>Asegúrate de tener seleccionada la <strong>eSIM de ME-SIM</strong>.</li>
+          <li>Entra en <strong>Operadores de red</strong> y <strong>desactiva 'Seleccionar automáticamente'</strong>.</li>
+          <li>Elige el primer operador de la lista generada. Espera unos instantes para que negocie la señal.</li>
+          <li>Si no tienes datos, <strong>selecciona el siguiente carrier disponible</strong> hasta encontrar el que te permita navegar con normalidad.</li>
+        </ol>
+
+        <h2>¿Cómo comprobar el APN manualmente?</h2>
+        <p>En el 99% de los casos, al conectar con el carrier válido, el APN se configura por sí solo sin que tengas que escribir nada. Si tu dispositivo te solicita un APN manual en el menú <em>Red de datos celulares / Nombres de punto de acceso (APN)</em>:</p>
+        <ul>
+          <li>Comprueba que el APN esté en modo automático o escribe el nombre del operador local conectado.</li>
+          <li>No modifiques el nombre de usuario ni la contraseña a menos que te lo indique expresamente nuestro soporte.</li>
+        </ul>
+
+        <h2>¿Sigues necesitando ayuda?</h2>
+        <p>Si has probado todos los carriers disponibles y sigues sin conexión, nuestro equipo de soporte técnico 24/7 está a tu disposición en <a href="mailto:info@me-sim.com">info@me-sim.com</a> para asistirte personalmente.</p>
+      `,
+      en: `
+        <h2>Why Does Automatic APN or Network Negotiation Sometimes Fail?</h2>
+        <p>ME-SIM.COM international travel eSIMs are engineered to configure the <strong>APN (Access Point Name)</strong> and network connectivity <strong>100% automatically</strong>. However, upon landing in a new destination or traversing airports, your device may attempt to latch onto a non-roaming or congested base station, causing the automatic handshake to stall.</p>
+
+        <h2>Solution: Switch to Manual Carrier (Network) Selection</h2>
+        <p>When this happens, the most reliable fix is to <strong>turn off automatic network selection and manually test available carriers</strong>:</p>
+
+        <h3>Step-by-step on iPhone (iOS):</h3>
+        <ol>
+          <li>Open <strong>Settings &gt; Cellular / Mobile Data</strong>.</li>
+          <li>Under "SIMs / Cellular Plans", tap your <strong>ME-SIM profile</strong>.</li>
+          <li>Tap <strong>Network Selection</strong> and <strong>turn OFF 'Automatic'</strong>.</li>
+          <li>Wait a few seconds while your iPhone populates all available local carriers (e.g., <em>AT&T, T-Mobile</em> in the US; <em>Vodafone, Orange</em> in Europe, etc.).</li>
+          <li><strong>Select the first carrier</strong> on the list. Wait 30–60 seconds and check if 4G/5G appears in your status bar.</li>
+          <li>If internet does not load, <strong>select the next carrier</strong> and test again. Repeat until you identify the working carrier that routes active data.</li>
+        </ol>
+
+        <h3>Step-by-step on Android (Samsung, Xiaomi, Google Pixel, Motorola, etc.):</h3>
+        <ol>
+          <li>Open <strong>Settings &gt; Connections &gt; Mobile Networks</strong> (or <em>Network & internet &gt; SIMs</em>).</li>
+          <li>Select your <strong>ME-SIM profile</strong>.</li>
+          <li>Tap <strong>Network Operators</strong> and <strong>turn OFF 'Select automatically'</strong>.</li>
+          <li>Select the first operator displayed on the scanned list. Wait for the signal to register.</li>
+          <li>If data does not flow, <strong>select the next available carrier</strong> until finding the one that provides stable internet.</li>
+        </ol>
+
+        <h2>How to Verify APN Settings?</h2>
+        <p>In 99% of cases, selecting the working carrier sets the APN automatically without requiring manual input. If your smartphone specifically asks for an APN under <em>Cellular Data Network / Access Point Names (APN)</em>:</p>
+        <ul>
+          <li>Ensure APN is set to automatic, or enter the name of the connected local carrier.</li>
+          <li>Leave username and password blank unless specifically advised by our support team.</li>
+        </ul>
+
+        <h2>Still Need Assistance?</h2>
+        <p>If you tested all available carriers and still have no connection, our 24/7 human technical team is ready to help at <a href="mailto:info@me-sim.com">info@me-sim.com</a>.</p>
       `
     }
   },
