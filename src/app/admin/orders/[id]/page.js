@@ -21,6 +21,7 @@ export default function AdminOrderDetailPage() {
   const [telemetry, setTelemetry] = useState(null);
   const [refreshingUsage, setRefreshingUsage] = useState(false);
   const [resendingEmail, setResendingEmail] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
   const [actionMessage, setActionMessage] = useState(null);
   const [copiedField, setCopiedField] = useState(null);
 
@@ -113,20 +114,28 @@ export default function AdminOrderDetailPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          orderId: order.orderId,
-          customerEmail: order.customerEmail,
-          qrCodeUrl: order.qrCodeUrl,
-          lpaString: order.lpaString,
-          plan: order.plan || order.title,
+          order: {
+            orderId: order.orderId,
+            customerName: order.customerName,
+            customerEmail: order.customerEmail,
+            qrCodeUrl: order.qrCodeUrl,
+            lpaString: order.lpaString,
+            plan: order.plan || order.title,
+            amount: order.amount,
+            currency: order.currency,
+          },
+          targetEmail: order.customerEmail,
+          lang,
         }),
       });
       const data = await res.json();
       if (data.success) {
+        setEmailSent(true);
         setActionMessage({
           type: 'success',
           text: lang === 'en'
-            ? `eSIM confirmation email successfully re-sent to ${order.customerEmail}`
-            : `Correo con la eSIM reenviado exitosamente a ${order.customerEmail}`,
+            ? `QR code and instructions successfully sent to ${order.customerEmail}`
+            : `QR e instrucciones enviadas correctamente a ${order.customerEmail}`,
         });
       } else {
         setActionMessage({
@@ -594,36 +603,62 @@ export default function AdminOrderDetailPage() {
             </div>
 
             <p className={`text-xs sm:text-sm my-4 leading-relaxed font-medium ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
-              {isEn
-                ? 'Send a fresh official email with the QR code and step-by-step installation instructions directly to the client mailbox.'
-                : 'Reenvía un correo electrónico oficial con el código QR y las instrucciones de instalación paso a paso al buzón del cliente.'}
-            </p>
-
-            <button
-              onClick={handleResendEmail}
-              disabled={resendingEmail}
-              className={`w-full sm:w-auto py-3.5 px-7 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider transition-all duration-200 shadow-md flex items-center justify-center gap-2.5 active:scale-[0.98] cursor-pointer ${
-                resendingEmail
-                  ? 'opacity-70 cursor-not-allowed bg-yellow-300 text-black'
-                  : isDark
-                  ? 'bg-[#ffec00] hover:bg-[#fff033] text-zinc-950 hover:shadow-yellow-400/25 hover:shadow-xl border border-yellow-300'
-                  : 'bg-[#ffec00] hover:bg-[#ffe600] text-zinc-950 hover:shadow-yellow-500/25 hover:shadow-xl border-2 border-zinc-950'
-              }`}
-            >
-              {resendingEmail ? (
+              {isEn ? (
                 <>
-                  <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></span>
-                  <span>{isEn ? 'Sending Email...' : 'Enviando Correo Electrónico...'}</span>
+                  Send official email with the QR code and step-by-step installation instructions directly to{' '}
+                  <span className="font-bold underline text-inherit">{order.customerEmail || 'the client'}</span>.
                 </>
               ) : (
                 <>
-                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-                  </svg>
-                  <span>{isEn ? 'Re-Send eSIM Email to Customer' : 'Reenviar Correo de eSIM al Cliente'}</span>
+                  Reenvía un correo electrónico oficial con el código QR y las instrucciones de instalación paso a paso directamente a{' '}
+                  <span className="font-bold underline text-inherit">{order.customerEmail || 'el cliente'}</span>.
                 </>
               )}
-            </button>
+            </p>
+
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <button
+                onClick={handleResendEmail}
+                disabled={resendingEmail}
+                className={`w-full sm:w-auto py-3.5 px-7 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider transition-all duration-300 shadow-md flex items-center justify-center gap-2.5 active:scale-[0.98] cursor-pointer ${
+                  resendingEmail
+                    ? 'opacity-75 cursor-not-allowed bg-yellow-300 text-black'
+                    : emailSent
+                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white border-2 border-emerald-400 shadow-emerald-600/30 shadow-lg'
+                    : isDark
+                    ? 'bg-[#ffec00] hover:bg-[#fff033] text-zinc-950 hover:shadow-yellow-400/25 hover:shadow-xl border border-yellow-300'
+                    : 'bg-[#ffec00] hover:bg-[#ffe600] text-zinc-950 hover:shadow-yellow-500/25 hover:shadow-xl border-2 border-zinc-950'
+                }`}
+              >
+                {resendingEmail ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></span>
+                    <span>{isEn ? 'Sending QR & Instructions...' : 'Enviando QR e Instrucciones...'}</span>
+                  </>
+                ) : emailSent ? (
+                  <>
+                    <svg className="w-4 h-4 fill-current text-white" viewBox="0 0 24 24">
+                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                    </svg>
+                    <span>{isEn ? 'QR & instructions sent' : 'QR e instrucciones enviadas'}</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                      <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                    </svg>
+                    <span>{isEn ? 'Resend email with QR code and instructions' : 'Reenviar correo con código QR e instrucciones'}</span>
+                  </>
+                )}
+              </button>
+
+              {emailSent && (
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-500 animate-in fade-in">
+                  <span>✔</span>
+                  <span>{isEn ? `Sent to ${order.customerEmail}` : `Enviado a ${order.customerEmail}`}</span>
+                </span>
+              )}
+            </div>
           </div>
         </div>
 

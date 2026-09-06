@@ -88,4 +88,31 @@ if (currentConfig.companyName && currentConfig.taxId) {
   process.exit(1);
 }
 
+// Test 6: Resend Email QR Code & Instructions
+console.log('\n--- 6. Testing Resend Email QR Code & Instructions ---');
+const { generateOrderConfirmationHtml, sendEmail } = await import('../lib/email.js');
+const testOrderData = {
+  orderId: 'ORD-TEST-100',
+  customerName: 'Paco Test',
+  title: 'eSIM 10GB Global',
+  totalPrice: '25.00 EUR',
+  esimTranNo: '8985200000000099999',
+  qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=LPA:1$rsp.strongesim.com$8985200000000099999',
+  lpaCode: 'LPA:1$rsp.strongesim.com$8985200000000099999',
+};
+const testEmailHtml = generateOrderConfirmationHtml(testOrderData, 'es');
+const emailResult = await sendEmail({
+  to: 'cliente@ejemplo.com',
+  subject: '[SOPORTE ME-SIM] QR Code Test',
+  htmlText: testEmailHtml,
+  type: 'order_confirmation',
+  data: testOrderData,
+});
+if (testEmailHtml.includes('8985200000000099999') && emailResult && emailResult.success) {
+  console.log('✔ Test 6 PASSED: QR Code and setup instructions email generated and dispatched.');
+} else {
+  console.error('❌ Test 6 FAILED: Resend email pipeline error.');
+  process.exit(1);
+}
+
 console.log('\n=== ALL QA ARCHITECTURE INTEGRATION TESTS PASSED (100%) ===\n');

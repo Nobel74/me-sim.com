@@ -1,4 +1,4 @@
-import { addDiagnosticLog } from './logger';
+import { addDiagnosticLog } from './logger.js';
 
 export async function sendEmail({ to, subject, htmlText, type = 'magic_code', data = {} }) {
   console.log(`[EMAIL SERVICE] Preparing ${type} email for: ${to}`);
@@ -122,13 +122,13 @@ export function generateOrderConfirmationHtml(orderData, lang = 'es') {
   const isEn = lang === 'en';
   
   // Extract pure number value from totalPrice to calculate taxes
-  const rawPriceStr = orderData.totalPrice ? orderData.totalPrice.replace(/[^0-9.,]/g, '').replace(',', '.') : '0';
+  const rawPriceStr = orderData.totalPrice ? String(orderData.totalPrice).replace(/[^0-9.,]/g, '').replace(',', '.') : '0';
   const total = parseFloat(rawPriceStr) || 0;
   
   // Tax breakdown (21% VAT)
   const basePrice = total / 1.21;
   const taxAmount = total - basePrice;
-  const currencySymbol = orderData.totalPrice ? orderData.totalPrice.replace(/[0-9.,\s]/g, '') || '€' : '€';
+  const currencySymbol = orderData.totalPrice ? String(orderData.totalPrice).replace(/[0-9.,\s]/g, '') || '€' : '€';
 
   // Format nicely
   const baseFormatted = `${basePrice.toFixed(2)} ${currencySymbol}`;
