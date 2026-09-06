@@ -157,6 +157,7 @@ export default function AdminLayout({ children }) {
     {
       id: 'dashboard',
       label: { es: 'Dashboard Financiero', en: 'Financial Dashboard' },
+      shortLabel: { es: 'Dashboard', en: 'Dashboard' },
       icon: (
         <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
           <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" />
@@ -166,9 +167,10 @@ export default function AdminLayout({ children }) {
     {
       id: 'orders',
       label: { es: 'Clientes y Soporte', en: 'Orders & eSIM Support' },
+      shortLabel: { es: 'Clientes y Soporte', en: 'Orders & Support' },
       icon: (
         <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-          <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm6 12H6v-1.4c0-2 4-3.1 6-3.1s6 1.1 6 3.1V18z" />
+          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
         </svg>
       ),
     },
@@ -177,6 +179,7 @@ export default function AdminLayout({ children }) {
           {
             id: 'company',
             label: { es: 'Configuración Fiscal ME-SIM', en: 'Company Fiscal Settings' },
+            shortLabel: { es: 'Configuración Fiscal', en: 'Fiscal Settings' },
             icon: (
               <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
                 <path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z" />
@@ -190,6 +193,10 @@ export default function AdminLayout({ children }) {
       label: {
         es: user?.role === 'admin' ? 'Gestión de Socios y Seguridad' : 'Mi Perfil y Seguridad',
         en: user?.role === 'admin' ? 'Partners & Security' : 'My Account & Security',
+      },
+      shortLabel: {
+        es: user?.role === 'admin' ? 'Socios y Seguridad' : 'Mi Perfil',
+        en: user?.role === 'admin' ? 'Partners & Security' : 'My Profile',
       },
       icon: (
         <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
@@ -205,41 +212,42 @@ export default function AdminLayout({ children }) {
       <header className={`sticky top-0 z-40 border-b transition-colors ${
         isDark ? 'bg-[#111622]/95 border-zinc-800/80 backdrop-blur-md' : 'bg-white/95 border-zinc-200/80 backdrop-blur-md'
       }`}>
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-4">
+        <div className="w-full max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-4">
           {/* 1. Official ME-SIM Logo (matching client front) */}
-          <Link href="/admin" onClick={() => handleSelectTab('dashboard')} className="flex items-center no-underline">
+          <Link href="/admin" onClick={() => handleSelectTab('dashboard')} className="flex items-center no-underline flex-shrink-0">
             <MeSimAdminLogo isDark={isDark} />
           </Link>
 
-          {/* 2. Desktop Navigation Menu (unified like client front) */}
-          <nav className="hidden lg:flex items-center gap-6 xl:gap-8 font-semibold text-sm">
+          {/* 2. Desktop Navigation Menu (clean typography, no awkward wrapping, matching client front) */}
+          <nav className="hidden lg:flex items-center gap-5 xl:gap-8 font-semibold font-sans">
             {navItems.map((item) => {
               const isActive = activeTab === item.id;
               return (
                 <button
                   key={item.id}
                   onClick={() => handleSelectTab(item.id)}
-                  className={`flex items-center gap-2 py-1.5 transition-all text-xs xl:text-sm font-semibold cursor-pointer ${
+                  className={`relative py-2 font-semibold text-xs xl:text-sm 2xl:text-[15px] whitespace-nowrap transition-colors cursor-pointer flex items-center ${
                     isActive
                       ? isDark
-                        ? 'text-white underline underline-offset-8 decoration-[#ffec00] decoration-4 font-bold'
-                        : 'text-black underline underline-offset-8 decoration-[#ffec00] decoration-4 font-bold'
+                        ? 'text-white font-bold'
+                        : 'text-black font-bold'
                       : isDark
-                      ? 'text-zinc-400 hover:text-white hover:underline underline-offset-8 decoration-[#ffec00] decoration-2'
-                      : 'text-zinc-600 hover:text-black hover:underline underline-offset-8 decoration-[#ffec00] decoration-2'
+                      ? 'text-zinc-400 hover:text-white'
+                      : 'text-zinc-600 hover:text-black'
                   }`}
                 >
-                  <span className={isActive ? 'text-[#ffec00]' : 'text-zinc-400'}>
-                    {item.icon}
-                  </span>
-                  <span>{item.label[lang] || item.label.es}</span>
+                  <span className="hidden xl:inline">{item.label[lang] || item.label.es}</span>
+                  <span className="xl:hidden">{item.shortLabel[lang] || item.shortLabel.es}</span>
+                  {isActive && (
+                    <span className="absolute -bottom-[15px] left-0 right-0 h-[3px] bg-[#ffec00] rounded-full shadow-xs" />
+                  )}
                 </button>
               );
             })}
           </nav>
 
           {/* 3. Controls (Desktop: Theme, Lang, User Badge, Logout; Mobile: Theme + Hamburger) */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             {/* Dark / Light Toggle */}
             <button
               onClick={toggleTheme}
@@ -278,7 +286,7 @@ export default function AdminLayout({ children }) {
             {/* Desktop User Profile Badge with Avatar */}
             {user && (
               <div className="hidden lg:flex items-center gap-2 pl-2 border-l border-zinc-700/50">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-yellow-500 to-amber-300 text-black font-black flex items-center justify-center text-xs overflow-hidden shadow-xs">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-yellow-500 to-amber-300 text-black font-black flex items-center justify-center text-xs overflow-hidden shadow-xs flex-shrink-0">
                   {user.avatar ? (
                     <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
                   ) : (
@@ -334,29 +342,11 @@ export default function AdminLayout({ children }) {
           </div>
         </div>
 
-        {/* Mobile Slide-in Drawer Menu (Matching client front aesthetic in Image 1) */}
+        {/* Mobile Slide-in Drawer Menu Overlay (Directly below header - NO DUPLICATE LOGO OR CLOSE BUTTON) */}
         {isMobileMenuOpen && (
-          <div className={`lg:hidden border-b p-6 space-y-6 shadow-2xl transition-colors ${
+          <div className={`lg:hidden border-b p-5 sm:p-6 space-y-5 shadow-2xl transition-colors animate-slide-down ${
             isDark ? 'bg-[#111622] border-zinc-800 text-white' : 'bg-white border-zinc-200 text-zinc-900'
           }`}>
-            {/* Drawer Top Header (Logo + Close X) */}
-            <div className="flex items-center justify-between pb-4 border-b border-zinc-200/60 dark:border-zinc-800">
-              <Link href="/admin" onClick={() => handleSelectTab('dashboard')} className="flex items-center no-underline">
-                <MeSimAdminLogo isDark={isDark} />
-              </Link>
-              <button
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all ${
-                  isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-zinc-100 border-zinc-300 text-black'
-                }`}
-                aria-label="Cerrar Menú"
-              >
-                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                  <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-                </svg>
-              </button>
-            </div>
-
             {/* Navigation List with Flat Icons */}
             <div className="space-y-1">
               {navItems.map((item) => {
@@ -486,7 +476,7 @@ export default function AdminLayout({ children }) {
       </header>
 
       {/* Main Container */}
-      <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1">
+      <main className="w-full max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 py-6 flex-1">
         {children}
       </main>
 
@@ -494,7 +484,7 @@ export default function AdminLayout({ children }) {
       <footer className={`mt-auto border-t text-xs font-sans transition-colors ${
         isDark ? 'bg-[#111622] border-zinc-800 text-zinc-200' : 'bg-white border-zinc-200 text-zinc-600 shadow-xs'
       }`}>
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div className="w-full max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-start">
             <span className={`font-black text-sm tracking-tight ${isDark ? 'text-white' : 'text-zinc-900'}`}>ME-SIM</span>
             <span className="px-1.5 py-0.5 rounded bg-[#ffec00] text-black font-extrabold text-[10px] tracking-wider uppercase">
