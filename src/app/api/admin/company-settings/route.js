@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminSessionFromRequest } from '../../../../lib/adminAuth';
-import { getCompanyConfig, saveCompanyConfig } from '../../../../lib/companyConfig';
+import { getCompanyConfigAsync, saveCompanyConfig } from '../../../../lib/companyConfig';
 
 export async function GET(request) {
   const session = getAdminSessionFromRequest(request);
@@ -8,7 +8,7 @@ export async function GET(request) {
     return NextResponse.json({ success: false, message: 'No autenticado' }, { status: 401 });
   }
 
-  const config = getCompanyConfig();
+  const config = await getCompanyConfigAsync();
   return NextResponse.json({ success: true, config });
 }
 
@@ -23,7 +23,7 @@ export async function POST(request) {
 
   try {
     const data = await request.json();
-    const result = saveCompanyConfig(data);
+    const result = await saveCompanyConfig(data);
 
     if (result.success) {
       return NextResponse.json({

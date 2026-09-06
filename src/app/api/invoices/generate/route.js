@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { generateInvoicePdfBuffer, detectInvoiceLanguage, resolveInvoiceLanguage, calculateTaxBreakdown } from '../../../../lib/invoices';
-import { getCompanyConfig } from '../../../../lib/companyConfig';
+import { getCompanyConfigAsync } from '../../../../lib/companyConfig';
 import { loadCompanyLogoBuffer } from '../../../../lib/pdfImageLoader';
 import { getOrderById } from '../../../../lib/ordersService';
 
@@ -70,7 +70,7 @@ export async function GET(request) {
     }
 
     const invoiceLang = resolveInvoiceLanguage(order, billing, rawLang);
-    const company = getCompanyConfig();
+    const company = await getCompanyConfigAsync();
     const invoiceNumber = `${company.invoicePrefix || 'MS-'}${order.orderId}`;
     const tax = calculateTaxBreakdown(order.amount || order.priceEur || 0);
 
@@ -126,6 +126,7 @@ export async function GET(request) {
       order,
       billing,
       lang: invoiceLang,
+      company,
     });
 
     const clientName = `${billing.firstName || ''} ${billing.lastName || ''}`.trim() || billing.company || order.customerName || (invoiceLang === 'en' ? 'Customer' : 'Cliente');
@@ -227,13 +228,14 @@ export async function POST(request) {
     const acceptLanguage = request.headers.get('accept-language') || '';
     const invoiceLang = resolveInvoiceLanguage(finalOrder, finalBilling, requestedLang || (acceptLanguage.includes('es') ? 'es' : 'en'));
 
+    const company = await getCompanyConfigAsync();
     const pdfBuffer = generateInvoicePdfBuffer({
       order: finalOrder,
       billing: finalBilling,
       lang: invoiceLang,
+      company,
     });
 
-    const company = getCompanyConfig();
     const invoiceNumber = `${company.invoicePrefix || 'MS-'}${finalOrder.orderId}`;
     const clientName = `${finalBilling.firstName || ''} ${finalBilling.lastName || ''}`.trim() || finalBilling.company || finalOrder.customerName || (invoiceLang === 'en' ? 'Customer' : 'Cliente');
     const safeClientName = clientName.replace(/[/\\?%*:|"<>]/g, '').trim();

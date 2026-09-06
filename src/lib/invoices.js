@@ -197,11 +197,11 @@ export function formatCurrencyAmount(amount, currency = 'EUR') {
  * Consume el logotipo oficial configurado en la sección de configuración fiscal oficial (company.logo)
  * Header blanco, tipografía nítida y 0% amarillo en textos.
  */
-export function generateInvoicePdfBuffer({ order = {}, billing = {}, lang }) {
+export function generateInvoicePdfBuffer({ order = {}, billing = {}, lang, company: customCompany }) {
   const finalLang = lang || resolveInvoiceLanguage(order, billing);
   const isEnglish = finalLang === 'en';
   const dict = INVOICE_DICTIONARY[finalLang] || INVOICE_DICTIONARY.en;
-  const company = getCompanyConfig();
+  const company = customCompany || getCompanyConfig();
   const tax = calculateTaxBreakdown(order.priceEur || order.total || 0);
 
   // Cargar logotipo oficial configurado en la sección fiscal

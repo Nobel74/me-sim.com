@@ -1,15 +1,15 @@
 {
-  "companyName": "ME-SIM CONNECTIVITY S.L.",
-  "taxId": "B-12345678",
-  "address": "Calle Gran Vía 28, Planta 4",
-  "city": "Madrid",
-  "postalCode": "28013",
+  "companyName": "CLEM ALUN EVNAS - ME-SIM.COM",
+  "taxId": "X6227652B",
+  "address": "CALLE MARÍA DE LA CRUZ, 1.",
+  "city": "MÁLAGA",
+  "postalCode": "29010",
   "country": "España",
   "email": "info@me-sim.com",
   "phone": "+34 910 000 000",
   "website": "https://me-sim.com",
   "vatRate": 21,
-  "invoicePrefix": "MS-",
+  "invoicePrefix": "MS-2026/",
   "logo": "/logos/Logo-me-sim-mail.png",
-  "updatedAt": "2026-09-05T12:00:00.000Z"
+  "updatedAt": "2026-09-06T12:00:28.758Z"
 }

@@ -257,6 +257,7 @@ export default function AdminDashboardPage() {
       });
       const data = await res.json();
       if (data.success) {
+        if (data.config) setCompany(data.config);
         setCompanyStatus({
           type: 'success',
           text: lang === 'en' ? 'Company details updated successfully!' : '¡Datos fiscales oficiales actualizados con éxito!',
@@ -1336,7 +1337,7 @@ export default function AdminDashboardPage() {
                 <input
                   type="text"
                   required
-                  value={company.companyName}
+                  value={company.companyName || ''}
                   onChange={(e) => setCompany({ ...company, companyName: e.target.value })}
                   className={`w-full px-4 py-3 rounded-xl border text-sm outline-none focus:border-[#ffec00] transition-colors ${
                     isDark ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-2 border-zinc-300 text-zinc-900'
@@ -1350,7 +1351,7 @@ export default function AdminDashboardPage() {
                 <input
                   type="text"
                   required
-                  value={company.taxId}
+                  value={company.taxId || ''}
                   onChange={(e) => setCompany({ ...company, taxId: e.target.value })}
                   className={`w-full px-4 py-3 rounded-xl border text-sm outline-none focus:border-[#ffec00] transition-colors ${
                     isDark ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-2 border-zinc-300 text-zinc-900'
@@ -1368,7 +1369,7 @@ export default function AdminDashboardPage() {
                 <input
                   type="text"
                   required
-                  value={company.address}
+                  value={company.address || ''}
                   onChange={(e) => setCompany({ ...company, address: e.target.value })}
                   className={`w-full px-4 py-3 rounded-xl border text-sm outline-none focus:border-[#ffec00] transition-colors ${
                     isDark ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-2 border-zinc-300 text-zinc-900'
@@ -1382,7 +1383,7 @@ export default function AdminDashboardPage() {
                 <input
                   type="text"
                   required
-                  value={company.city}
+                  value={company.city || ''}
                   onChange={(e) => setCompany({ ...company, city: e.target.value })}
                   className={`w-full px-4 py-3 rounded-xl border text-sm outline-none focus:border-[#ffec00] transition-colors ${
                     isDark ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-2 border-zinc-300 text-zinc-900'
@@ -1396,7 +1397,7 @@ export default function AdminDashboardPage() {
                 <input
                   type="text"
                   required
-                  value={company.postalCode}
+                  value={company.postalCode || ''}
                   onChange={(e) => setCompany({ ...company, postalCode: e.target.value })}
                   className={`w-full px-4 py-3 rounded-xl border text-sm outline-none focus:border-[#ffec00] transition-colors ${
                     isDark ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-2 border-zinc-300 text-zinc-900'
@@ -1414,7 +1415,7 @@ export default function AdminDashboardPage() {
                 <input
                   type="text"
                   required
-                  value={company.country}
+                  value={company.country || ''}
                   onChange={(e) => setCompany({ ...company, country: e.target.value })}
                   className={`w-full px-4 py-3 rounded-xl border text-sm outline-none focus:border-[#ffec00] transition-colors ${
                     isDark ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-2 border-zinc-300 text-zinc-900'
@@ -1427,7 +1428,7 @@ export default function AdminDashboardPage() {
                 </label>
                 <input
                   type="text"
-                  value={company.invoicePrefix}
+                  value={company.invoicePrefix || ''}
                   onChange={(e) => setCompany({ ...company, invoicePrefix: e.target.value })}
                   className={`w-full px-4 py-3 rounded-xl border text-sm outline-none focus:border-[#ffec00] transition-colors ${
                     isDark ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-2 border-zinc-300 text-zinc-900'
@@ -1441,7 +1442,7 @@ export default function AdminDashboardPage() {
                 <input
                   type="email"
                   required
-                  value={company.email}
+                  value={company.email || ''}
                   onChange={(e) => setCompany({ ...company, email: e.target.value })}
                   className={`w-full px-4 py-3 rounded-xl border text-sm outline-none focus:border-[#ffec00] transition-colors ${
                     isDark ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-2 border-zinc-300 text-zinc-900'
@@ -1454,7 +1455,7 @@ export default function AdminDashboardPage() {
                 </label>
                 <input
                   type="text"
-                  value={company.website}
+                  value={company.website || ''}
                   onChange={(e) => setCompany({ ...company, website: e.target.value })}
                   className={`w-full px-4 py-3 rounded-xl border text-sm outline-none focus:border-[#ffec00] transition-colors ${
                     isDark ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-2 border-zinc-300 text-zinc-900'

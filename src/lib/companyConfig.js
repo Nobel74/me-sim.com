@@ -4,19 +4,19 @@ import path from 'path';
 const DATA_FILE = path.join(process.cwd(), 'src', 'data', 'company.json');
 
 const DEFAULT_COMPANY_CONFIG = {
-  companyName: 'ME-SIM CONNECTIVITY S.L.',
-  taxId: 'B-12345678',
-  address: 'Calle Gran Vía 28, Planta 4',
-  city: 'Madrid',
-  postalCode: '28013',
+  companyName: '',
+  taxId: '',
+  address: '',
+  city: '',
+  postalCode: '',
   country: 'España',
   email: 'info@me-sim.com',
-  phone: '+34 910 000 000',
+  phone: '',
   website: 'https://me-sim.com',
   vatRate: 21,
   invoicePrefix: 'MS-',
   logo: '/logos/Logo-me-sim-mail.png',
-  updatedAt: new Date().toISOString(),
+  updatedAt: null,
 };
 
 let memoryCompanyCache = null;
@@ -41,7 +41,7 @@ export function getCompanyConfig() {
 export async function getCompanyConfigAsync() {
   const current = getCompanyConfig();
 
-  // Intento de obtener la configuración más reciente desde WooCommerce
+  // Obtener la configuración más reciente desde WooCommerce (fuente oficial persistente)
   try {
     const rawWcUrl = process.env.WOOCOMMERCE_API_URL || process.env.NEXT_PUBLIC_WC_API_URL || 'https://api.me-sim.com';
     const wcUrl = rawWcUrl.split('/wp-json')[0].replace(/\/$/, '');
@@ -61,6 +61,15 @@ export async function getCompanyConfigAsync() {
           const parsed = typeof meta.value === 'string' ? JSON.parse(meta.value) : meta.value;
           const merged = { ...current, ...parsed };
           memoryCompanyCache = merged;
+          try {
+            const dir = path.dirname(DATA_FILE);
+            if (!fs.existsSync(dir)) {
+              fs.mkdirSync(dir, { recursive: true });
+            }
+            fs.writeFileSync(DATA_FILE, JSON.stringify(merged, null, 2), 'utf-8');
+          } catch {
+            // Entorno de solo lectura
+          }
           return merged;
         }
       }
@@ -72,8 +81,8 @@ export async function getCompanyConfigAsync() {
   return current;
 }
 
-export function saveCompanyConfig(newConfig) {
-  const current = getCompanyConfig();
+export async function saveCompanyConfig(newConfig) {
+  const current = await getCompanyConfigAsync();
   const updated = {
     ...current,
     ...newConfig,
@@ -92,31 +101,32 @@ export function saveCompanyConfig(newConfig) {
     console.warn('saveCompanyConfig: Guardado local omitido (entorno de sólo lectura):', err.message);
   }
 
-  // 2. Persistir en segundo plano en WooCommerce MySQL
-  (async () => {
-    try {
-      const rawWcUrl = process.env.WOOCOMMERCE_API_URL || process.env.NEXT_PUBLIC_WC_API_URL || 'https://api.me-sim.com';
-      const wcUrl = rawWcUrl.split('/wp-json')[0].replace(/\/$/, '');
-      const ck = process.env.WOOCOMMERCE_CONSUMER_KEY || process.env.WC_CONSUMER_KEY || 'ck_ebbe1fdf83a8fa6be4659946bc71a9b1a227854b';
-      const cs = process.env.WOOCOMMERCE_CONSUMER_SECRET || process.env.WC_CONSUMER_SECRET || 'cs_b5b62eb3636ce242e1ab7e8db77365660ef5e190';
+  // 2. Persistir en WooCommerce MySQL de forma síncrona
+  try {
+    const rawWcUrl = process.env.WOOCOMMERCE_API_URL || process.env.NEXT_PUBLIC_WC_API_URL || 'https://api.me-sim.com';
+    const wcUrl = rawWcUrl.split('/wp-json')[0].replace(/\/$/, '');
+    const ck = process.env.WOOCOMMERCE_CONSUMER_KEY || process.env.WC_CONSUMER_KEY || 'ck_ebbe1fdf83a8fa6be4659946bc71a9b1a227854b';
+    const cs = process.env.WOOCOMMERCE_CONSUMER_SECRET || process.env.WC_CONSUMER_SECRET || 'cs_b5b62eb3636ce242e1ab7e8db77365660ef5e190';
 
-      if (ck && cs) {
-        const authHeader = 'Basic ' + Buffer.from(`${ck}:${cs}`).toString('base64');
-        await fetch(`${wcUrl}/wp-json/wc/v3/customers/45`, {
-          method: 'PUT',
-          headers: {
-            Authorization: authHeader,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            meta_data: [{ key: 'mesim_company_settings', value: JSON.stringify(updated) }],
-          }),
-        });
+    if (ck && cs) {
+      const authHeader = 'Basic ' + Buffer.from(`${ck}:${cs}`).toString('base64');
+      const res = await fetch(`${wcUrl}/wp-json/wc/v3/customers/45`, {
+        method: 'PUT',
+        headers: {
+          Authorization: authHeader,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          meta_data: [{ key: 'mesim_company_settings', value: JSON.stringify(updated) }],
+        }),
+      });
+      if (!res.ok) {
+        console.error('Error guardando en WooCommerce:', res.status, res.statusText);
       }
-    } catch (e) {
-      console.error('Error sincronizando companyConfig con WooCommerce:', e.message);
     }
-  })();
+  } catch (e) {
+    console.error('Error sincronizando companyConfig con WooCommerce:', e.message);
+  }
 
   return { success: true, config: updated };
 }

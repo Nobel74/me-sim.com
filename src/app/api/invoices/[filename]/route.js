@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { generateInvoicePdfBuffer, resolveInvoiceLanguage } from '../../../../lib/invoices';
-import { getCompanyConfig } from '../../../../lib/companyConfig';
+import { getCompanyConfigAsync } from '../../../../lib/companyConfig';
 import { getOrderById } from '../../../../lib/ordersService';
 
 export const dynamic = 'force-dynamic';
@@ -73,7 +73,7 @@ export async function GET(request, { params }) {
     }
 
     const invoiceLang = resolveInvoiceLanguage(order, billing, rawLang);
-    const company = getCompanyConfig();
+    const company = await getCompanyConfigAsync();
     const invoiceNumber = `${company.invoicePrefix || 'MS-'}${order.orderId}`;
     const clientName = `${billing.firstName || ''} ${billing.lastName || ''}`.trim() || billing.company || order.customerName || (invoiceLang === 'en' ? 'Customer' : 'Cliente');
     const safeClientName = clientName.replace(/[/\\?%*:|"<>]/g, '').trim();
@@ -86,6 +86,7 @@ export async function GET(request, { params }) {
       order,
       billing,
       lang: invoiceLang,
+      company,
     });
 
     return new NextResponse(pdfBuffer, {
