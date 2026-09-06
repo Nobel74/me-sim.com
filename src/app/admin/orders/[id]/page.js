@@ -86,7 +86,12 @@ export default function AdminOrderDetailPage() {
       if (res.ok) {
         const data = await res.json();
         if (data.success && (data.telemetry || data.usage)) {
-          setTelemetry(data.telemetry || data.usage);
+          const incoming = data.telemetry || data.usage;
+          if (incoming && (Number(incoming.usedBytes) > 0 || Number(incoming.usedMb) > 0)) {
+            setTelemetry(incoming);
+          } else {
+            setTelemetry((prev) => (prev && Number(prev.usedMb) > 0 ? prev : incoming));
+          }
         }
       }
     } catch (e) {
@@ -479,11 +484,15 @@ export default function AdminOrderDetailPage() {
 
             {/* Live Progress Bar with Ease-in-out Smooth Animation */}
             {(() => {
-              const t = telemetry || order?.telemetry || {
-                totalMb: 1024,
-                usedMb: 420,
-                percentageUsed: 41.0,
-              };
+              const t = (telemetry && Number(telemetry.usedMb) > 0)
+                ? telemetry
+                : (order?.telemetry && Number(order.telemetry.usedMb) > 0)
+                ? order.telemetry
+                : (telemetry || order?.telemetry || {
+                    totalMb: 1024,
+                    usedMb: 420,
+                    percentageUsed: 41.0,
+                  });
               const pct = Math.min(100, Math.max(0, t.percentageUsed ?? 41.0));
               return (
                 <div className="space-y-2 pt-1">

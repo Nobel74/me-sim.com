@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fetchEsimProfileTelemetry } from './strongesim.js';
+import { resolveUniversalTelemetry } from './universalTelemetry.js';
 
 const ORDERS_FILE = path.join(process.cwd(), 'src', 'data', 'orders.json');
 
@@ -150,16 +151,16 @@ export async function getOrderById(orderId) {
   }
 
   if (found) {
-    // Si tiene ICCID, enriquecer con telemetría viva de StrongeSIM si no la tenía
+    // Enriquecer con telemetría viva de StrongeSIM o motor universal determinista
     if (found.esimTranNo && !found.telemetry) {
       try {
         const live = await fetchEsimProfileTelemetry(found.esimTranNo, found.orderId);
-        if (live) {
-          found.telemetry = live;
-        }
+        found.telemetry = resolveUniversalTelemetry(found, live);
       } catch {
-        // Silencioso
+        found.telemetry = resolveUniversalTelemetry(found);
       }
+    } else if (!found.telemetry) {
+      found.telemetry = resolveUniversalTelemetry(found);
     }
     return found;
   }

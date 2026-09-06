@@ -2,103 +2,13 @@ import { NextResponse } from 'next/server';
 import { getAdminSessionFromRequest } from '../../../../lib/adminAuth';
 import { fetchEsimProfileTelemetry } from '../../../../lib/strongesim';
 import { getLocalOrders } from '../../../../lib/ordersService';
+import { extractTotalMbFromOrder, resolveUniversalTelemetry } from '../../../../lib/universalTelemetry';
 
 export const dynamic = 'force-dynamic';
 
-/**
- * Helper para resolver telemetría oficial y de consumo para cualquier orden sin demoras
- */
-export function getResolvedOrderTelemetry(order) {
-  if (order.telemetry && order.telemetry.totalMb && order.telemetry.usedMb !== undefined) {
-    return order.telemetry;
-  }
+export { extractTotalMbFromOrder, resolveUniversalTelemetry };
+export const getResolvedOrderTelemetry = resolveUniversalTelemetry;
 
-  const id = String(order.orderId || '');
-  const tran = String(order.esimTranNo || '');
-
-  let totalMb = 1024;
-  let usedMb = 0;
-  let esimStatus = 'ACTIVE';
-  let smdpStatus = 'INSTALLED';
-
-  // Registros específicos verificados
-  if (id === '81' || tran === '8910300000062676734') {
-    totalMb = 1024;
-    usedMb = 420;
-    esimStatus = 'GOT_RESOURCE';
-    smdpStatus = 'DELETED';
-  } else if (id === '80' || tran === '8910300000065236068') {
-    totalMb = 1024;
-    usedMb = 640;
-    esimStatus = 'GOT_RESOURCE';
-    smdpStatus = 'DELETED';
-  } else if (id === '79' || tran === '8910300000065237341') {
-    totalMb = 1024;
-    usedMb = 180;
-    esimStatus = 'GOT_RESOURCE';
-    smdpStatus = 'DELETED';
-  } else if (id === '78' || tran === '8910300000059840898') {
-    totalMb = 500;
-    usedMb = 60.2;
-    esimStatus = 'USED_EXPIRED';
-    smdpStatus = 'INSTALLED';
-  } else if (id === '77' || tran === '8910300000063677656' || tran === '8965012605190115715') {
-    totalMb = 500;
-    usedMb = 301.7;
-    esimStatus = 'USED_EXPIRED';
-    smdpStatus = 'ENABLED';
-  } else if (id === '76' || tran === '8948010010053422290') {
-    totalMb = 100;
-    usedMb = 35;
-    esimStatus = 'ACTIVE';
-    smdpStatus = 'INSTALLED';
-  } else if (id === '75' || tran === '8910300000037878503') {
-    totalMb = 100;
-    usedMb = 15;
-    esimStatus = 'ACTIVE';
-    smdpStatus = 'INSTALLED';
-  } else {
-    // Cálculo universal dinámico para cualquier cliente y plan contratado
-    const dataStr = `${order.dataAmount || ''} ${order.plan || ''} ${order.title || ''}`.toUpperCase();
-    const mbMatch = dataStr.match(/(\d+)\s*MB/i);
-    const gbMatch = dataStr.match(/(\d+(?:\.\d+)?)\s*GB/i);
-
-    if (mbMatch) {
-      totalMb = parseFloat(mbMatch[1]) || 500;
-    } else if (gbMatch) {
-      totalMb = Math.round(parseFloat(gbMatch[1]) * 1024) || 1024;
-    } else {
-      totalMb = 1024;
-    }
-
-    if (order.status === 'Completed') {
-      usedMb = parseFloat((totalMb * 0.38).toFixed(1));
-      esimStatus = 'ACTIVE';
-      smdpStatus = 'INSTALLED';
-    } else if (order.status === 'Processing') {
-      usedMb = 0;
-      esimStatus = 'GOT_RESOURCE';
-      smdpStatus = 'DOWNLOADED';
-    } else {
-      usedMb = 0;
-      esimStatus = 'EXPIRED';
-      smdpStatus = 'DELETED';
-    }
-  }
-
-  const pct = parseFloat(Math.min(100, Math.max(0, (usedMb / totalMb) * 100)).toFixed(1));
-
-  return {
-    totalBytes: Math.round(totalMb * 1024 * 1024),
-    usedBytes: Math.round(usedMb * 1024 * 1024),
-    totalMb,
-    usedMb,
-    percentageUsed: pct,
-    esimStatus,
-    smdpStatus,
-    source: 'telemetry_engine',
-  };
-}
 
 export async function GET(request) {
   const session = getAdminSessionFromRequest(request);
@@ -224,9 +134,7 @@ export async function GET(request) {
         if (found.esimTranNo) {
           try {
             const live = await fetchEsimProfileTelemetry(found.esimTranNo, found.orderId);
-            if (live) {
-              found.telemetry = { ...found.telemetry, ...live };
-            }
+            found.telemetry = resolveUniversalTelemetry(found, live);
           } catch {}
         }
         return NextResponse.json({ success: true, order: found });
