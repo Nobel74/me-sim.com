@@ -478,56 +478,58 @@ export default function AdminOrderDetailPage() {
             </div>
 
             {/* Live Progress Bar with Ease-in-out Smooth Animation */}
-            <div className="space-y-2 pt-1">
-              <div className="flex justify-between text-xs sm:text-sm font-semibold">
-                <span className={`font-medium ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
-                  {isEn ? 'Data Consumed in Real-Time:' : 'Consumo en Tiempo Real:'}
-                </span>
-                <span className={`font-black font-mono ${isDark ? 'text-white' : 'text-zinc-950'}`}>
-                  {telemetry ? (
-                    telemetry.totalMb < 1000
-                      ? `${telemetry.usedMb.toFixed(1)} MB de ${Math.round(telemetry.totalMb)} MB (${telemetry.percentageUsed}%)`
-                      : `${(telemetry.usedMb / 1024).toFixed(2)} GB de ${(telemetry.totalMb / 1024).toFixed(1)} GB (${telemetry.percentageUsed}%)`
-                  ) : '0.42 GB de 1.00 GB (41.0%)'}
-                </span>
-              </div>
+            {(() => {
+              const t = telemetry || order?.telemetry || {
+                totalMb: 1024,
+                usedMb: 420,
+                percentageUsed: 41.0,
+              };
+              const pct = Math.min(100, Math.max(0, t.percentageUsed ?? 41.0));
+              return (
+                <div className="space-y-2 pt-1">
+                  <div className="flex justify-between text-xs sm:text-sm font-semibold">
+                    <span className={`font-medium ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
+                      {isEn ? 'Data Consumed in Real-Time:' : 'Consumo en Tiempo Real:'}
+                    </span>
+                    <span className={`font-black font-mono ${isDark ? 'text-white' : 'text-zinc-950'}`}>
+                      {t.totalMb < 1000
+                        ? `${t.usedMb.toFixed(1)} MB de ${Math.round(t.totalMb)} MB (${pct}%)`
+                        : `${(t.usedMb / 1024).toFixed(2)} GB de ${(t.totalMb / 1024).toFixed(1)} GB (${pct}%)`}
+                    </span>
+                  </div>
 
-              <div className={`w-full h-4 rounded-full overflow-hidden p-0.5 border ${
-                isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-zinc-200 border-zinc-300 shadow-inner'
-              }`}>
-                <div
-                  className="h-full bg-gradient-to-r from-emerald-500 via-yellow-400 to-amber-500 rounded-full transition-all duration-1000 ease-in-out shadow-sm"
-                  style={{ width: `${telemetry?.percentageUsed ?? 41.0}%` }}
-                ></div>
-              </div>
+                  <div className={`w-full h-4 rounded-full overflow-hidden p-0.5 border ${
+                    isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-zinc-200 border-zinc-300 shadow-inner'
+                  }`}>
+                    <div
+                      className="h-full bg-gradient-to-r from-emerald-500 via-yellow-400 to-amber-500 rounded-full transition-all duration-1000 ease-in-out shadow-sm"
+                      style={{ width: `${pct}%` }}
+                    ></div>
+                  </div>
 
-              <div className={`flex justify-between items-center text-[11px] font-mono font-medium pt-1 ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
-                <span>0 MB</span>
-                {(() => {
-                  const statusInfo = getEsimStatusInfo(telemetry, order, isEn);
-                  return (
-                    <div className="flex items-center gap-1.5 flex-wrap justify-center">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-black ${statusInfo.badgeClass}`}>
-                        <span className={`w-2 h-2 rounded-full ${statusInfo.dotClass}`}></span>
-                        <span>{statusInfo.label}</span>
-                      </span>
-                      {statusInfo.rawTechnical && (
-                        <span className={`text-[10px] font-normal opacity-75 hidden sm:inline ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>
-                          ({statusInfo.rawTechnical})
-                        </span>
-                      )}
-                    </div>
-                  );
-                })()}
-                <span>
-                  {telemetry
-                    ? (telemetry.totalMb < 1000
-                        ? `${Math.round(telemetry.totalMb)} MB Max`
-                        : `${(telemetry.totalMb / 1024).toFixed(0)} GB Max`)
-                    : '1 GB Max'}
-                </span>
-              </div>
-            </div>
+                  <div className={`flex justify-between items-center text-[11px] font-mono font-medium pt-1 ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                    <span>0 MB</span>
+                    {(() => {
+                      const statusInfo = getEsimStatusInfo(t, order, isEn);
+                      return (
+                        <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-black ${statusInfo.badgeClass}`}>
+                            <span className={`w-2 h-2 rounded-full ${statusInfo.dotClass}`}></span>
+                            <span>{statusInfo.label}</span>
+                          </span>
+                          {statusInfo.rawTechnical && (
+                            <span className={`text-[10px] font-normal opacity-75 hidden sm:inline ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>
+                              ({statusInfo.rawTechnical})
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
+                    <span>{t.totalMb < 1000 ? `${Math.round(t.totalMb)} MB` : `${(t.totalMb / 1024).toFixed(1)} GB`}</span>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Activation Credentials (ICCID & LPA Manual) */}

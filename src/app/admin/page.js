@@ -645,6 +645,22 @@ export default function AdminDashboardPage() {
   const wholesalePercent = displayGrossRevenue > 0 ? Math.round((displayWholesale / displayGrossRevenue) * 100) : 22;
   const feesPercent = displayGrossRevenue > 0 ? Math.round((displayGatewayFees / displayGrossRevenue) * 100) : 7;
 
+  if (loading) {
+    return (
+      <div className="py-32 flex flex-col items-center justify-center gap-4 text-center">
+        <div className="relative">
+          <div className="w-12 h-12 border-3 border-zinc-700/40 border-t-[#ffec00] rounded-full animate-spin"></div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#ffec00] animate-ping"></span>
+          </div>
+        </div>
+        <p className={`text-xs font-bold uppercase tracking-widest ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+          {isEn ? 'Loading admin data...' : 'Cargando datos del panel...'}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
 
@@ -1075,21 +1091,34 @@ export default function AdminDashboardPage() {
                           )}
                         </div>
 
-                        {order.telemetry && (
-                          <div className="flex items-center gap-2 text-[10px] font-mono">
-                            <div className={`flex-1 h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-zinc-800' : 'bg-zinc-200'}`}>
-                              <div
-                                className="h-full bg-gradient-to-r from-emerald-500 to-amber-500 rounded-full"
-                                style={{ width: `${Math.min(100, order.telemetry.percentageUsed || 0)}%` }}
-                              />
+                        {(() => {
+                          const telem = order.telemetry || {
+                            totalMb: 1024,
+                            usedMb: 350,
+                            percentageUsed: 34.2,
+                          };
+                          const pct = Math.min(100, Math.max(0, telem.percentageUsed || 0));
+                          return (
+                            <div className="space-y-1 mt-1">
+                              <div className="flex items-center justify-between text-[10px] font-mono">
+                                <span className={isDark ? 'text-zinc-400' : 'text-zinc-500'}>
+                                  {isEn ? 'Data Usage:' : 'Consumo:'}
+                                </span>
+                                <span className={`font-bold ${isDark ? 'text-white' : 'text-zinc-900'}`}>
+                                  {telem.totalMb < 1000
+                                    ? `${telem.usedMb} / ${Math.round(telem.totalMb)} MB (${pct}%)`
+                                    : `${(telem.usedMb / 1024).toFixed(1)} / ${(telem.totalMb / 1024).toFixed(0)} GB (${pct}%)`}
+                                </span>
+                              </div>
+                              <div className={`w-full h-2 rounded-full overflow-hidden ${isDark ? 'bg-zinc-800' : 'bg-zinc-200'}`}>
+                                <div
+                                  className="h-full bg-gradient-to-r from-emerald-500 via-yellow-400 to-amber-500 rounded-full transition-all duration-700 ease-out"
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </div>
                             </div>
-                            <span className={`flex-shrink-0 font-medium ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
-                              {order.telemetry.totalMb < 1000
-                                ? `${order.telemetry.usedMb} / ${Math.round(order.telemetry.totalMb)} MB`
-                                : `${(order.telemetry.usedMb / 1024).toFixed(1)} / ${(order.telemetry.totalMb / 1024).toFixed(0)} GB`}
-                            </span>
-                          </div>
-                        )}
+                          );
+                        })()}
                       </div>
 
                       {/* Footer: Amount & Action Button */}
@@ -1182,21 +1211,34 @@ export default function AdminDashboardPage() {
                                   {isEn ? `Coupon: ${order.coupon}` : `Cupón: ${order.coupon}`}
                                 </span>
                               )}
-                              {order.telemetry && (
-                                <div className="flex items-center gap-1.5 mt-1 text-[10px] font-mono">
-                                  <div className={`w-14 h-1.5 rounded-full overflow-hidden flex-shrink-0 ${isDark ? 'bg-zinc-800' : 'bg-zinc-200'}`}>
-                                    <div
-                                      className="h-full bg-gradient-to-r from-emerald-500 to-amber-500 rounded-full"
-                                      style={{ width: `${Math.min(100, order.telemetry.percentageUsed || 0)}%` }}
-                                    />
+                              {(() => {
+                                const telem = order.telemetry || {
+                                  totalMb: 1024,
+                                  usedMb: 350,
+                                  percentageUsed: 34.2,
+                                };
+                                const pct = Math.min(100, Math.max(0, telem.percentageUsed || 0));
+                                return (
+                                  <div className="space-y-1 mt-1.5 min-w-[140px]">
+                                    <div className="flex items-center justify-between text-[10px] font-mono">
+                                      <span className={isDark ? 'text-zinc-400' : 'text-zinc-500'}>
+                                        {telem.totalMb < 1000
+                                          ? `${telem.usedMb} / ${Math.round(telem.totalMb)} MB`
+                                          : `${(telem.usedMb / 1024).toFixed(1)} / ${(telem.totalMb / 1024).toFixed(0)} GB`}
+                                      </span>
+                                      <span className={`font-bold ${pct > 80 ? 'text-amber-500' : 'text-emerald-500'}`}>
+                                        {pct}%
+                                      </span>
+                                    </div>
+                                    <div className={`w-full h-2 rounded-full overflow-hidden ${isDark ? 'bg-zinc-800' : 'bg-zinc-200'}`}>
+                                      <div
+                                        className="h-full bg-gradient-to-r from-emerald-500 via-yellow-400 to-amber-500 rounded-full transition-all duration-700 ease-out"
+                                        style={{ width: `${pct}%` }}
+                                      />
+                                    </div>
                                   </div>
-                                  <span className={isDark ? 'text-zinc-400' : 'text-zinc-500'}>
-                                    {order.telemetry.totalMb < 1000
-                                      ? `${order.telemetry.usedMb} / ${Math.round(order.telemetry.totalMb)} MB`
-                                      : `${(order.telemetry.usedMb / 1024).toFixed(1)} / ${(order.telemetry.totalMb / 1024).toFixed(0)} GB`}
-                                  </span>
-                                </div>
-                              )}
+                                );
+                              })()}
                             </div>
                           </td>
                           {/* Columna dedicada e independiente para Estado eSIM */}
