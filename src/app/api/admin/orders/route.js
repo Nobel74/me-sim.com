@@ -17,10 +17,21 @@ export async function GET(request) {
     const cs = process.env.WOOCOMMERCE_CONSUMER_SECRET || process.env.WC_CONSUMER_SECRET;
 
     let ordersList = [];
+    const localOrders = getLocalOrders();
+    const localMap = new Map();
+    if (Array.isArray(localOrders)) {
+      for (const lo of localOrders) {
+        if (lo && lo.orderId) {
+          localMap.set(String(lo.orderId), lo);
+        }
+      }
+    }
+
+    const seenIds = new Set();
 
     if (ck && cs) {
       try {
-        const res = await fetch(`${wcUrl}/wp-json/wc/v3/orders?per_page=50&status=completed,processing`, {
+        const res = await fetch(`${wcUrl}/wp-json/wc/v3/orders?per_page=100`, {
           headers: {
             Authorization: 'Basic ' + Buffer.from(`${ck}:${cs}`).toString('base64'),
           },
@@ -30,33 +41,47 @@ export async function GET(request) {
         if (res.ok) {
           const rawOrders = await res.json();
           if (Array.isArray(rawOrders)) {
-            ordersList = rawOrders.map((o) => {
+            for (const o of rawOrders) {
+              const idStr = String(o.id);
+              seenIds.add(idStr);
+              const lo = localMap.get(idStr);
+
               const meta = o.meta_data || [];
               const getMeta = (k) => meta.find((m) => m.key === k)?.value || '';
               const line = o.line_items?.[0] || {};
               const price = parseFloat(o.total || line.total || '0') || 0;
-              const esimTranNo = getMeta('_esim_transaction_no') || getMeta('_esim_iccid') || ('89852' + String(o.id).padEnd(13, '0'));
+              const esimTranNo = lo?.esimTranNo || getMeta('_esim_transaction_no') || getMeta('_esim_iccid') || ('89852' + idStr.padEnd(13, '0'));
 
-              return {
-                orderId: String(o.id),
-                customerName: `${o.billing?.first_name || ''} ${o.billing?.last_name || ''}`.trim() || 'Cliente ME-SIM',
-                customerEmail: o.billing?.email || '',
-                title: line.name || getMeta('_esim_country') || 'eSIM Plan',
-                plan: line.name || 'eSIM Data Plan',
-                amount: price,
-                currency: o.currency || 'EUR',
-                status: o.status === 'completed' ? 'Completed' : o.status,
-                date: o.date_created ? o.date_created.split('T')[0] : new Date().toISOString().split('T')[0],
-                createdAt: o.date_created || new Date().toISOString(),
-                esimTranNo: esimTranNo,
-                qrCodeUrl: getMeta('_esim_qr_code') || `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=LPA:1$rsp.strongesim.com$${esimTranNo}`,
-                lpaString: getMeta('_esim_lpa') || `LPA:1$rsp.strongesim.com$${esimTranNo}`,
-                dataAmount: getMeta('_esim_data_amount') || '5 GB',
-                days: getMeta('_esim_days') || '30',
-                country: getMeta('_esim_country') || 'España',
-                iso: getMeta('_esim_iso') || 'es',
-              };
-            });
+              let status = o.status ? (o.status === 'completed' ? 'Completed' : o.status.charAt(0).toUpperCase() + o.status.slice(1)) : 'Pending';
+              if (lo?.status === 'Completed') {
+                status = 'Completed';
+              }
+
+              const title = lo?.title || line.name || getMeta('_esim_country') || 'eSIM Plan';
+              const plan = lo?.plan || line.name || 'eSIM Data Plan';
+
+              ordersList.push({
+                orderId: idStr,
+                customerName: lo?.customerName || `${o.billing?.first_name || ''} ${o.billing?.last_name || ''}`.trim() || 'Cliente ME-SIM',
+                customerEmail: lo?.customerEmail || o.billing?.email || '',
+                title,
+                plan,
+                amount: price || (lo?.amount ? parseFloat(lo.amount) : 0),
+                currency: o.currency || lo?.currency || 'EUR',
+                status,
+                date: lo?.date || (o.date_created ? o.date_created.split('T')[0] : new Date().toISOString().split('T')[0]),
+                createdAt: lo?.createdAt || o.date_created || new Date().toISOString(),
+                esimTranNo,
+                qrCodeUrl: lo?.qrCodeUrl || getMeta('_esim_qr_code') || `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=LPA:1$rsp.strongesim.com$${esimTranNo}`,
+                lpaString: lo?.lpaString || getMeta('_esim_lpa') || `LPA:1$rsp.strongesim.com$${esimTranNo}`,
+                dataAmount: lo?.dataAmount || getMeta('_esim_data_amount') || '1 GB',
+                days: lo?.days || getMeta('_esim_days') || '30',
+                country: lo?.country || getMeta('_esim_country') || 'España',
+                iso: lo?.iso || getMeta('_esim_iso') || 'es',
+                wholesaleCostUsd: lo?.wholesaleCostUsd || 2.34,
+                billing: lo?.billing || o.billing || {},
+              });
+            }
           }
         }
       } catch (err) {
@@ -64,10 +89,29 @@ export async function GET(request) {
       }
     }
 
-    // Si no hay pedidos en WC o entorno dev/demo, proveer datos reales acordes a las compras y StrongeSIM
-    if (ordersList.length === 0) {
-      ordersList = getLocalOrders();
+    // Merge any local orders not returned in the WooCommerce response
+    if (Array.isArray(localOrders)) {
+      for (const lo of localOrders) {
+        const idStr = String(lo.orderId);
+        if (!seenIds.has(idStr)) {
+          seenIds.add(idStr);
+          ordersList.push({
+            ...lo,
+            orderId: idStr,
+            amount: parseFloat(lo.amount || lo.priceEur || 0),
+            status: lo.status || 'Completed',
+          });
+        }
+      }
     }
+
+    // Ordenar de forma descendente por número de pedido o fecha de creación
+    ordersList.sort((a, b) => {
+      const numA = parseInt(a.orderId, 10);
+      const numB = parseInt(b.orderId, 10);
+      if (!isNaN(numA) && !isNaN(numB)) return numB - numA;
+      return new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date);
+    });
 
     // Enriquecer cada pedido con datos vivos directamente de la API de StrongeSIM
     try {
@@ -107,26 +151,30 @@ export async function GET(request) {
       return NextResponse.json({ success: false, message: 'Pedido no encontrado' }, { status: 404 });
     }
 
-    // Métricas Financieras Consolidadas (Basadas en compras reales: 4 pedidos en GBP a £8.17 = £32.68 GBP)
+    // Métricas Financieras Consolidadas
     const totalOrders = ordersList.length;
     const completedOrders = ordersList.filter((o) => o.status === 'Completed').length;
-    const pendingOrders = ordersList.filter((o) => o.status === 'Pending').length;
+    const pendingOrders = ordersList.filter((o) => o.status === 'Pending' || o.status === 'Processing').length;
 
-    // Ingresos brutos en moneda original
+    // Ingresos brutos en moneda original (pedidos completados o en proceso)
     const grossRevenueGbp = ordersList
-      .filter((o) => o.currency === 'GBP')
+      .filter((o) => o.currency === 'GBP' && (o.status === 'Completed' || o.status === 'Processing'))
       .reduce((acc, o) => acc + (parseFloat(o.amount) || 0), 0);
 
-    // Conversión contable precisa a USD
-    const grossRevenueUsd = ordersList.reduce((acc, o) => {
-      const amt = parseFloat(o.amount) || 0;
-      if (o.currency === 'GBP') return acc + amt * 1.28; // GBP to USD
-      if (o.currency === 'EUR') return acc + amt * 1.09; // EUR to USD
-      return acc + amt;
-    }, 0);
+    // Conversión contable precisa a USD (pedidos completados o en proceso)
+    const grossRevenueUsd = ordersList
+      .filter((o) => o.status === 'Completed' || o.status === 'Processing')
+      .reduce((acc, o) => {
+        const amt = parseFloat(o.amount) || 0;
+        if (o.currency === 'GBP') return acc + amt * 1.28; // GBP to USD
+        if (o.currency === 'EUR') return acc + amt * 1.09; // EUR to USD
+        return acc + amt;
+      }, 0);
 
-    const totalWholesaleUsd = ordersList.reduce((acc, o) => acc + (parseFloat(o.wholesaleCostUsd) || 2.34), 0);
-    const gatewayFeesUsd = grossRevenueUsd * 0.029 + totalOrders * 0.35;
+    const totalWholesaleUsd = ordersList
+      .filter((o) => o.status === 'Completed' || o.status === 'Processing')
+      .reduce((acc, o) => acc + (parseFloat(o.wholesaleCostUsd) || 2.34), 0);
+    const gatewayFeesUsd = grossRevenueUsd * 0.029 + completedOrders * 0.35;
     const netProfitUsd = Math.max(0, grossRevenueUsd - totalWholesaleUsd - gatewayFeesUsd);
     const netMarginPercent = grossRevenueUsd > 0 ? Math.round((netProfitUsd / grossRevenueUsd) * 100) : 72;
 

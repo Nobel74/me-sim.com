@@ -252,18 +252,31 @@ export default function AdminOrderDetailPage() {
             );
           })()}
 
-          <span className={`text-xs px-3.5 py-1.5 rounded-full font-bold flex items-center gap-1.5 border ${
-            order.status === 'Completed'
-              ? isDark
-                ? 'bg-emerald-950/70 text-emerald-300 border-emerald-800/60'
-                : 'bg-emerald-50 text-emerald-950 border-emerald-400 shadow-xs'
-              : isDark
-              ? 'bg-amber-950/70 text-amber-300 border-amber-800/60'
-              : 'bg-amber-50 text-amber-950 border-amber-400 shadow-xs'
-          }`}>
-            <span className={`w-2 h-2 rounded-full ${order.status === 'Completed' ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
-            <span>{isEn ? order.status : (order.status === 'Completed' ? 'Completado' : 'Pendiente')}</span>
-          </span>
+          {(() => {
+            const norm = (order.status || '').toLowerCase();
+            let badgeClasses = isDark ? 'bg-amber-950/70 text-amber-300 border-amber-800/60' : 'bg-amber-50 text-amber-950 border-amber-400 shadow-xs';
+            let dotClass = 'bg-amber-500';
+            let label = isEn ? (order.status || 'Pending') : 'Pendiente';
+            if (norm === 'completed') {
+              badgeClasses = isDark ? 'bg-emerald-950/70 text-emerald-300 border-emerald-800/60' : 'bg-emerald-50 text-emerald-950 border-emerald-400 shadow-xs';
+              dotClass = 'bg-emerald-500';
+              label = isEn ? 'Completed' : 'Completado';
+            } else if (norm === 'processing') {
+              badgeClasses = isDark ? 'bg-sky-950/70 text-sky-300 border-sky-800/60' : 'bg-sky-50 text-sky-950 border-sky-400 shadow-xs';
+              dotClass = 'bg-sky-500';
+              label = isEn ? 'Processing' : 'En proceso';
+            } else if (norm === 'cancelled' || norm === 'failed') {
+              badgeClasses = isDark ? 'bg-rose-950/70 text-rose-300 border-rose-800/60' : 'bg-rose-50 text-rose-950 border-rose-400 shadow-xs';
+              dotClass = 'bg-rose-500';
+              label = isEn ? 'Cancelled' : 'Cancelado';
+            }
+            return (
+              <span className={`text-xs px-3.5 py-1.5 rounded-full font-bold flex items-center gap-1.5 border ${badgeClasses}`}>
+                <span className={`w-2 h-2 rounded-full ${dotClass}`}></span>
+                <span>{label}</span>
+              </span>
+            );
+          })()}
 
           <span className={`text-xs sm:text-sm font-mono font-black px-3.5 py-1.5 rounded-xl border ${
             isDark ? 'bg-zinc-900/90 border-zinc-800 text-white' : 'bg-white border-2 border-zinc-300 text-zinc-950 shadow-xs'

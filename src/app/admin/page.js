@@ -244,6 +244,45 @@ export default function AdminDashboardPage() {
     router.push(`/admin/orders/${order.orderId}`);
   };
 
+  // Helper para estilos y traducción de estados de órdenes de clientes
+  const getOrderStatusBadge = (status) => {
+    const norm = (status || '').toLowerCase();
+    if (norm === 'completed') {
+      return {
+        classes: isDark
+          ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/60'
+          : 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+        dotClass: 'bg-emerald-500',
+        label: isEn ? 'Completed' : 'Completado',
+      };
+    }
+    if (norm === 'processing') {
+      return {
+        classes: isDark
+          ? 'bg-sky-950/60 text-sky-400 border border-sky-800/60'
+          : 'bg-sky-50 text-sky-700 border border-sky-200',
+        dotClass: 'bg-sky-500',
+        label: isEn ? 'Processing' : 'En proceso',
+      };
+    }
+    if (norm === 'cancelled' || norm === 'failed') {
+      return {
+        classes: isDark
+          ? 'bg-rose-950/60 text-rose-400 border border-rose-800/60'
+          : 'bg-rose-50 text-rose-700 border border-rose-200',
+        dotClass: 'bg-rose-500',
+        label: isEn ? 'Cancelled' : 'Cancelado',
+      };
+    }
+    return {
+      classes: isDark
+        ? 'bg-amber-950/60 text-amber-400 border border-amber-800/60'
+        : 'bg-amber-50 text-amber-700 border border-amber-200',
+      dotClass: 'bg-amber-500',
+      label: isEn ? (status || 'Pending') : 'Pendiente',
+    };
+  };
+
   // Save Company Fiscal Data
   const handleSaveCompany = async (e) => {
     e.preventDefault();
@@ -897,7 +936,9 @@ export default function AdminDashboardPage() {
             >
               <option value="all">{isEn ? 'All Status' : 'Todos los estados'}</option>
               <option value="completed">{isEn ? 'Completed' : 'Completados'}</option>
+              <option value="processing">{isEn ? 'Processing' : 'En proceso'}</option>
               <option value="pending">{isEn ? 'Pending' : 'Pendientes'}</option>
+              <option value="cancelled">{isEn ? 'Cancelled' : 'Cancelados'}</option>
             </select>
 
             {/* Date Presets */}
@@ -1001,14 +1042,15 @@ export default function AdminDashboardPage() {
                             <span>{st.label}</span>
                           </span>
                           {/* Badge de Estado Comercial de la Orden */}
-                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                            isDark
-                              ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/60'
-                              : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          }`}>
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                            <span>{isEn ? order.status : (order.status === 'Completed' ? 'Completado' : order.status === 'Pending' ? 'Pendiente' : order.status)}</span>
-                          </span>
+                          {(() => {
+                            const orderBadge = getOrderStatusBadge(order.status);
+                            return (
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${orderBadge.classes}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${orderBadge.dotClass}`}></span>
+                                <span>{orderBadge.label}</span>
+                              </span>
+                            );
+                          })()}
                         </div>
                       </div>
 
@@ -1166,14 +1208,15 @@ export default function AdminDashboardPage() {
                           </td>
                           {/* Columna de Estado del Pedido */}
                           <td className="py-4 px-3 sm:px-5 whitespace-nowrap">
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                              isDark
-                                ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/60'
-                                : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            }`}>
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                              {isEn ? order.status : (order.status === 'Completed' ? 'Completado' : order.status === 'Pending' ? 'Pendiente' : order.status)}
-                            </span>
+                            {(() => {
+                              const orderBadge = getOrderStatusBadge(order.status);
+                              return (
+                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold ${orderBadge.classes}`}>
+                                  <span className={`w-1.5 h-1.5 rounded-full ${orderBadge.dotClass}`}></span>
+                                  {orderBadge.label}
+                                </span>
+                              );
+                            })()}
                           </td>
                           <td className={`py-4 px-3 sm:px-5 font-mono text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
                             {order.date}
