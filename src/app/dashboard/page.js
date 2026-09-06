@@ -142,6 +142,17 @@ export default function DashboardPage() {
   useEffect(() => {
     if (currentUser) {
       fetchOrders();
+
+      // Cargar perfil de facturación persistente del usuario
+      fetch('/api/auth/billing')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.billing) {
+            setBilling((prev) => ({ ...prev, ...data.billing }));
+            localStorage.setItem('mesim_billing', JSON.stringify(data.billing));
+          }
+        })
+        .catch(() => {});
     }
   }, [currentUser]);
 
@@ -205,7 +216,14 @@ export default function DashboardPage() {
       const data = await res.json();
       if (data.success) {
         localStorage.setItem('mesim_billing', JSON.stringify(billing));
-        setBillingMessage({ type: 'success', text: lang === 'en' ? 'Billing details updated successfully!' : '¡Datos de facturación actualizados correctamente!' });
+        setBillingMessage({
+          type: 'success',
+          text: lang === 'en'
+            ? 'Billing details saved and invoices generated successfully!'
+            : '¡Datos de facturación guardados y facturas generadas correctamente!'
+        });
+        // Refrescar pedidos para que las facturas contengan los nuevos datos fiscales
+        fetchOrders();
       } else {
         setBillingMessage({ type: 'error', text: data.message });
       }
@@ -958,140 +976,271 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* TAB 2: Datos de facturación */}
+          {/* TAB 2: Facturas y datos de facturación */}
           {activeTab === 'billing' && (
-            <div className="bg-white rounded-3xl border border-zinc-200 p-6 sm:p-10 shadow-xl w-full">
-              <h2 className="text-2xl font-bold text-black mb-2 flex items-center gap-2">
-                <svg className="w-6 h-6 fill-current text-black flex-shrink-0" viewBox="0 0 24 24">
-                  <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
-                </svg>
-                <span>{lang === 'en' ? 'Billing Address' : 'Dirección de Facturación'}</span>
-              </h2>
-              <p className="text-xs sm:text-sm text-zinc-500 font-medium mb-6">
-                {lang === 'en' ? 'Manage your invoice and tax data.' : 'Gestiona tus datos de facturación para la emisión de tus facturas.'}
-              </p>
-
-              <form onSubmit={handleSaveBilling} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-8 w-full">
+              {/* TABLA SUPERIOR: Facturas de productos contratados */}
+              <div className="bg-white rounded-3xl border border-zinc-200 p-6 sm:p-10 shadow-xl w-full">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                   <div>
-                    <label className="block text-xs font-semibold uppercase mb-1.5 text-black">
-                      {lang === 'en' ? 'First Name *' : 'Nombre *'}
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={billing.firstName}
-                      onChange={(e) => setBilling({ ...billing, firstName: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-zinc-300 text-black text-sm outline-none focus:border-black"
-                    />
+                    <h2 className="text-xl sm:text-2xl font-bold text-black flex items-center gap-2.5">
+                      <svg className="w-6 h-6 fill-current text-black flex-shrink-0" viewBox="0 0 24 24">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                      </svg>
+                      <span>{lang === 'en' ? 'Contracted Product Invoices' : 'Facturas de Productos Contratados'}</span>
+                    </h2>
+                    <p className="text-xs sm:text-sm text-zinc-500 font-medium mt-1">
+                      {lang === 'en'
+                        ? 'Download official tax invoices for all products and eSIM cards contracted to date.'
+                        : 'Descarga las facturas fiscales oficiales de todos los productos y tarjetas eSIM contratados hasta la fecha.'}
+                    </p>
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold uppercase mb-1.5 text-black">
-                      {lang === 'en' ? 'Last Name *' : 'Apellidos *'}
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={billing.lastName}
-                      onChange={(e) => setBilling({ ...billing, lastName: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-zinc-300 text-black text-sm outline-none focus:border-black"
-                    />
-                  </div>
+                  {userOrders && userOrders.length > 0 && (
+                    <span className="self-start sm:self-center px-3 py-1 rounded-full text-xs font-bold bg-zinc-100 text-zinc-800 border border-zinc-200 whitespace-nowrap">
+                      {userOrders.length} {lang === 'en' ? (userOrders.length === 1 ? 'Invoice' : 'Invoices') : (userOrders.length === 1 ? 'Factura' : 'Facturas')}
+                    </span>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold uppercase mb-1.5 text-black">
-                      {lang === 'en' ? 'Company Name (Optional)' : 'Nombre de Empresa (Opcional)'}
-                    </label>
-                    <input
-                      type="text"
-                      value={billing.company}
-                      onChange={(e) => setBilling({ ...billing, company: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-zinc-300 text-black text-sm outline-none focus:border-black"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold uppercase mb-1.5 text-black">
-                      {lang === 'en' ? 'VAT / NIF Number (Optional)' : 'NIF / CIF / DNI (Opcional)'}
-                    </label>
-                    <input
-                      type="text"
-                      value={billing.vatId}
-                      onChange={(e) => setBilling({ ...billing, vatId: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-zinc-300 text-black text-sm outline-none focus:border-black"
-                    />
-                  </div>
-                </div>
+                {userOrders && userOrders.length > 0 ? (
+                  <div className="overflow-x-auto rounded-2xl border border-zinc-200 bg-zinc-50/50">
+                    <table className="w-full text-left border-collapse text-sm">
+                      <thead>
+                        <tr className="border-b border-zinc-200 bg-zinc-100/80 text-xs font-bold uppercase tracking-wider text-zinc-600">
+                          <th className="py-3.5 px-4 sm:px-6">{lang === 'en' ? 'Date' : 'Fecha de contratación'}</th>
+                          <th className="py-3.5 px-4 sm:px-6">{lang === 'en' ? 'eSIM Card' : 'Tarjeta eSIM'}</th>
+                          <th className="py-3.5 px-4 sm:px-6">{lang === 'en' ? 'Order Number' : 'Número de pedido'}</th>
+                          <th className="py-3.5 px-4 sm:px-6 text-right">{lang === 'en' ? 'Invoice' : 'Factura'}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-200 bg-white">
+                        {userOrders.map((ord) => {
+                          const orderNumber = ord.orderId;
+                          let formattedDate = '—';
+                          if (ord.date) {
+                            try {
+                              formattedDate = new Date(ord.date).toLocaleDateString(lang === 'en' ? 'en-GB' : 'es-ES', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                              });
+                            } catch {
+                              formattedDate = ord.date;
+                            }
+                          } else if (ord.createdAt) {
+                            formattedDate = ord.createdAt.split('T')[0];
+                          }
 
-                <div>
-                  <label className="block text-xs font-semibold uppercase mb-1.5 text-black">
-                    {lang === 'en' ? 'Street Address *' : 'Dirección *'}
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={billing.address}
-                    onChange={(e) => setBilling({ ...billing, address: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-zinc-300 text-black text-sm outline-none focus:border-black"
-                  />
-                </div>
+                          const productName = ord.title || ord.plan || (lang === 'en' ? 'eSIM Data Plan' : 'Plan de Datos eSIM');
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold uppercase mb-1.5 text-black">
-                      {lang === 'en' ? 'Town / City *' : 'Ciudad *'}
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={billing.city}
-                      onChange={(e) => setBilling({ ...billing, city: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-zinc-300 text-black text-sm outline-none focus:border-black"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold uppercase mb-1.5 text-black">
-                      {lang === 'en' ? 'Postcode / ZIP *' : 'Código Postal *'}
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={billing.postcode}
-                      onChange={(e) => setBilling({ ...billing, postcode: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-zinc-300 text-black text-sm outline-none focus:border-black"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold uppercase mb-1.5 text-black">
-                      {lang === 'en' ? 'Country *' : 'País *'}
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={billing.country}
-                      onChange={(e) => setBilling({ ...billing, country: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-zinc-300 text-black text-sm outline-none focus:border-black"
-                    />
-                  </div>
-                </div>
+                          return (
+                            <tr key={ord.orderId} className="hover:bg-zinc-50/80 transition-colors">
+                              {/* 1. Fecha de contratación */}
+                              <td className="py-4 px-4 sm:px-6 whitespace-nowrap text-xs sm:text-sm font-semibold text-zinc-900">
+                                {formattedDate}
+                              </td>
 
-                {billingMessage && (
-                  <p className={`text-xs font-semibold p-4 rounded-xl ${billingMessage.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
-                    {billingMessage.text}
-                  </p>
+                              {/* 2. Nombre de la tarjeta eSIM */}
+                              <td className="py-4 px-4 sm:px-6 text-xs sm:text-sm font-bold text-black">
+                                <div className="flex items-center gap-2">
+                                  <span>{productName}</span>
+                                  {ord.dataAmount && (
+                                    <span className="hidden sm:inline-block text-[11px] font-mono px-2 py-0.5 rounded bg-zinc-100 text-zinc-700 border border-zinc-200">
+                                      {ord.dataAmount}
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+
+                              {/* 3. Número de pedido */}
+                              <td className="py-4 px-4 sm:px-6 whitespace-nowrap">
+                                <span className="font-mono font-bold text-xs bg-zinc-100 text-zinc-800 px-2.5 py-1 rounded-md border border-zinc-200">
+                                  #{orderNumber}
+                                </span>
+                              </td>
+
+                              {/* 4. Botón para descargar esa factura */}
+                              <td className="py-4 px-4 sm:px-6 text-right whitespace-nowrap">
+                                <a
+                                  href={`/api/invoices/generate?orderId=${encodeURIComponent(orderNumber)}&lang=${lang}&view=inline`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1.5 bg-[#ffec00] hover:bg-yellow-300 text-black text-xs font-bold font-condensed tracking-wider uppercase px-4 py-2 rounded-xl transition-all shadow-xs border border-black/10 hover:shadow-sm"
+                                  title={lang === 'en' ? 'Download official tax invoice PDF' : 'Descargar factura fiscal oficial en PDF'}
+                                >
+                                  <svg className="w-3.5 h-3.5 fill-current flex-shrink-0" viewBox="0 0 24 24">
+                                    <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                                  </svg>
+                                  <span>{lang === 'en' ? 'Download invoice' : 'Descargar factura'}</span>
+                                </a>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="bg-zinc-50 rounded-2xl border border-zinc-200 p-8 text-center">
+                    <svg className="w-10 h-10 fill-zinc-300 mx-auto mb-3" viewBox="0 0 24 24">
+                      <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
+                    </svg>
+                    <p className="text-sm font-semibold text-zinc-700 mb-1">
+                      {lang === 'en' ? 'No contracted products or invoices yet' : 'Aún no tienes productos contratados para facturar'}
+                    </p>
+                    <p className="text-xs text-zinc-500 max-w-md mx-auto mb-4">
+                      {lang === 'en'
+                        ? 'Once you purchase an eSIM card, you will be able to download its official invoice here after saving your billing details.'
+                        : 'Cuando adquieras una tarjeta eSIM, podrás descargar su factura oficial directamente aquí tras guardar tus datos fiscales.'}
+                    </p>
+                    <Link
+                      href="/"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-black hover:bg-zinc-800 text-white rounded-xl text-xs font-bold font-condensed tracking-wider uppercase transition-colors"
+                    >
+                      <span>{lang === 'en' ? 'Explore eSIM Plans' : 'Explorar Planes eSIM'}</span>
+                    </Link>
+                  </div>
                 )}
+              </div>
 
-                <div className="pt-2">
-                  <button
-                    type="submit"
-                    disabled={billingSaving}
-                    className="bg-[#ffec00] hover:bg-yellow-300 text-black font-bold font-condensed tracking-wider uppercase px-8 py-3.5 rounded-xl text-base transition-all shadow-md border border-black/10"
-                  >
-                    {billingSaving ? (lang === 'en' ? 'Saving...' : 'Guardando...') : (lang === 'en' ? 'Save Billing Address' : 'Guardar Datos de Facturación')}
-                  </button>
-                </div>
-              </form>
+              {/* FORMULARIO INFERIOR: Datos de facturación */}
+              <div className="bg-white rounded-3xl border border-zinc-200 p-6 sm:p-10 shadow-xl w-full">
+                <h2 className="text-xl sm:text-2xl font-bold text-black mb-2 flex items-center gap-2">
+                  <svg className="w-6 h-6 fill-current text-black flex-shrink-0" viewBox="0 0 24 24">
+                    <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
+                  </svg>
+                  <span>{lang === 'en' ? 'Billing Address & Tax Details' : 'Dirección y Datos Fiscales de Facturación'}</span>
+                </h2>
+                <p className="text-xs sm:text-sm text-zinc-500 font-medium mb-6">
+                  {lang === 'en'
+                    ? 'Manage your invoice and tax data to automatically generate and update all your invoices.'
+                    : 'Gestiona tus datos de facturación para la emisión y actualización automática de todas tus facturas.'}
+                </p>
+
+                <form onSubmit={handleSaveBilling} className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold uppercase mb-1.5 text-black">
+                        {lang === 'en' ? 'First Name *' : 'Nombre *'}
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={billing.firstName}
+                        onChange={(e) => setBilling({ ...billing, firstName: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl border border-zinc-300 text-black text-sm outline-none focus:border-black"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold uppercase mb-1.5 text-black">
+                        {lang === 'en' ? 'Last Name *' : 'Apellidos *'}
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={billing.lastName}
+                        onChange={(e) => setBilling({ ...billing, lastName: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl border border-zinc-300 text-black text-sm outline-none focus:border-black"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold uppercase mb-1.5 text-black">
+                        {lang === 'en' ? 'Company Name (Optional)' : 'Nombre de Empresa (Opcional)'}
+                      </label>
+                      <input
+                        type="text"
+                        value={billing.company}
+                        onChange={(e) => setBilling({ ...billing, company: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl border border-zinc-300 text-black text-sm outline-none focus:border-black"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold uppercase mb-1.5 text-black">
+                        {lang === 'en' ? 'VAT / NIF Number (Optional)' : 'NIF / CIF / DNI (Opcional)'}
+                      </label>
+                      <input
+                        type="text"
+                        value={billing.vatId}
+                        onChange={(e) => setBilling({ ...billing, vatId: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl border border-zinc-300 text-black text-sm outline-none focus:border-black"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold uppercase mb-1.5 text-black">
+                      {lang === 'en' ? 'Street Address *' : 'Dirección *'}
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={billing.address}
+                      onChange={(e) => setBilling({ ...billing, address: e.target.value })}
+                      className="w-full px-4 py-3 rounded-xl border border-zinc-300 text-black text-sm outline-none focus:border-black"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold uppercase mb-1.5 text-black">
+                        {lang === 'en' ? 'Town / City *' : 'Ciudad *'}
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={billing.city}
+                        onChange={(e) => setBilling({ ...billing, city: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl border border-zinc-300 text-black text-sm outline-none focus:border-black"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold uppercase mb-1.5 text-black">
+                        {lang === 'en' ? 'Postcode / ZIP *' : 'Código Postal *'}
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={billing.postcode}
+                        onChange={(e) => setBilling({ ...billing, postcode: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl border border-zinc-300 text-black text-sm outline-none focus:border-black"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold uppercase mb-1.5 text-black">
+                        {lang === 'en' ? 'Country *' : 'País *'}
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={billing.country}
+                        onChange={(e) => setBilling({ ...billing, country: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl border border-zinc-300 text-black text-sm outline-none focus:border-black"
+                      />
+                    </div>
+                  </div>
+
+                  {billingMessage && (
+                    <p className={`text-xs font-semibold p-4 rounded-xl ${billingMessage.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+                      {billingMessage.text}
+                    </p>
+                  )}
+
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={billingSaving}
+                      className="bg-[#ffec00] hover:bg-yellow-300 text-black font-bold font-condensed tracking-wider uppercase px-8 py-3.5 rounded-xl text-base transition-all shadow-md border border-black/10 disabled:opacity-50 cursor-pointer"
+                    >
+                      {billingSaving
+                        ? (lang === 'en' ? 'Saving and generating...' : 'Guardando y generando...')
+                        : (lang === 'en' ? 'Save changes and generate invoices' : 'Guardar cambios y generar facturas')}
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
           )}
 

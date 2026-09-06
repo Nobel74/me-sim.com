@@ -49,6 +49,8 @@ export async function GET(request) {
   }
 }
 
+const ORDERS_FILE = path.join(process.cwd(), 'src', 'data', 'orders.json');
+
 export async function POST(request) {
   try {
     const sessionCookie = request.cookies.get('mesim_session');
@@ -61,18 +63,54 @@ export async function POST(request) {
 
     const user = JSON.parse(Buffer.from(sessionCookie.value, 'base64').toString('utf8'));
     const billingData = await request.json();
+    const userEmail = (user.email || '').toLowerCase().trim();
 
+    // 1. Guardar perfil fiscal persistente
     const profiles = getBillingProfiles();
-    profiles[user.email.toLowerCase()] = {
+    profiles[userEmail] = {
       ...billingData,
       updatedAt: new Date().toISOString(),
     };
     saveBillingProfiles(profiles);
 
+    // 2. Sincronizar y generar datos de facturas en todos los pedidos contratados del usuario
+    let updatedOrdersCount = 0;
+    try {
+      if (fs.existsSync(ORDERS_FILE)) {
+        const rawOrders = fs.readFileSync(ORDERS_FILE, 'utf-8');
+        const orders = JSON.parse(rawOrders);
+        if (Array.isArray(orders)) {
+          const updatedOrders = orders.map((ord) => {
+            const ordEmail = (ord.customerEmail || ord.billing?.email || '').toLowerCase().trim();
+            if (ordEmail && ordEmail === userEmail) {
+              updatedOrdersCount++;
+              return {
+                ...ord,
+                customerName: `${billingData.firstName || ''} ${billingData.lastName || ''}`.trim() || ord.customerName,
+                billing: {
+                  ...(ord.billing || {}),
+                  ...billingData,
+                },
+                updatedAt: new Date().toISOString(),
+              };
+            }
+            return ord;
+          });
+
+          if (updatedOrdersCount > 0) {
+            fs.writeFileSync(ORDERS_FILE, JSON.stringify(updatedOrders, null, 2), 'utf-8');
+          }
+        }
+      }
+    } catch (orderSyncErr) {
+      console.warn('Error updating orders with new billing data:', orderSyncErr.message);
+    }
+
     return NextResponse.json({
       success: true,
-      billing: profiles[user.email.toLowerCase()],
-      message: '¡Datos de facturación guardados y sincronizados correctamente!',
+      billing: profiles[userEmail],
+      updatedOrdersCount,
+      message: '¡Datos de facturación guardados y facturas generadas correctamente!',
     });
   } catch (error) {
     return NextResponse.json(

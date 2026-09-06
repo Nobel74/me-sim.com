@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
 import { generateInvoicePdfBuffer, detectInvoiceLanguage, resolveInvoiceLanguage, calculateTaxBreakdown } from '../../../../lib/invoices';
 import { getCompanyConfig } from '../../../../lib/companyConfig';
 import { loadCompanyLogoBuffer } from '../../../../lib/pdfImageLoader';
@@ -38,7 +40,35 @@ export async function GET(request) {
       );
     }
 
-    const billing = order.billing || {};
+    // Intentar completar con perfil de facturación guardado si faltan datos
+    let billing = { ...(order.billing || {}) };
+    const customerEmail = order.customerEmail || (order.billing && order.billing.email);
+    if (customerEmail) {
+      try {
+        const billingProfilesFile = path.join(process.cwd(), 'src', 'data', 'billing-profiles.json');
+        if (fs.existsSync(billingProfilesFile)) {
+          const profiles = JSON.parse(fs.readFileSync(billingProfilesFile, 'utf-8'));
+          const userProfile = profiles[customerEmail.toLowerCase()];
+          if (userProfile) {
+            billing = {
+              ...userProfile,
+              ...billing,
+              firstName: billing.firstName || userProfile.firstName,
+              lastName: billing.lastName || userProfile.lastName,
+              company: billing.company || userProfile.company,
+              vatId: billing.vatId || userProfile.vatId,
+              address: billing.address || userProfile.address,
+              city: billing.city || userProfile.city,
+              postcode: billing.postcode || userProfile.postcode,
+              country: billing.country || userProfile.country,
+            };
+          }
+        }
+      } catch (err) {
+        console.warn('Could not read billing profile:', err.message);
+      }
+    }
+
     const invoiceLang = resolveInvoiceLanguage(order, billing, rawLang);
     const company = getCompanyConfig();
     const invoiceNumber = `${company.invoicePrefix || 'MS-'}${order.orderId}`;
@@ -98,13 +128,15 @@ export async function GET(request) {
       lang: invoiceLang,
     });
 
-    const filename = `factura_${order.orderId}.pdf`;
+    const clientName = `${billing.firstName || ''} ${billing.lastName || ''}`.trim() || billing.company || order.customerName || (invoiceLang === 'en' ? 'Customer' : 'Cliente');
+    const safeClientName = clientName.replace(/[/\\?%*:|"<>]/g, '').trim();
+    const filename = `${invoiceNumber} - ${safeClientName}.pdf`;
 
     return new NextResponse(pdfBuffer, {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `${view}; filename="${filename}"`,
+        'Content-Disposition': `${view}; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
         'Content-Length': String(pdfBuffer.length),
         'Cache-Control': 'no-store',
       },
@@ -165,7 +197,32 @@ export async function POST(request) {
       );
     }
 
-    const finalBilling = finalOrder.billing || clientBilling || {};
+    // Perfil fiscal: combinar pedido, datos enviados y perfil guardado
+    let finalBilling = { ...(finalOrder.billing || {}), ...(clientBilling || {}) };
+    try {
+      const billingProfilesFile = path.join(process.cwd(), 'src', 'data', 'billing-profiles.json');
+      if (fs.existsSync(billingProfilesFile)) {
+        const profiles = JSON.parse(fs.readFileSync(billingProfilesFile, 'utf-8'));
+        const userProfile = profiles[userSession.email.toLowerCase()];
+        if (userProfile) {
+          finalBilling = {
+            ...userProfile,
+            ...finalBilling,
+            firstName: finalBilling.firstName || userProfile.firstName,
+            lastName: finalBilling.lastName || userProfile.lastName,
+            company: finalBilling.company || userProfile.company,
+            vatId: finalBilling.vatId || userProfile.vatId,
+            address: finalBilling.address || userProfile.address,
+            city: finalBilling.city || userProfile.city,
+            postcode: finalBilling.postcode || userProfile.postcode,
+            country: finalBilling.country || userProfile.country,
+          };
+        }
+      }
+    } catch (err) {
+      console.warn('Could not read user billing profile:', err.message);
+    }
+
     const acceptLanguage = request.headers.get('accept-language') || '';
     const invoiceLang = resolveInvoiceLanguage(finalOrder, finalBilling, requestedLang || (acceptLanguage.includes('es') ? 'es' : 'en'));
 
@@ -175,13 +232,17 @@ export async function POST(request) {
       lang: invoiceLang,
     });
 
-    const filename = `factura_${finalOrder.orderId}.pdf`;
+    const company = getCompanyConfig();
+    const invoiceNumber = `${company.invoicePrefix || 'MS-'}${finalOrder.orderId}`;
+    const clientName = `${finalBilling.firstName || ''} ${finalBilling.lastName || ''}`.trim() || finalBilling.company || finalOrder.customerName || (invoiceLang === 'en' ? 'Customer' : 'Cliente');
+    const safeClientName = clientName.replace(/[/\\?%*:|"<>]/g, '').trim();
+    const filename = `${invoiceNumber} - ${safeClientName}.pdf`;
 
     return new NextResponse(pdfBuffer, {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Content-Disposition': `attachment; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
         'Content-Length': String(pdfBuffer.length),
         'Cache-Control': 'no-cache',
       },

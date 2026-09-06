@@ -551,9 +551,9 @@ export function generateInvoicePdfBuffer({ order = {}, billing = {}, lang }) {
   // Encabezado PDF 1.4
   appendText('%PDF-1.4\n');
 
-  // 1 0 obj: Catalog
+  // 1 0 obj: Catalog con DisplayDocTitle para visores de navegador
   offsets.push(currentOffset);
-  appendText('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
+  appendText('1 0 obj\n<< /Type /Catalog /Pages 2 0 R /ViewerPreferences << /DisplayDocTitle true >> >>\nendobj\n');
 
   // 2 0 obj: Pages
   offsets.push(currentOffset);
@@ -579,26 +579,36 @@ export function generateInvoicePdfBuffer({ order = {}, billing = {}, lang }) {
   appendText('\nendstream\nendobj\n');
 
   // 7 0 obj & 8 0 obj: Image XObjects para el logotipo oficial
+  let nextObjNum = 7;
   if (logoData) {
     offsets.push(currentOffset);
     if (logoData.type === 'jpeg') {
       appendText(`7 0 obj\n<< /Type /XObject /Subtype /Image /Width ${logoData.width} /Height ${logoData.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${logoData.buffer.length} >>\nstream\n`);
       appendChunk(logoData.buffer);
       appendText('\nendstream\nendobj\n');
+      nextObjNum = 8;
     } else {
       const sMaskRef = logoData.hasAlpha ? ' /SMask 8 0 R' : '';
       appendText(`7 0 obj\n<< /Type /XObject /Subtype /Image /Width ${logoData.width} /Height ${logoData.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode${sMaskRef} /Length ${logoData.rgbDeflated.length} >>\nstream\n`);
       appendChunk(logoData.rgbDeflated);
       appendText('\nendstream\nendobj\n');
+      nextObjNum = 8;
 
       if (logoData.hasAlpha) {
         offsets.push(currentOffset);
         appendText(`8 0 obj\n<< /Type /XObject /Subtype /Image /Width ${logoData.width} /Height ${logoData.height} /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode /Length ${logoData.alphaDeflated.length} >>\nstream\n`);
         appendChunk(logoData.alphaDeflated);
         appendText('\nendstream\nendobj\n');
+        nextObjNum = 9;
       }
     }
   }
+
+  // Info Object con metadatos oficiales y título de pestaña para el navegador
+  const infoObjNum = nextObjNum;
+  const docTitle = `${invoiceNumber} - ${clientName}.pdf`;
+  offsets.push(currentOffset);
+  appendText(`${infoObjNum} 0 obj\n<< /Title (${escapePdfWinAnsi(docTitle)}) /Author (ME-SIM Connectivity) /Creator (ME-SIM Billing Engine) >>\nendobj\n`);
 
   // Tabla XREF
   const xrefOffset = currentOffset;
@@ -607,7 +617,7 @@ export function generateInvoicePdfBuffer({ order = {}, billing = {}, lang }) {
     xref += String(o).padStart(10, '0') + ' 00000 n \n';
   }
 
-  const trailer = `trailer\n<< /Size ${offsets.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
+  const trailer = `trailer\n<< /Size ${offsets.length + 1} /Root 1 0 R /Info ${infoObjNum} 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
   appendText(xref + trailer);
 
   return Buffer.concat(chunks);

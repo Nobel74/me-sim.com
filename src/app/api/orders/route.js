@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { strongesimFetch, resolveStrongeSimPlanId } from '../../../lib/strongesim';
 import { addDiagnosticLog } from '../../../lib/logger';
 import { checkOrderProvisioned, markOrderProvisioned } from '../../../lib/idempotency';
-import { saveOrUpdateOrder } from '../../../lib/ordersService';
+import { saveOrUpdateOrder, getLocalOrders } from '../../../lib/ordersService';
 
 export const dynamic = 'force-dynamic';
 
@@ -390,14 +390,9 @@ export async function GET(request) {
     console.log(`[GET /api/orders] Base WC URL: ${wcUrl}`);
     console.log(`[GET /api/orders] Credentials - CK: ${ck ? 'Configured' : 'Missing'}, CS: ${cs ? 'Configured' : 'Missing'}`);
 
-    if (!ck || !cs) {
-      return NextResponse.json(
-        { success: false, message: 'WooCommerce credentials not configured' },
-        { status: 500 }
-      );
-    }
-
     let wcOrders = [];
+
+    if (ck && cs) {
 
     try {
       const authHeader = 'Basic ' + Buffer.from(`${ck}:${cs}`).toString('base64');
@@ -465,9 +460,10 @@ export async function GET(request) {
       console.error('[GET /api/orders] Error querying WooCommerce API:', wcFetchErr);
       wcOrders = [];
     }
+    }
 
     if (!Array.isArray(wcOrders)) {
-      return NextResponse.json({ success: true, orders: [] });
+      wcOrders = [];
     }
 
     // Map WooCommerce orders to dashboard format
@@ -521,8 +517,44 @@ export async function GET(request) {
         date: order.date_created ? order.date_created.split('T')[0] : new Date().toLocaleDateString(),
         createdAt: order.date_created || null,
         totalPrice: `${order.total} ${order.currency}`,
+        billing: order.billing || {},
       };
     });
+
+    // Merge with local orders in src/data/orders.json for this email
+    try {
+      const localOrders = getLocalOrders();
+      const existingOrderIds = new Set(orders.map(o => String(o.orderId)));
+      const cleanEmail = email.toLowerCase().trim();
+
+      for (const lo of localOrders) {
+        const loEmail = (lo.customerEmail || lo.billing?.email || '').toLowerCase().trim();
+        if (loEmail === cleanEmail && !existingOrderIds.has(String(lo.orderId))) {
+          existingOrderIds.add(String(lo.orderId));
+          orders.push({
+            orderId: String(lo.orderId),
+            wcStatus: lo.status || 'completed',
+            esimTranNo: lo.esimTranNo || ('89852' + String(lo.orderId).padEnd(13, '0')),
+            qrCodeUrl: lo.qrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(lo.lpaString || '')}`,
+            lpaString: lo.lpaString || `LPA:1$rsp.strongesim.com$${lo.esimTranNo}`,
+            title: lo.title || lo.plan || 'eSIM Plan',
+            country: lo.country || 'España',
+            iso: (lo.iso || 'es').toLowerCase(),
+            dataAmount: lo.dataAmount || '1 GB',
+            days: parseInt(lo.days || '1', 10),
+            planId: lo.planId || '',
+            priceEur: parseFloat(lo.amount || lo.priceEur || 0),
+            currency: lo.currency || 'EUR',
+            date: lo.date || (lo.createdAt ? lo.createdAt.split('T')[0] : new Date().toISOString().split('T')[0]),
+            createdAt: lo.createdAt || null,
+            totalPrice: `${lo.amount || lo.priceEur || 0} ${lo.currency || 'EUR'}`,
+            billing: lo.billing || {},
+          });
+        }
+      }
+    } catch (localErr) {
+      console.warn('[GET /api/orders] Error merging local orders:', localErr.message);
+    }
 
     console.log(`[GET /api/orders] Returning ${orders.length} mapped orders`);
     return NextResponse.json({ success: true, orders });
