@@ -3,7 +3,17 @@ export default function robots() {
     rules: {
       userAgent: '*',
       allow: '/',
-      disallow: ['/dashboard/', '/api/', '/cart/', '/admin/'],
+      disallow: [
+        '/admin',
+        '/admin/',
+        '/api/admin',
+        '/api/admin/',
+        '/api/',
+        '/dashboard',
+        '/dashboard/',
+        '/cart',
+        '/cart/',
+      ],
     },
     sitemap: 'https://me-sim.com/sitemap.xml',
   };

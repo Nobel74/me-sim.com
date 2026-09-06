@@ -33,6 +33,33 @@ const nextConfig = {
           },
         ],
       },
+      {
+        source: '/admin',
+        headers: [
+          {
+            key: 'X-Robots-Tag',
+            value: 'noindex, nofollow, noarchive, nosnippet',
+          },
+        ],
+      },
+      {
+        source: '/admin/:path*',
+        headers: [
+          {
+            key: 'X-Robots-Tag',
+            value: 'noindex, nofollow, noarchive, nosnippet',
+          },
+        ],
+      },
+      {
+        source: '/api/admin/:path*',
+        headers: [
+          {
+            key: 'X-Robots-Tag',
+            value: 'noindex, nofollow, noarchive, nosnippet',
+          },
+        ],
+      },
     ];
   },
 };
