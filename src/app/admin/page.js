@@ -73,20 +73,38 @@ export default function AdminDashboardPage() {
   const [securitySaving, setSecuritySaving] = useState(false);
   const [securityStatus, setSecurityStatus] = useState(null);
 
-  // Load language and theme preferences from window events
+  // Load language, theme and tab preferences from window events
   useEffect(() => {
     const handleLang = (e) => setLang(e.detail || 'es');
     const handleTheme = (e) => setTheme(e.detail || 'dark');
+    const handleTab = (e) => {
+      if (e.detail && ['dashboard', 'orders', 'company', 'partners'].includes(e.detail)) {
+        setActiveTab(e.detail);
+      }
+    };
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab');
+      if (tabParam && ['dashboard', 'orders', 'company', 'partners'].includes(tabParam)) {
+        setActiveTab(tabParam);
+      }
+    };
 
     window.addEventListener('mesim_admin_lang_change', handleLang);
     window.addEventListener('mesim_admin_theme_change', handleTheme);
+    window.addEventListener('mesim_admin_tab_change', handleTab);
+    window.addEventListener('popstate', handlePopState);
 
     const initialLang = localStorage.getItem('mesim_admin_lang') || 'es';
     const initialTheme = localStorage.getItem('mesim_admin_theme') || 'dark';
     const initialCurrency = localStorage.getItem('mesim_admin_currency') || 'EUR';
+    const initialTab = localStorage.getItem('mesim_admin_tab');
     setLang(initialLang);
     setTheme(initialTheme);
     setDashboardCurrency(initialCurrency);
+    if (initialTab && ['dashboard', 'orders', 'company', 'partners'].includes(initialTab)) {
+      setActiveTab(initialTab);
+    }
 
     // Fetch official dynamic exchange rates from currency module
     getExchangeRates().then((ratesData) => {
@@ -104,6 +122,8 @@ export default function AdminDashboardPage() {
     return () => {
       window.removeEventListener('mesim_admin_lang_change', handleLang);
       window.removeEventListener('mesim_admin_theme_change', handleTheme);
+      window.removeEventListener('mesim_admin_tab_change', handleTab);
+      window.removeEventListener('popstate', handlePopState);
     };
   }, []);
 
@@ -587,78 +607,7 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Navigation Tabs Bar */}
-      <div className={`flex flex-wrap items-center gap-2 border-b pb-3 ${isDark ? 'border-zinc-800' : 'border-zinc-200'}`}>
-        <button
-          onClick={() => setActiveTab('dashboard')}
-          className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all duration-300 flex items-center gap-2 ${
-            activeTab === 'dashboard'
-              ? 'bg-[#ffec00] text-black shadow-md scale-[1.02]'
-              : isDark
-              ? 'text-zinc-400 hover:text-white hover:bg-zinc-800/60 border border-transparent'
-              : 'bg-white text-zinc-700 hover:text-black hover:bg-zinc-50 border border-zinc-200 hover:border-zinc-300 shadow-xs'
-          }`}
-        >
-          <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-            <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" />
-          </svg>
-          <span>{isEn ? 'Financial Dashboard' : 'Dashboard Financiero'}</span>
-        </button>
 
-        <button
-          onClick={() => setActiveTab('orders')}
-          className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all duration-300 flex items-center gap-2 ${
-            activeTab === 'orders'
-              ? 'bg-[#ffec00] text-black shadow-md scale-[1.02]'
-              : isDark
-              ? 'text-zinc-400 hover:text-white hover:bg-zinc-800/60 border border-transparent'
-              : 'bg-white text-zinc-700 hover:text-black hover:bg-zinc-50 border border-zinc-200 hover:border-zinc-300 shadow-xs'
-          }`}
-        >
-          <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm6 12H6v-1.4c0-2 4-3.1 6-3.1s6 1.1 6 3.1V18z" />
-          </svg>
-          <span>{isEn ? 'Orders & eSIM Support' : 'Clientes y Soporte'}</span>
-        </button>
-
-        {currentUser?.role === 'admin' && (
-          <button
-            onClick={() => setActiveTab('company')}
-            className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all duration-300 flex items-center gap-2 ${
-              activeTab === 'company'
-                ? 'bg-[#ffec00] text-black shadow-md scale-[1.02]'
-                : isDark
-                ? 'text-zinc-400 hover:text-white hover:bg-zinc-800/60 border border-transparent'
-                : 'bg-white text-zinc-700 hover:text-black hover:bg-zinc-50 border border-zinc-200 hover:border-zinc-300 shadow-xs'
-            }`}
-          >
-            <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-              <path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z" />
-            </svg>
-            <span>{isEn ? 'Company Fiscal Settings' : 'Configuración Fiscal ME-SIM'}</span>
-          </button>
-        )}
-
-        <button
-          onClick={() => setActiveTab('partners')}
-          className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all duration-300 flex items-center gap-2 ${
-            activeTab === 'partners'
-              ? 'bg-[#ffec00] text-black shadow-md scale-[1.02]'
-              : isDark
-              ? 'text-zinc-400 hover:text-white hover:bg-zinc-800/60 border border-transparent'
-              : 'bg-white text-zinc-700 hover:text-black hover:bg-zinc-50 border border-zinc-200 hover:border-zinc-300 shadow-xs'
-          }`}
-        >
-          <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-            <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
-          </svg>
-          <span>
-            {currentUser?.role === 'admin'
-              ? (isEn ? 'Partners & Security' : 'Gestión de Socios y Seguridad')
-              : (isEn ? 'My Account & Security' : 'Mi Perfil y Seguridad')}
-          </span>
-        </button>
-      </div>
 
       {/* TAB 1: FINANCIAL DASHBOARD */}
       {activeTab === 'dashboard' && (
