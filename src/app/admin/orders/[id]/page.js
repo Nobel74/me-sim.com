@@ -218,22 +218,30 @@ export default function AdminOrderDetailPage() {
 
         <div className="flex items-center gap-2.5 flex-wrap">
           {/* Botón directo para Ver / Descargar Factura PDF */}
-          <a
-            href={`/api/invoices/generate?orderId=${order.orderId}&view=inline`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all border shadow-xs ${
-              isDark
-                ? 'bg-zinc-800 hover:bg-[#ffec00] text-zinc-200 hover:text-black border-zinc-700 hover:border-yellow-400'
-                : 'bg-zinc-100 hover:bg-[#ffec00] text-zinc-900 hover:text-black border-zinc-300 hover:border-yellow-400'
-            }`}
-            title={isEn ? 'View / Download Official Tax Invoice PDF' : 'Ver / Descargar Factura Fiscal PDF Oficial'}
-          >
-            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-              <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
-            </svg>
-            <span>{isEn ? 'View Invoice PDF' : 'Ver Factura PDF'}</span>
-          </a>
+          {(() => {
+            const adminClientName = (order.billing?.firstName ? `${order.billing.firstName} ${order.billing.lastName || ''}`.trim() : order.customerName) || 'Cliente';
+            const safeName = adminClientName.replace(/[/\\?%*:|"<>]/g, '').trim();
+            const cleanDate = order.date ? String(order.date).split('T')[0] : (order.createdAt ? order.createdAt.split('T')[0] : '2026-08-25');
+            const adminFilename = `MS-${order.orderId} - ${safeName} - ${cleanDate}.pdf`;
+            return (
+              <a
+                href={`/api/invoices/${encodeURIComponent(adminFilename)}?orderId=${order.orderId}&view=inline`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all border shadow-xs ${
+                  isDark
+                    ? 'bg-zinc-800 hover:bg-[#ffec00] text-zinc-200 hover:text-black border-zinc-700 hover:border-yellow-400'
+                    : 'bg-zinc-100 hover:bg-[#ffec00] text-zinc-900 hover:text-black border-zinc-300 hover:border-yellow-400'
+                }`}
+                title={isEn ? 'View / Download Official Tax Invoice PDF' : 'Ver / Descargar Factura Fiscal PDF Oficial'}
+              >
+                <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                  <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                </svg>
+                <span>{isEn ? 'View Invoice PDF' : 'Ver Factura PDF'}</span>
+              </a>
+            );
+          })()}
 
           <span className={`text-xs px-3.5 py-1.5 rounded-full font-bold flex items-center gap-1.5 border ${
             order.status === 'Completed'

@@ -606,7 +606,7 @@ export function generateInvoicePdfBuffer({ order = {}, billing = {}, lang }) {
 
   // Info Object con metadatos oficiales y título de pestaña para el navegador
   const infoObjNum = nextObjNum;
-  const docTitle = `${invoiceNumber} - ${clientName}.pdf`;
+  const docTitle = `${invoiceNumber} - ${clientName} - ${invoiceDate}.pdf`;
   offsets.push(currentOffset);
   appendText(`${infoObjNum} 0 obj\n<< /Title (${escapePdfWinAnsi(docTitle)}) /Author (ME-SIM Connectivity) /Creator (ME-SIM Billing Engine) >>\nendobj\n`);
 

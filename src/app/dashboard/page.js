@@ -1007,9 +1007,9 @@ export default function DashboardPage() {
                     <table className="w-full text-left border-collapse text-sm">
                       <thead>
                         <tr className="border-b border-zinc-200 bg-zinc-100/80 text-xs font-bold uppercase tracking-wider text-zinc-600">
-                          <th className="py-3.5 px-4 sm:px-6">{lang === 'en' ? 'Date' : 'Fecha de contratación'}</th>
+                          <th className="py-3.5 px-4 sm:px-6">{lang === 'en' ? 'Order' : 'Pedido'}</th>
+                          <th className="py-3.5 px-4 sm:px-6">{lang === 'en' ? 'Date' : 'Fecha'}</th>
                           <th className="py-3.5 px-4 sm:px-6">{lang === 'en' ? 'eSIM Card' : 'Tarjeta eSIM'}</th>
-                          <th className="py-3.5 px-4 sm:px-6">{lang === 'en' ? 'Order Number' : 'Número de pedido'}</th>
                           <th className="py-3.5 px-4 sm:px-6 text-right">{lang === 'en' ? 'Invoice' : 'Factura'}</th>
                         </tr>
                       </thead>
@@ -1032,37 +1032,35 @@ export default function DashboardPage() {
                           }
 
                           const productName = ord.title || ord.plan || (lang === 'en' ? 'eSIM Data Plan' : 'Plan de Datos eSIM');
+                          const invoiceNumber = `MS-${orderNumber}`;
+                          const clientName = `${billing.firstName || ''} ${billing.lastName || ''}`.trim() || billing.company || ord.customerName || (lang === 'en' ? 'Customer' : 'Cliente');
+                          const safeClientName = clientName.replace(/[/\\?%*:|"<>]/g, '').trim();
+                          const cleanDate = ord.date ? String(ord.date).split('T')[0] : (ord.createdAt ? ord.createdAt.split('T')[0] : new Date().toISOString().split('T')[0]);
+                          const invoiceFilename = `${invoiceNumber} - ${safeClientName} - ${cleanDate}.pdf`;
 
                           return (
                             <tr key={ord.orderId} className="hover:bg-zinc-50/80 transition-colors">
-                              {/* 1. Fecha de contratación */}
-                              <td className="py-4 px-4 sm:px-6 whitespace-nowrap text-xs sm:text-sm font-semibold text-zinc-900">
-                                {formattedDate}
-                              </td>
-
-                              {/* 2. Nombre de la tarjeta eSIM */}
-                              <td className="py-4 px-4 sm:px-6 text-xs sm:text-sm font-bold text-black">
-                                <div className="flex items-center gap-2">
-                                  <span>{productName}</span>
-                                  {ord.dataAmount && (
-                                    <span className="hidden sm:inline-block text-[11px] font-mono px-2 py-0.5 rounded bg-zinc-100 text-zinc-700 border border-zinc-200">
-                                      {ord.dataAmount}
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-
-                              {/* 3. Número de pedido */}
+                              {/* 1. Pedido */}
                               <td className="py-4 px-4 sm:px-6 whitespace-nowrap">
                                 <span className="font-mono font-bold text-xs bg-zinc-100 text-zinc-800 px-2.5 py-1 rounded-md border border-zinc-200">
                                   #{orderNumber}
                                 </span>
                               </td>
 
+                              {/* 2. Fecha */}
+                              <td className="py-4 px-4 sm:px-6 whitespace-nowrap text-xs sm:text-sm font-semibold text-zinc-900">
+                                {formattedDate}
+                              </td>
+
+                              {/* 3. Tarjeta eSIM (sin cuadro gris repetitivo) */}
+                              <td className="py-4 px-4 sm:px-6 text-xs sm:text-sm font-bold text-black">
+                                <span>{productName}</span>
+                              </td>
+
                               {/* 4. Botón para descargar esa factura */}
                               <td className="py-4 px-4 sm:px-6 text-right whitespace-nowrap">
                                 <a
-                                  href={`/api/invoices/generate?orderId=${encodeURIComponent(orderNumber)}&lang=${lang}&view=inline`}
+                                  href={`/api/invoices/${encodeURIComponent(invoiceFilename)}?orderId=${encodeURIComponent(orderNumber)}&lang=${lang}&view=inline`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="inline-flex items-center gap-1.5 bg-[#ffec00] hover:bg-yellow-300 text-black text-xs font-bold font-condensed tracking-wider uppercase px-4 py-2 rounded-xl transition-all shadow-xs border border-black/10 hover:shadow-sm"

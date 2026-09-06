@@ -130,7 +130,8 @@ export async function GET(request) {
 
     const clientName = `${billing.firstName || ''} ${billing.lastName || ''}`.trim() || billing.company || order.customerName || (invoiceLang === 'en' ? 'Customer' : 'Cliente');
     const safeClientName = clientName.replace(/[/\\?%*:|"<>]/g, '').trim();
-    const filename = `${invoiceNumber} - ${safeClientName}.pdf`;
+    const cleanDate = order.date ? String(order.date).split('T')[0] : new Date().toISOString().split('T')[0];
+    const filename = `${invoiceNumber} - ${safeClientName} - ${cleanDate}.pdf`;
 
     return new NextResponse(pdfBuffer, {
       status: 200,
@@ -236,7 +237,8 @@ export async function POST(request) {
     const invoiceNumber = `${company.invoicePrefix || 'MS-'}${finalOrder.orderId}`;
     const clientName = `${finalBilling.firstName || ''} ${finalBilling.lastName || ''}`.trim() || finalBilling.company || finalOrder.customerName || (invoiceLang === 'en' ? 'Customer' : 'Cliente');
     const safeClientName = clientName.replace(/[/\\?%*:|"<>]/g, '').trim();
-    const filename = `${invoiceNumber} - ${safeClientName}.pdf`;
+    const cleanDate = finalOrder.date ? String(finalOrder.date).split('T')[0] : new Date().toISOString().split('T')[0];
+    const filename = `${invoiceNumber} - ${safeClientName} - ${cleanDate}.pdf`;
 
     return new NextResponse(pdfBuffer, {
       status: 200,
