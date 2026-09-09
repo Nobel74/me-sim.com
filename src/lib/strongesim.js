@@ -345,20 +345,42 @@ export async function fetchEsimProfileTelemetry(esimTranNo, orderId = null) {
   if (!esimTranNo && !orderId) return null;
 
   try {
-    // 1. Consulta directa a endpoint de perfiles v1
-    if (esimTranNo) {
+    let targetIccid = esimTranNo;
+    const isUuid = typeof esimTranNo === 'string' && esimTranNo.includes('-');
+
+    // Si esimTranNo es un UUID o un ID de orden de StrongeSIM, consultar primero /orders/{id} para extraer el ICCID real
+    if (isUuid || (!targetIccid && orderId)) {
+      const targetOrderId = isUuid ? esimTranNo : orderId;
       try {
-        const res = await strongesimFetch(`/profiles/${encodeURIComponent(esimTranNo)}`, { cache: 'no-store' });
+        const orderRes = await strongesimFetch(`/orders/${encodeURIComponent(targetOrderId)}`, { cache: 'no-store' });
+        if (orderRes.ok) {
+          const oBody = await orderRes.json();
+          const ord = oBody.data?.order || oBody.data;
+          const prof = oBody.data?.profiles?.[0];
+          const foundIccid = ord?.iccid || prof?.iccid;
+          if (foundIccid) {
+            targetIccid = foundIccid;
+          }
+        }
+      } catch (eOrd) {
+        console.warn('Error resolviendo orden por UUID en StrongeSIM:', eOrd.message);
+      }
+    }
+
+    // 1. Consulta directa a endpoint de perfiles v1
+    if (targetIccid) {
+      try {
+        const res = await strongesimFetch(`/profiles/${encodeURIComponent(targetIccid)}`, { cache: 'no-store' });
         if (res.ok) {
           const body = await res.json();
           const p = Array.isArray(body.data?.profiles) ? body.data.profiles[0] : (body.data?.profile || body.data);
           if (p) {
-            const totalBytes = Number(p.totalVolume) || 1073741824;
+            const totalBytes = Number(p.totalVolume) || 0;
             let usedBytes = Number(p.orderUsage) || 0;
 
-            const totalMb = parseFloat((totalBytes / (1024 * 1024)).toFixed(2));
+            const totalMb = totalBytes > 0 ? parseFloat((totalBytes / (1024 * 1024)).toFixed(2)) : 1024;
             const usedMb = parseFloat((usedBytes / (1024 * 1024)).toFixed(2));
-            const percentageUsed = parseFloat(Math.min(100, Math.max(0, (usedBytes / totalBytes) * 100)).toFixed(1));
+            const percentageUsed = totalBytes > 0 ? parseFloat(Math.min(100, Math.max(0, (usedBytes / totalBytes) * 100)).toFixed(1)) : 0;
 
             return {
               totalBytes,
@@ -371,6 +393,7 @@ export async function fetchEsimProfileTelemetry(esimTranNo, orderId = null) {
               activateTime: p.activateTime || null,
               installationTime: p.installationTime || null,
               expiredTime: p.expiredTime || null,
+              realIccid: p.iccid || targetIccid,
               source: 'strongesim_live_profiles',
             };
           }

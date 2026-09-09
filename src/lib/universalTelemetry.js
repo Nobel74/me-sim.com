@@ -96,18 +96,23 @@ export async function getOrderTelemetryWithCache(order, forceRefresh = false) {
   const targetId = order.orderId;
   if (targetTran || targetId) {
     try {
-      const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(null), 2500));
+      const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(null), 8000));
       live = await Promise.race([
         fetchEsimProfileTelemetry(targetTran, targetId),
         timeoutPromise,
       ]);
     } catch {
-      // Fallback a motor determinista seguro
+      // Error de red temporal
     }
   }
 
+  // Si la consulta en vivo no obtuvo respuesta, pero el pedido ya contenía telemetría real (>0 bytes) previamente guardada, preservarla
+  if (!live && order.telemetry && (Number(order.telemetry.usedBytes) > 0 || Number(order.telemetry.usedMb) > 0)) {
+    return order.telemetry;
+  }
+
   const resolved = resolveUniversalTelemetry(order, live);
-  if (key) {
+  if (key && (live || resolved.usedBytes > 0)) {
     telemetryCache.set(key, { telemetry: resolved, timestamp: now });
   }
   return resolved;

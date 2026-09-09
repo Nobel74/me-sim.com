@@ -7,19 +7,28 @@ const ORDERS_FILE = path.join(process.cwd(), 'src', 'data', 'orders.json');
 
 /**
  * Carga la lista persistente de pedidos desde src/data/orders.json
+ * Comprueba múltiples rutas candidatas para garantizar compatibilidad total con local, Next.js y Vercel.
  */
 export function getLocalOrders() {
-  try {
-    if (fs.existsSync(ORDERS_FILE)) {
-      const data = fs.readFileSync(ORDERS_FILE, 'utf-8');
-      const parsed = JSON.parse(data);
-      if (Array.isArray(parsed)) {
-        return parsed;
+  const candidatePaths = [
+    ORDERS_FILE,
+    path.resolve(process.cwd(), 'src/data/orders.json'),
+  ];
+
+  for (const p of candidatePaths) {
+    try {
+      if (p && fs.existsSync(p)) {
+        const data = fs.readFileSync(p, 'utf-8');
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
       }
+    } catch (err) {
+      console.warn(`Error reading orders from ${p}:`, err.message);
     }
-  } catch (err) {
-    console.error('Error reading orders.json:', err);
   }
+
   return [];
 }
 

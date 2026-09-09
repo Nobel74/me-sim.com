@@ -85,6 +85,7 @@ export async function GET(request) {
                 iso: lo?.iso || getMeta('_esim_iso') || 'es',
                 wholesaleCostUsd: lo?.wholesaleCostUsd || 2.34,
                 billing: lo?.billing || o.billing || {},
+                telemetry: lo?.telemetry || null,
               });
             }
           }
@@ -105,6 +106,7 @@ export async function GET(request) {
             orderId: idStr,
             amount: parseFloat(lo.amount || lo.priceEur || 0),
             status: lo.status || 'Completed',
+            telemetry: lo.telemetry || null,
           });
         }
       }
@@ -118,9 +120,12 @@ export async function GET(request) {
       return new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date);
     });
 
-    // Enriquecer cada pedido en paralelo con la telemetría viva y sincronizada de StrongeSIM
+    // Enriquecer cada pedido con telemetría viva y sincronizada de StrongeSIM
     await Promise.allSettled(
       ordersList.map(async (order) => {
+        if (order.telemetry && (Number(order.telemetry.usedBytes) > 0 || Number(order.telemetry.usedMb) > 0)) {
+          return;
+        }
         order.telemetry = await getOrderTelemetryWithCache(order);
       })
     );

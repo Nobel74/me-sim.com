@@ -1023,28 +1023,37 @@ export default function AdminDashboardPage() {
           </div>
 
           {/* Orders Table Container with Responsive Mobile Cards & Desktop Table */}
-          <div className={`rounded-3xl border shadow-xl overflow-hidden ${isDark ? 'bg-zinc-900/80 border-zinc-800/80' : 'bg-white border-zinc-200'}`}>
-            
+          <div className={`rounded-3xl border shadow-xl overflow-hidden ${isDark ? 'bg-zinc-900/80 border-zinc-800' : 'bg-white border-zinc-200'}`}>
             {/* 1. Mobile Orders Card View (< md) */}
             <div className="md:hidden divide-y divide-zinc-200 dark:divide-zinc-800/80">
               {paginatedOrders.length === 0 ? (
-                <div className="py-10 text-center text-zinc-500 text-xs px-4">
+                <div className="py-10 text-center text-zinc-500 text-xs px-4 whitespace-nowrap">
                   {isEn ? 'No orders match your filter criteria.' : 'No se encontraron pedidos con ese criterio.'}
                 </div>
               ) : (
                 paginatedOrders.map((order) => {
                   const st = getEsimStatusInfo(order.telemetry, order, isEn);
+                  const orderBadge = getOrderStatusBadge(order.status);
+                  const telem = order.telemetry || {
+                    totalMb: extractTotalMbFromOrder(order),
+                    usedMb: 0,
+                    percentageUsed: 0,
+                  };
+                  const totalMb = telem.totalMb || extractTotalMbFromOrder(order);
+                  const usedMb = Number(telem.usedMb || 0);
+                  const pct = totalMb > 0 ? Math.min(100, Math.max(0, parseFloat(((usedMb / totalMb) * 100).toFixed(1)))) : 0;
+
                   return (
                     <div
                       key={`mob-${order.orderId}`}
                       onClick={() => navigateToOrderDetail(order)}
-                      className={`p-3.5 sm:p-4 space-y-3 cursor-pointer transition-colors ${
+                      className={`p-3.5 space-y-2.5 cursor-pointer transition-colors ${
                         isDark ? 'hover:bg-zinc-800/40 active:bg-zinc-800/60' : 'hover:bg-zinc-50 active:bg-zinc-100'
                       }`}
                     >
                       {/* Top bar: Order # + Date + Badges */}
-                      <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <div className="flex items-center gap-2">
+                      <div className="flex items-center justify-between gap-2 whitespace-nowrap overflow-hidden">
+                        <div className="flex items-center gap-2 flex-shrink-0">
                           <span className={`font-mono font-bold text-sm ${isDark ? 'text-white' : 'text-zinc-900'}`}>
                             #{order.orderId}
                           </span>
@@ -1052,85 +1061,52 @@ export default function AdminDashboardPage() {
                             {order.date}
                           </span>
                         </div>
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          {/* Columna / Badge independiente de Estado eSIM */}
-                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${st.badgeClass}`}>
+                        <div className="flex items-center gap-1.5 whitespace-nowrap flex-shrink-0">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${st.badgeClass}`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${st.dotClass}`}></span>
                             <span>{st.label}</span>
                           </span>
-                          {/* Badge de Estado Comercial de la Orden */}
-                          {(() => {
-                            const orderBadge = getOrderStatusBadge(order.status);
-                            return (
-                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${orderBadge.classes}`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${orderBadge.dotClass}`}></span>
-                                <span>{orderBadge.label}</span>
-                              </span>
-                            );
-                          })()}
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${orderBadge.classes}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${orderBadge.dotClass}`}></span>
+                            <span>{orderBadge.label}</span>
+                          </span>
                         </div>
                       </div>
 
-                      {/* Customer Info */}
-                      <div>
-                        <div className={`font-semibold text-xs sm:text-sm ${isDark ? 'text-white' : 'text-zinc-900'}`}>{order.customerName}</div>
-                        <div className={`text-[11px] font-mono ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>{order.customerEmail}</div>
+                      {/* Customer Info (Single line) */}
+                      <div className="flex items-center gap-1.5 whitespace-nowrap truncate text-xs">
+                        <span className={`font-semibold truncate ${isDark ? 'text-white' : 'text-zinc-900'}`}>{order.customerName}</span>
+                        <span className="text-zinc-400 text-xs">·</span>
+                        <span className={`text-[11px] font-mono truncate ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>{order.customerEmail}</span>
                       </div>
 
-                      {/* Plan & Live Telemetry Usage */}
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className={`inline-block px-2.5 py-0.5 rounded-lg font-medium text-xs ${
-                            isDark ? 'bg-zinc-800 text-zinc-300' : 'bg-zinc-100 text-zinc-800 border border-zinc-200'
-                          }`}>
+                      {/* Plan & Usage (Single line header + mini progress bar) */}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between gap-2 whitespace-nowrap text-xs">
+                          <span className={`font-medium truncate ${isDark ? 'text-zinc-300' : 'text-zinc-800'}`}>
                             {order.plan || order.title}
                           </span>
-                          {order.coupon && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-300 border border-purple-500/20">
-                              {order.coupon}
-                            </span>
-                          )}
+                          <span className={`font-mono text-[11px] flex-shrink-0 font-bold ${isDark ? 'text-white' : 'text-zinc-900'}`}>
+                            {totalMb < 1000
+                              ? `${usedMb.toFixed(1)} / ${Math.round(totalMb)} MB (${pct}%)`
+                              : `${(usedMb / 1024).toFixed(2)} / ${(totalMb / 1024).toFixed(1)} GB (${pct}%)`}
+                          </span>
                         </div>
-
-                        {(() => {
-                          const telem = order.telemetry || {
-                            totalMb: extractTotalMbFromOrder(order),
-                            usedMb: 0,
-                            percentageUsed: 0,
-                          };
-                          const totalMb = telem.totalMb || extractTotalMbFromOrder(order);
-                          const usedMb = Number(telem.usedMb || 0);
-                          const pct = totalMb > 0 ? Math.min(100, Math.max(0, parseFloat(((usedMb / totalMb) * 100).toFixed(1)))) : 0;
-                          return (
-                            <div className="space-y-1 mt-1">
-                              <div className="flex items-center justify-between text-[10px] font-mono">
-                                <span className={isDark ? 'text-zinc-400' : 'text-zinc-500'}>
-                                  {isEn ? 'Data Usage:' : 'Consumo:'}
-                                </span>
-                                <span className={`font-bold ${isDark ? 'text-white' : 'text-zinc-900'}`}>
-                                  {totalMb < 1000
-                                    ? `${usedMb.toFixed(1)} / ${Math.round(totalMb)} MB (${pct}%)`
-                                    : `${(usedMb / 1024).toFixed(2)} / ${(totalMb / 1024).toFixed(1)} GB (${pct}%)`}
-                                </span>
-                              </div>
-                              <div className={`w-full h-2 rounded-full overflow-hidden ${isDark ? 'bg-zinc-800' : 'bg-zinc-200'}`}>
-                                <div
-                                  className="h-full bg-gradient-to-r from-emerald-500 via-yellow-400 to-amber-500 rounded-full transition-all duration-700 ease-out"
-                                  style={{ width: `${pct}%` }}
-                                />
-                              </div>
-                            </div>
-                          );
-                        })()}
+                        <div className={`w-full h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-zinc-800' : 'bg-zinc-200'}`}>
+                          <div
+                            className="h-full bg-gradient-to-r from-emerald-500 via-yellow-400 to-amber-500 rounded-full transition-all duration-700 ease-out"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
                       </div>
 
-                      {/* Footer: Amount & Action Button */}
-                      <div className="pt-2 border-t border-dashed border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-3">
-                        <div>
-                          <span className="text-[10px] uppercase font-bold text-zinc-400 block">{isEn ? 'Amount' : 'Importe'}</span>
-                          <div className={`font-mono font-bold text-sm ${isDark ? 'text-white' : 'text-zinc-900'}`}>
+                      {/* Footer: Amount & Action Button (Single line) */}
+                      <div className="pt-2 border-t border-dashed border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-2 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5 whitespace-nowrap">
+                          <span className="text-[10px] uppercase font-bold text-zinc-400">{isEn ? 'Amount:' : 'Importe:'}</span>
+                          <span className={`font-mono font-bold text-sm ${isDark ? 'text-white' : 'text-zinc-900'}`}>
                             {formatCurrency(parseFloat(order.amount || 0).toFixed(2), order.currency || 'EUR')}
-                          </div>
+                          </span>
                         </div>
 
                         <button
@@ -1139,7 +1115,7 @@ export default function AdminDashboardPage() {
                             e.stopPropagation();
                             navigateToOrderDetail(order);
                           }}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-xs transition-all duration-200 shadow-xs cursor-pointer active:scale-95 ${
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-xs transition-all duration-200 shadow-xs cursor-pointer active:scale-95 whitespace-nowrap ${
                             isDark
                               ? 'bg-zinc-800 hover:bg-[#ffec00] text-zinc-100 hover:text-black border border-zinc-700'
                               : 'bg-zinc-950 hover:bg-[#ffec00] text-white hover:text-black border border-zinc-950'
@@ -1159,130 +1135,128 @@ export default function AdminDashboardPage() {
 
             {/* 2. Desktop & Tablet Table (>= md) */}
             <div className="hidden md:block overflow-x-auto">
-              <table className="w-full text-left text-xs sm:text-sm">
-                <thead className={`border-b uppercase tracking-wider text-[11px] font-bold ${
+              <table className="w-full min-w-[1150px] text-left text-xs sm:text-sm whitespace-nowrap">
+                <thead className={`border-b uppercase tracking-wider text-[11px] font-bold whitespace-nowrap ${
                   isDark ? 'bg-zinc-950/60 border-zinc-800 text-zinc-400' : 'bg-zinc-100 border-zinc-200 text-zinc-600'
                 }`}>
                   <tr>
-                    <th className="py-4 px-3 sm:px-5">{isEn ? 'Order #' : 'Nº Pedido'}</th>
-                    <th className="py-4 px-3 sm:px-5">{isEn ? 'Customer' : 'Cliente'}</th>
-                    <th className="py-4 px-3 sm:px-5">{isEn ? 'Plan' : 'Plan eSIM'}</th>
-                    <th className="py-4 px-3 sm:px-5">{isEn ? 'eSIM Status' : 'Estado eSIM'}</th>
-                    <th className="py-4 px-3 sm:px-5">{isEn ? 'Order Status' : 'Estado Pedido'}</th>
-                    <th className="py-4 px-3 sm:px-5">{isEn ? 'Date' : 'Fecha'}</th>
-                    <th className="py-4 px-3 sm:px-5">{isEn ? 'Amount' : 'Importe'}</th>
-                    <th className="py-4 px-3 sm:px-5 text-right">{isEn ? 'Actions' : 'Acciones'}</th>
+                    <th className="py-3 px-3 sm:px-4 whitespace-nowrap">{isEn ? 'Order #' : 'Nº Pedido'}</th>
+                    <th className="py-3 px-3 sm:px-4 whitespace-nowrap">{isEn ? 'Customer' : 'Cliente'}</th>
+                    <th className="py-3 px-3 sm:px-4 whitespace-nowrap">{isEn ? 'eSIM Plan & Data Usage' : 'Plan eSIM y Consumo'}</th>
+                    <th className="py-3 px-3 sm:px-4 whitespace-nowrap">{isEn ? 'eSIM Status' : 'Estado eSIM'}</th>
+                    <th className="py-3 px-3 sm:px-4 whitespace-nowrap">{isEn ? 'Order Status' : 'Estado Pedido'}</th>
+                    <th className="py-3 px-3 sm:px-4 whitespace-nowrap">{isEn ? 'Date' : 'Fecha'}</th>
+                    <th className="py-3 px-3 sm:px-4 whitespace-nowrap">{isEn ? 'Amount' : 'Importe'}</th>
+                    <th className="py-3 px-3 sm:px-4 text-right whitespace-nowrap">{isEn ? 'Actions' : 'Acciones'}</th>
                   </tr>
                 </thead>
-                <tbody className={`divide-y ${isDark ? 'divide-zinc-800/60' : 'divide-zinc-200'}`}>
+                <tbody className={`divide-y whitespace-nowrap ${isDark ? 'divide-zinc-800/60' : 'divide-zinc-200'}`}>
                   {paginatedOrders.length === 0 ? (
                     <tr>
-                      <td colSpan="8" className="py-10 text-center text-zinc-500">
+                      <td colSpan="8" className="py-10 text-center text-zinc-500 whitespace-nowrap">
                         {isEn ? 'No orders match your filter criteria.' : 'No se encontraron pedidos con ese criterio.'}
                       </td>
                     </tr>
                   ) : (
                     paginatedOrders.map((order) => {
                       const st = getEsimStatusInfo(order.telemetry, order, isEn);
+                      const telem = order.telemetry || {
+                        totalMb: extractTotalMbFromOrder(order),
+                        usedMb: 0,
+                        percentageUsed: 0,
+                      };
+                      const totalMb = telem.totalMb || extractTotalMbFromOrder(order);
+                      const usedMb = Number(telem.usedMb || 0);
+                      const pct = totalMb > 0 ? Math.min(100, Math.max(0, parseFloat(((usedMb / totalMb) * 100).toFixed(1)))) : 0;
+                      const orderBadge = getOrderStatusBadge(order.status);
+
                       return (
                         <tr
                           key={order.orderId}
                           onClick={() => navigateToOrderDetail(order)}
-                          className={`cursor-pointer transition-colors ${
+                          className={`cursor-pointer transition-colors whitespace-nowrap ${
                             isDark ? 'hover:bg-zinc-800/50' : 'hover:bg-zinc-50'
                           }`}
                         >
-                          <td className={`py-4 px-3 sm:px-5 font-mono font-bold ${isDark ? 'text-white' : 'text-zinc-900'}`}>
+                          <td className={`py-3 px-3 sm:px-4 font-mono font-bold whitespace-nowrap ${isDark ? 'text-white' : 'text-zinc-900'}`}>
                             #{order.orderId}
                           </td>
-                          <td className="py-4 px-3 sm:px-5">
-                            <div className={`font-semibold ${isDark ? 'text-white' : 'text-zinc-900'}`}>{order.customerName}</div>
-                            <div className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>{order.customerEmail}</div>
+                          <td className="py-3 px-3 sm:px-4 whitespace-nowrap">
+                            <div className="flex items-center gap-1.5 whitespace-nowrap">
+                              <span className={`font-semibold ${isDark ? 'text-white' : 'text-zinc-900'}`}>{order.customerName}</span>
+                              <span className="text-zinc-400 text-xs">·</span>
+                              <span className={`text-xs font-mono ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>{order.customerEmail}</span>
+                            </div>
                           </td>
-                          <td className="py-4 px-3 sm:px-5">
-                            <div className="flex flex-col items-start gap-1">
-                              <span className={`inline-block px-2.5 py-1 rounded-lg font-medium text-xs ${
+                          <td className="py-3 px-3 sm:px-4 whitespace-nowrap">
+                            <div className="flex items-center gap-3 whitespace-nowrap">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg font-medium text-xs whitespace-nowrap ${
                                 isDark ? 'bg-zinc-800 text-zinc-300' : 'bg-zinc-100 text-zinc-800 border border-zinc-200'
                               }`}>
                                 {order.plan || order.title}
                               </span>
                               {order.coupon && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-300 border border-purple-500/20">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-300 border border-purple-500/20 whitespace-nowrap">
                                   <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 24 24">
                                     <path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7z"/>
                                   </svg>
                                   {isEn ? `Coupon: ${order.coupon}` : `Cupón: ${order.coupon}`}
                                 </span>
                               )}
-                              {(() => {
-                                const telem = order.telemetry || {
-                                  totalMb: extractTotalMbFromOrder(order),
-                                  usedMb: 0,
-                                  percentageUsed: 0,
-                                };
-                                const totalMb = telem.totalMb || extractTotalMbFromOrder(order);
-                                const usedMb = Number(telem.usedMb || 0);
-                                const pct = totalMb > 0 ? Math.min(100, Math.max(0, parseFloat(((usedMb / totalMb) * 100).toFixed(1)))) : 0;
-                                return (
-                                  <div className="space-y-1 mt-1.5 min-w-[140px]">
-                                    <div className="flex items-center justify-between text-[10px] font-mono">
-                                      <span className={isDark ? 'text-zinc-400' : 'text-zinc-500'}>
-                                        {totalMb < 1000
-                                          ? `${usedMb.toFixed(1)} / ${Math.round(totalMb)} MB`
-                                          : `${(usedMb / 1024).toFixed(2)} / ${(totalMb / 1024).toFixed(1)} GB`}
-                                      </span>
-                                      <span className={`font-bold ${pct > 80 ? 'text-amber-500' : 'text-emerald-500'}`}>
-                                        {pct}%
-                                      </span>
-                                    </div>
-                                    <div className={`w-full h-2 rounded-full overflow-hidden ${isDark ? 'bg-zinc-800' : 'bg-zinc-200'}`}>
-                                      <div
-                                        className="h-full bg-gradient-to-r from-emerald-500 via-yellow-400 to-amber-500 rounded-full transition-all duration-700 ease-out"
-                                        style={{ width: `${pct}%` }}
-                                      />
-                                    </div>
-                                  </div>
-                                );
-                              })()}
+                              <div className="flex items-center gap-2 whitespace-nowrap">
+                                <div className={`w-14 h-2 rounded-full overflow-hidden flex-shrink-0 ${isDark ? 'bg-zinc-800' : 'bg-zinc-200'}`}>
+                                  <div
+                                    className="h-full bg-gradient-to-r from-emerald-500 via-yellow-400 to-amber-500 rounded-full transition-all duration-700 ease-out"
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </div>
+                                <span className="text-[11px] font-mono whitespace-nowrap">
+                                  <span className={isDark ? 'text-zinc-300' : 'text-zinc-700'}>
+                                    {totalMb < 1000
+                                      ? `${usedMb.toFixed(1)} / ${Math.round(totalMb)} MB`
+                                      : `${(usedMb / 1024).toFixed(2)} / ${(totalMb / 1024).toFixed(1)} GB`}
+                                  </span>
+                                  <span className={`font-bold ml-1 ${pct > 80 ? 'text-amber-500' : pct > 0 ? 'text-emerald-500' : (isDark ? 'text-zinc-500' : 'text-zinc-400')}`}>
+                                    ({pct}%)
+                                  </span>
+                                </span>
+                              </div>
                             </div>
                           </td>
                           {/* Columna dedicada e independiente para Estado eSIM */}
-                          <td className="py-4 px-3 sm:px-5 whitespace-nowrap">
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold ${st.badgeClass}`}>
+                          <td className="py-3 px-3 sm:px-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold whitespace-nowrap ${st.badgeClass}`}>
                               <span className={`w-1.5 h-1.5 rounded-full ${st.dotClass}`}></span>
                               <span>{st.label}</span>
                             </span>
                           </td>
                           {/* Columna de Estado del Pedido */}
-                          <td className="py-4 px-3 sm:px-5 whitespace-nowrap">
-                            {(() => {
-                              const orderBadge = getOrderStatusBadge(order.status);
-                              return (
-                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold ${orderBadge.classes}`}>
-                                  <span className={`w-1.5 h-1.5 rounded-full ${orderBadge.dotClass}`}></span>
-                                  {orderBadge.label}
+                          <td className="py-3 px-3 sm:px-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold whitespace-nowrap ${orderBadge.classes}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${orderBadge.dotClass}`}></span>
+                              <span>{orderBadge.label}</span>
+                            </span>
+                          </td>
+                          <td className={`py-3 px-3 sm:px-4 font-mono text-xs whitespace-nowrap ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                            <span className="whitespace-nowrap">{order.date}</span>
+                          </td>
+                          <td className={`py-3 px-3 sm:px-4 font-bold font-mono whitespace-nowrap ${isDark ? 'text-white' : 'text-zinc-900'}`}>
+                            <div className="flex items-center gap-1.5 whitespace-nowrap">
+                              <span>{formatCurrency(parseFloat(order.amount || 0).toFixed(2), order.currency || 'EUR')}</span>
+                              {order.originalAmount && parseFloat(order.originalAmount) > parseFloat(order.amount || 0) && (
+                                <span className="text-[11px] line-through text-zinc-400 font-normal">
+                                  ({formatCurrency(parseFloat(order.originalAmount).toFixed(2), order.currency || 'EUR')})
                                 </span>
-                              );
-                            })()}
+                              )}
+                            </div>
                           </td>
-                          <td className={`py-4 px-3 sm:px-5 font-mono text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
-                            {order.date}
-                          </td>
-                          <td className={`py-4 px-3 sm:px-5 font-bold font-mono ${isDark ? 'text-white' : 'text-zinc-900'}`}>
-                            <div>{formatCurrency(parseFloat(order.amount || 0).toFixed(2), order.currency || 'EUR')}</div>
-                            {order.originalAmount && parseFloat(order.originalAmount) > parseFloat(order.amount || 0) && (
-                              <span className="block text-[11px] line-through text-zinc-400 font-normal">
-                                {formatCurrency(parseFloat(order.originalAmount).toFixed(2), order.currency || 'EUR')}
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-4 px-3 sm:px-5 text-right">
+                          <td className="py-3 px-3 sm:px-4 text-right whitespace-nowrap">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 navigateToOrderDetail(order);
                               }}
-                              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl font-black text-xs transition-all duration-200 shadow-xs cursor-pointer active:scale-95 ${
+                              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl font-black text-xs transition-all duration-200 shadow-xs cursor-pointer active:scale-95 whitespace-nowrap ${
                                 isDark
                                   ? 'bg-zinc-800 hover:bg-[#ffec00] text-zinc-100 hover:text-black border border-zinc-700 hover:border-yellow-400'
                                   : 'bg-zinc-950 hover:bg-[#ffec00] text-white hover:text-black border border-zinc-950 hover:border-yellow-400'

@@ -1,5 +1,91 @@
 [
   {
+    "orderId": "84",
+    "customerName": "Mark Forrest",
+    "customerEmail": "mark.s.forrest@btinternet.com",
+    "title": "eSIM United Arab Emirates 1 GB Total 7Days",
+    "plan": "eSIM United Arab Emirates 1 GB Total 7Days",
+    "amount": 6.15,
+    "priceEur": 6.15,
+    "currency": "GBP",
+    "status": "Completed",
+    "date": "2026-09-08",
+    "createdAt": "2026-09-08T17:15:26",
+    "paymentMethod": "Stripe",
+    "esimTranNo": "e48bd025-4dd9-4fc1-b573-b99b503bca20",
+    "qrCodeUrl": "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=LPA%3A1%24rsp.strongesim.com%24e48bd025-4dd9-4fc1-b573-b99b503bca20",
+    "lpaString": "",
+    "country": "United Arab Emirates",
+    "billing": {
+      "firstName": "Mark",
+      "lastName": "Forrest",
+      "company": "",
+      "address": "",
+      "city": "",
+      "postcode": "",
+      "country": "",
+      "vatId": ""
+    },
+    "updatedAt": "2026-09-09T08:49:51.999Z",
+    "realIccid": "8910300000065200567",
+    "telemetry": {
+      "totalBytes": 1073741824,
+      "usedBytes": 0,
+      "totalMb": 1024,
+      "usedMb": 0,
+      "percentageUsed": 0,
+      "esimStatus": "GOT_RESOURCE",
+      "smdpStatus": "DISABLED",
+      "activateTime": null,
+      "installationTime": "2026-09-08T17:17:53+0000",
+      "expiredTime": "2027-03-07T17:15:25+0000",
+      "source": "strongesim_provisioned"
+    }
+  },
+  {
+    "orderId": "85",
+    "customerName": "Ian Rudrum",
+    "customerEmail": "ian.rudrum@btinternet.com",
+    "title": "eSIM United Arab Emirates 1 GB Total 7Days",
+    "plan": "eSIM United Arab Emirates 1 GB Total 7Days",
+    "amount": 6.15,
+    "priceEur": 6.15,
+    "currency": "GBP",
+    "status": "Completed",
+    "date": "2026-09-08",
+    "createdAt": "2026-09-08T19:43:08",
+    "paymentMethod": "Stripe",
+    "esimTranNo": "9667ddf1-c3fc-4e7b-b904-0b23de72193f",
+    "qrCodeUrl": "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=LPA%3A1%24rsp.strongesim.com%249667ddf1-c3fc-4e7b-b904-0b23de72193f",
+    "lpaString": "",
+    "country": "United Arab Emirates",
+    "billing": {
+      "firstName": "Ian",
+      "lastName": "Rudrum",
+      "company": "",
+      "address": "",
+      "city": "",
+      "postcode": "",
+      "country": "",
+      "vatId": ""
+    },
+    "updatedAt": "2026-09-09T08:49:52.169Z",
+    "realIccid": "8910300000065200367",
+    "telemetry": {
+      "totalBytes": 1073741824,
+      "usedBytes": 0,
+      "totalMb": 1024,
+      "usedMb": 0,
+      "percentageUsed": 0,
+      "esimStatus": "GOT_RESOURCE",
+      "smdpStatus": "DISABLED",
+      "activateTime": null,
+      "installationTime": "2026-09-08T20:10:11+0000",
+      "expiredTime": "2027-03-07T19:43:07+0000",
+      "source": "strongesim_provisioned"
+    }
+  },
+  {
     "orderId": "81",
     "customerName": "Ian Rudrum",
     "customerEmail": "ian.rudrum@btinternet.com",
@@ -30,7 +116,21 @@
       "postcode": "W1K 1BE",
       "country": "United Kingdom",
       "vatId": "GB123456789"
-    }
+    },
+    "telemetry": {
+      "totalBytes": 1073741824,
+      "usedBytes": 0,
+      "totalMb": 1024,
+      "usedMb": 0,
+      "percentageUsed": 0,
+      "esimStatus": "GOT_RESOURCE",
+      "smdpStatus": "DELETED",
+      "activateTime": null,
+      "installationTime": "2026-08-25T22:08:46+0000",
+      "expiredTime": "2027-02-21T22:07:31+0000",
+      "source": "strongesim_provisioned"
+    },
+    "updatedAt": "2026-09-09T08:49:52.249Z"
   },
   {
     "orderId": "80",
@@ -63,7 +163,21 @@
       "postcode": "G41 1AB",
       "country": "United Kingdom",
       "vatId": "GB987654321"
-    }
+    },
+    "telemetry": {
+      "totalBytes": 1073741824,
+      "usedBytes": 491734465,
+      "totalMb": 1024,
+      "usedMb": 468.95,
+      "percentageUsed": 45.8,
+      "esimStatus": "USED_EXPIRED",
+      "smdpStatus": "DELETED",
+      "activateTime": "2026-08-28T06:04:06+0000",
+      "installationTime": "2026-08-25T21:59:54+0000",
+      "expiredTime": "2026-09-04T06:04:06+0000",
+      "source": "strongesim_live_operator"
+    },
+    "updatedAt": "2026-09-09T08:49:52.325Z"
   },
   {
     "orderId": "79",
@@ -96,7 +210,21 @@
       "postcode": "G41 1AB",
       "country": "United Kingdom",
       "vatId": "GB987654321"
-    }
+    },
+    "telemetry": {
+      "totalBytes": 1073741824,
+      "usedBytes": 305334027,
+      "totalMb": 1024,
+      "usedMb": 291.19,
+      "percentageUsed": 28.4,
+      "esimStatus": "USED_EXPIRED",
+      "smdpStatus": "DELETED",
+      "activateTime": "2026-07-30T06:06:08+0000",
+      "installationTime": "2026-07-28T19:15:39+0000",
+      "expiredTime": "2026-08-06T06:06:08+0000",
+      "source": "strongesim_live_operator"
+    },
+    "updatedAt": "2026-09-09T08:49:52.395Z"
   },
   {
     "orderId": "78",
@@ -130,7 +258,21 @@
       "postcode": "28013",
       "country": "España",
       "vatId": "ES51234567X"
-    }
+    },
+    "telemetry": {
+      "totalBytes": 524288000,
+      "usedBytes": 63084677,
+      "totalMb": 500,
+      "usedMb": 60.16,
+      "percentageUsed": 12,
+      "esimStatus": "USED_EXPIRED",
+      "smdpStatus": "DELETED",
+      "activateTime": "2026-08-25T14:00:00+0000",
+      "installationTime": "2026-08-25T13:28:35+0000",
+      "expiredTime": "2026-08-26T14:00:00+0000",
+      "source": "strongesim_live_operator"
+    },
+    "updatedAt": "2026-09-09T08:49:52.468Z"
   },
   {
     "orderId": "77",
@@ -164,7 +306,21 @@
       "postcode": "28013",
       "country": "España",
       "vatId": "ES51234567X"
-    }
+    },
+    "telemetry": {
+      "totalBytes": 524288000,
+      "usedBytes": 316401091,
+      "totalMb": 500,
+      "usedMb": 301.74,
+      "percentageUsed": 60.3,
+      "esimStatus": "USED_EXPIRED",
+      "smdpStatus": "ENABLED",
+      "activateTime": "2026-08-25T21:39:06+0000",
+      "installationTime": "2026-08-25T14:33:42+0000",
+      "expiredTime": "2026-08-26T21:39:06+0000",
+      "source": "strongesim_live_operator"
+    },
+    "updatedAt": "2026-09-09T08:49:52.545Z"
   },
   {
     "orderId": "76",
@@ -198,7 +354,21 @@
       "postcode": "28013",
       "country": "España",
       "vatId": "ES51234567X"
-    }
+    },
+    "telemetry": {
+      "totalBytes": 104857600,
+      "usedBytes": 0,
+      "totalMb": 100,
+      "usedMb": 0,
+      "percentageUsed": 0,
+      "esimStatus": "USED_EXPIRED",
+      "smdpStatus": "DELETED",
+      "activateTime": "2026-08-25T12:49:23+0000",
+      "installationTime": "2026-08-25T12:49:23+0000",
+      "expiredTime": "2026-09-01T12:49:23+0000",
+      "source": "strongesim_provisioned"
+    },
+    "updatedAt": "2026-09-09T08:49:52.615Z"
   },
   {
     "orderId": "75",
@@ -232,6 +402,20 @@
       "postcode": "28013",
       "country": "España",
       "vatId": "ES51234567X"
-    }
+    },
+    "telemetry": {
+      "totalBytes": 104857600,
+      "usedBytes": 0,
+      "totalMb": 100,
+      "usedMb": 0,
+      "percentageUsed": 0,
+      "esimStatus": "CANCEL",
+      "smdpStatus": "RELEASED",
+      "activateTime": null,
+      "installationTime": null,
+      "expiredTime": "2026-07-22T16:44:47+0000",
+      "source": "strongesim_provisioned"
+    },
+    "updatedAt": "2026-09-09T08:49:52.701Z"
   }
 ]
