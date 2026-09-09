@@ -43,7 +43,10 @@
     },
     "strongesimOrderId": "e48bd025-4dd9-4fc1-b573-b99b503bca20",
     "coupon": "go2habibiland",
-    "lang": "en"
+    "lang": "en",
+    "couponPercent": 25,
+    "discountAmount": 2.02,
+    "originalAmount": 8.17
   },
   {
     "orderId": "85",
@@ -89,7 +92,10 @@
     },
     "strongesimOrderId": "9667ddf1-c3fc-4e7b-b904-0b23de72193f",
     "coupon": "go2habibiland",
-    "lang": "en"
+    "lang": "en",
+    "couponPercent": 25,
+    "discountAmount": 2.02,
+    "originalAmount": 8.17
   },
   {
     "orderId": "81",
@@ -283,7 +289,10 @@
     },
     "updatedAt": "2026-09-09T08:49:52.468Z",
     "coupon": "clem and paco",
-    "lang": "es"
+    "lang": "es",
+    "couponPercent": 90,
+    "discountAmount": 5.67,
+    "originalAmount": 6.3
   },
   {
     "orderId": "77",
@@ -334,7 +343,10 @@
     "updatedAt": "2026-09-09T08:49:52.545Z",
     "realIccid": "8910300000063677656",
     "coupon": "clem and paco",
-    "lang": "es"
+    "lang": "es",
+    "couponPercent": 90,
+    "discountAmount": 5.67,
+    "originalAmount": 6.3
   },
   {
     "orderId": "76",
@@ -384,7 +396,10 @@
     },
     "updatedAt": "2026-09-09T08:49:52.615Z",
     "coupon": "clem and paco",
-    "lang": "es"
+    "lang": "es",
+    "couponPercent": 90,
+    "discountAmount": 5.67,
+    "originalAmount": 6.3
   },
   {
     "orderId": "75",
@@ -435,6 +450,9 @@
     "updatedAt": "2026-09-09T08:49:52.701Z",
     "realIccid": "8910300000037878503",
     "coupon": "clem and paco",
-    "lang": "es"
+    "lang": "es",
+    "couponPercent": 90,
+    "discountAmount": 5.67,
+    "originalAmount": 6.3
   }
 ]

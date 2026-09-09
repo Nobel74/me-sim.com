@@ -324,6 +324,8 @@ export async function POST(req) {
       // Persistir orden localmente con su cupón de WooCommerce
       try {
         const rawCoupon = payload.coupon_lines?.[0]?.code || metaMap.coupon_code || metaMap._coupon_code || '';
+        const wcDiscount = parseFloat(payload.discount_total || '0');
+        const orderPrice = parseFloat(payload.total || 0);
         saveOrUpdateOrder({
           orderId: String(orderId),
           customerName: customerName,
@@ -331,8 +333,10 @@ export async function POST(req) {
           lang: customerLang,
           title: itemObj.name || `eSIM ${itemIso.toUpperCase()}`,
           plan: itemObj.name || `eSIM ${itemIso.toUpperCase()} ${itemDataAmount}`,
-          amount: parseFloat(payload.total || 0),
-          priceEur: parseFloat(payload.total || 0),
+          amount: orderPrice,
+          priceEur: orderPrice,
+          discountAmount: wcDiscount > 0 ? wcDiscount : 0,
+          originalAmount: wcDiscount > 0 ? parseFloat((orderPrice + wcDiscount).toFixed(2)) : orderPrice,
           currency: payload.currency || 'EUR',
           status: 'Completed',
           date: new Date().toISOString().split('T')[0],

@@ -10,7 +10,24 @@ export const dynamic = 'force-dynamic';
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { planId, customerEmail, customerName, paymentIntentId, price, currency, title, country, iso, dataAmount, days, lang = 'es', couponCode } = body;
+    const {
+      planId,
+      customerEmail,
+      customerName,
+      paymentIntentId,
+      price,
+      currency,
+      title,
+      country,
+      iso,
+      dataAmount,
+      days,
+      lang = 'es',
+      couponCode,
+      couponPercent,
+      originalPrice,
+      discountAmount,
+    } = body;
 
     const acceptLangHeader = request.headers.get('accept-language') || '';
     const customerLang = resolveCustomerLanguage({
@@ -295,6 +312,9 @@ export async function POST(request) {
               { key: '_stripe_intent_id', value: paymentIntentId || '' },
               { key: '_coupon_code', value: couponCode || '' },
               { key: 'coupon_code', value: couponCode || '' },
+              { key: '_coupon_percent', value: String(couponPercent || 0) },
+              { key: '_original_amount', value: String(originalPrice || price || '0.00') },
+              { key: '_discount_amount', value: String(discountAmount || '0.00') },
               { key: '_esim_iso', value: iso || 'es' },
               { key: '_esim_country', value: country || 'España' },
               { key: '_esim_data_amount', value: dataAmount || '10 GB' },
@@ -369,6 +389,9 @@ export async function POST(request) {
         lpaString: finalLpa,
         country: country || 'España',
         coupon: couponCode || '',
+        couponPercent: parseFloat(couponPercent || 0),
+        originalAmount: parseFloat(originalPrice || price || 0),
+        discountAmount: parseFloat(discountAmount || 0),
         billing: {
           firstName: (customerName || '').split(' ')[0] || '',
           lastName: (customerName || '').split(' ').slice(1).join(' ') || '',

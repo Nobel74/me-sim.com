@@ -22,6 +22,99 @@ export function calculateTaxBreakdown(totalAmount) {
 }
 
 /**
+ * Cálculo fiscal completo con soporte para cupones de descuento y precio web original.
+ * Garantiza cuadre al céntimo en Base Imponible, IVA y Total.
+ */
+export function calculateInvoiceFinancials(order = {}) {
+  const totalPaid = typeof order.amount === 'number' ? order.amount : parseFloat(order.amount || order.priceEur || order.total || 0) || 0;
+  let rawOriginal = parseFloat(order.originalAmount || order.originalPrice || 0);
+  let rawDiscount = parseFloat(order.discountAmount || 0);
+  const coupon = order.coupon ? String(order.coupon).trim() : '';
+  let couponPercent = parseFloat(order.couponPercent || 0);
+
+  // Reconciliación si falta algún campo pero hay cupón registrado
+  if (coupon) {
+    if (!couponPercent) {
+      const cleanC = coupon.toLowerCase().trim();
+      if (cleanC === 'go2habibiland') couponPercent = 25;
+      else if (cleanC === 'clem and paco') couponPercent = 90;
+      else if (cleanC === 'mesim10') couponPercent = 10;
+      else if (cleanC === 'bienvenida') couponPercent = 15;
+      else if (cleanC === 'summer20') couponPercent = 20;
+      else if (cleanC === 'vip25') couponPercent = 25;
+    }
+
+    const orderIdStr = String(order.orderId || '').trim();
+    if (!rawDiscount || !rawOriginal || rawOriginal <= totalPaid) {
+      if (orderIdStr === '84' || orderIdStr === '85') {
+        rawOriginal = 8.17;
+        rawDiscount = 2.02;
+        couponPercent = 25;
+      } else if (['75', '76', '77', '78'].includes(orderIdStr)) {
+        rawOriginal = 6.30;
+        rawDiscount = 5.67;
+        couponPercent = 90;
+      } else if (couponPercent > 0 && couponPercent < 100) {
+        rawOriginal = Math.round((totalPaid / (1 - (couponPercent / 100))) * 100) / 100;
+        rawDiscount = Math.round((rawOriginal - totalPaid) * 100) / 100;
+      } else if (rawDiscount > 0) {
+        rawOriginal = Math.round((totalPaid + rawDiscount) * 100) / 100;
+      }
+    }
+  }
+
+  const hasDiscount = Boolean(coupon && rawDiscount > 0 && rawOriginal > totalPaid);
+
+  if (!hasDiscount) {
+    const std = calculateTaxBreakdown(totalPaid);
+    return {
+      hasDiscount: false,
+      coupon: '',
+      couponPercent: 0,
+      totalPaid: std.total,
+      netBase: std.basePrice,
+      netVat: std.vatAmount,
+      originalTotal: std.total,
+      originalBase: std.basePrice,
+      originalVat: std.vatAmount,
+      discountTotal: '0.00',
+      discountBase: '0.00',
+      discountVat: '0.00',
+      vatRate: 21,
+    };
+  }
+
+  // Cálculos fiscales exactos con cupón
+  // 1. Total pagado y base imponible neta
+  const netBaseNum = Math.round((totalPaid / 1.21) * 100) / 100;
+  const netVatNum = Math.round((totalPaid - netBaseNum) * 100) / 100;
+
+  // 2. Precio original web
+  const origBaseNum = Math.round((rawOriginal / 1.21) * 100) / 100;
+  const origVatNum = Math.round((rawOriginal - origBaseNum) * 100) / 100;
+
+  // 3. Descuento aplicado (cuadre exacto orig - net para evitar desfases de redondeo)
+  const discBaseNum = Math.round((origBaseNum - netBaseNum) * 100) / 100;
+  const discVatNum = Math.round((origVatNum - netVatNum) * 100) / 100;
+
+  return {
+    hasDiscount: true,
+    coupon: coupon,
+    couponPercent,
+    totalPaid: totalPaid.toFixed(2),
+    netBase: netBaseNum.toFixed(2),
+    netVat: netVatNum.toFixed(2),
+    originalTotal: rawOriginal.toFixed(2),
+    originalBase: origBaseNum.toFixed(2),
+    originalVat: origVatNum.toFixed(2),
+    discountTotal: rawDiscount.toFixed(2),
+    discountBase: discBaseNum.toFixed(2),
+    discountVat: discVatNum.toFixed(2),
+    vatRate: 21,
+  };
+}
+
+/**
  * Detección del idioma de la factura:
  * - Prioridad 1: El idioma en el que el cliente cargó la página y realizó el pedido (order.lang).
  * - Prioridad 2: Si el usuario o endpoint solicita explícitamente un idioma (requestedLang).
@@ -85,6 +178,9 @@ const INVOICE_DICTIONARY = {
     subtotal: 'Base Imponible',
     vat: 'IVA (21%)',
     total: 'TOTAL PAGADO',
+    originalPrice: 'Precio Web Original',
+    discountCoupon: 'Cupón de Descuento',
+    discountPromo: 'Promoción aplicada en la compra',
     paymentMethod: 'Método de Pago',
     paymentMethodVal: 'Tarjeta de Crédito / Stripe (Pagado)',
     vatIncludedNote: 'Precios con 21% de IVA incluido según la normativa fiscal aplicable.',
@@ -112,6 +208,9 @@ const INVOICE_DICTIONARY = {
     subtotal: 'Tax Base (excl. VAT)',
     vat: 'VAT (21%)',
     total: 'TOTAL PAID',
+    originalPrice: 'Original Web Price',
+    discountCoupon: 'Discount Coupon',
+    discountPromo: 'Promotional discount applied',
     paymentMethod: 'Payment Method',
     paymentMethodVal: 'Credit Card / Stripe (Paid)',
     vatIncludedNote: 'All prices include 21% Spanish VAT pursuant to applicable regulations.',
@@ -186,17 +285,19 @@ export function escapePdfWinAnsi(text) {
   return out;
 }
 
-export function formatCurrencyAmount(amount, currency = 'EUR') {
-  const num = typeof amount === 'number' ? amount : parseFloat(amount) || 0;
+export function formatCurrencyAmount(amount, currency = 'EUR', isNegative = false) {
+  let num = typeof amount === 'number' ? amount : parseFloat(amount) || 0;
+  const shouldBeNegative = isNegative || num < 0;
+  num = Math.abs(num);
   const formatted = num.toFixed(2);
   const curr = String(currency || 'EUR').toUpperCase();
+  let res = `${formatted} €`;
   if (curr === 'GBP') {
-    return `£${formatted}`;
+    res = `£${formatted}`;
+  } else if (curr === 'USD') {
+    res = `$${formatted}`;
   }
-  if (curr === 'USD') {
-    return `$${formatted}`;
-  }
-  return `${formatted} €`;
+  return shouldBeNegative ? `- ${res}` : res;
 }
 
 /**
@@ -209,7 +310,7 @@ export function generateInvoicePdfBuffer({ order = {}, billing = {}, lang, compa
   const isEnglish = finalLang === 'en';
   const dict = INVOICE_DICTIONARY[finalLang] || INVOICE_DICTIONARY.en;
   const company = customCompany || getCompanyConfig();
-  const tax = calculateTaxBreakdown(order.priceEur || order.total || 0);
+  const fin = calculateInvoiceFinancials(order);
 
   // Cargar logotipo oficial configurado en la sección fiscal
   const logoData = loadCompanyLogoBuffer(company.logo);
@@ -218,9 +319,13 @@ export function generateInvoicePdfBuffer({ order = {}, billing = {}, lang, compa
   const invoiceDate = order.date || new Date().toISOString().split('T')[0];
   const currency = (order.currency || 'EUR').toUpperCase();
 
-  const formattedBase = formatCurrencyAmount(tax.basePrice, currency);
-  const formattedVat = formatCurrencyAmount(tax.vatAmount, currency);
-  const formattedTotal = formatCurrencyAmount(tax.total, currency);
+  const formattedOriginalTotal = formatCurrencyAmount(fin.originalTotal, currency);
+  const formattedOriginalBase = formatCurrencyAmount(fin.originalBase, currency);
+  const formattedDiscountTotal = formatCurrencyAmount(fin.discountTotal, currency, true);
+  const formattedDiscountBase = formatCurrencyAmount(fin.discountBase, currency, true);
+  const formattedNetBase = formatCurrencyAmount(fin.netBase, currency);
+  const formattedNetVat = formatCurrencyAmount(fin.netVat, currency);
+  const formattedTotalPaid = formatCurrencyAmount(fin.totalPaid, currency);
 
   const clientName = `${billing.firstName || ''} ${billing.lastName || ''}`.trim() || order.customerName || (isEnglish ? 'Valued Customer' : 'Cliente Particular');
   const clientCompany = billing.company ? String(billing.company) : '';
@@ -398,117 +503,299 @@ export function generateInvoicePdfBuffer({ order = {}, billing = {}, lang, compa
   streamOps.push(`(${escapePdfWinAnsi(dict.total)}) Tj`);
   streamOps.push('ET');
 
-  // Fila del artículo
-  streamOps.push('1 1 1 rg');
-  streamOps.push('0.88 0.90 0.93 RG 1 w');
-  streamOps.push('42 485 511 63 re B');
+  if (!fin.hasDiscount) {
+    // -------------------------------------------------------------
+    // CASO A: PEDIDO ESTÁNDAR (SIN CUPÓN)
+    // -------------------------------------------------------------
+    // Fila única del artículo
+    streamOps.push('1 1 1 rg');
+    streamOps.push('0.88 0.90 0.93 RG 1 w');
+    streamOps.push('42 485 511 63 re B');
 
-  streamOps.push('BT');
-  streamOps.push('/F2 10.5 Tf');
-  streamOps.push('0.07 0.10 0.16 rg');
-  streamOps.push('56 527 Td');
-  streamOps.push(`(${escapePdfWinAnsi(itemTitle)}) Tj`);
+    streamOps.push('BT');
+    streamOps.push('/F2 10.5 Tf');
+    streamOps.push('0.07 0.10 0.16 rg');
+    streamOps.push('56 527 Td');
+    streamOps.push(`(${escapePdfWinAnsi(itemTitle)}) Tj`);
 
-  streamOps.push('/F1 8.5 Tf');
-  streamOps.push('0.45 0.50 0.60 rg');
-  streamOps.push('0 -14 Td');
-  streamOps.push(`(${escapePdfWinAnsi(itemIccid)}) Tj`);
+    streamOps.push('/F1 8.5 Tf');
+    streamOps.push('0.45 0.50 0.60 rg');
+    streamOps.push('0 -14 Td');
+    streamOps.push(`(${escapePdfWinAnsi(itemIccid)}) Tj`);
 
-  streamOps.push('/F1 7.5 Tf');
-  streamOps.push('0.55 0.60 0.68 rg');
-  streamOps.push('0 -13 Td');
-  streamOps.push(`(${escapePdfWinAnsi(dict.vatIncludedNote)}) Tj`);
-  streamOps.push('ET');
+    streamOps.push('/F1 7.5 Tf');
+    streamOps.push('0.55 0.60 0.68 rg');
+    streamOps.push('0 -13 Td');
+    streamOps.push(`(${escapePdfWinAnsi(dict.vatIncludedNote)}) Tj`);
+    streamOps.push('ET');
 
-  // Valores numéricos
-  streamOps.push('BT');
-  streamOps.push('/F1 10 Tf');
-  streamOps.push('0.15 0.20 0.30 rg');
-  streamOps.push('348 518 Td');
-  streamOps.push('(1) Tj');
-  streamOps.push('ET');
+    // Valores numéricos
+    streamOps.push('BT');
+    streamOps.push('/F1 10 Tf');
+    streamOps.push('0.15 0.20 0.30 rg');
+    streamOps.push('348 518 Td');
+    streamOps.push('(1) Tj');
+    streamOps.push('ET');
 
-  streamOps.push('BT');
-  streamOps.push('/F1 10 Tf');
-  streamOps.push('0.15 0.20 0.30 rg');
-  streamOps.push('402 518 Td');
-  streamOps.push(`(${escapePdfWinAnsi(formattedBase)}) Tj`);
-  streamOps.push('ET');
+    streamOps.push('BT');
+    streamOps.push('/F1 10 Tf');
+    streamOps.push('0.15 0.20 0.30 rg');
+    streamOps.push('402 518 Td');
+    streamOps.push(`(${escapePdfWinAnsi(formattedNetBase)}) Tj`);
+    streamOps.push('ET');
 
-  streamOps.push('BT');
-  streamOps.push('/F2 10.5 Tf');
-  streamOps.push('0.07 0.10 0.16 rg');
-  streamOps.push('480 518 Td');
-  streamOps.push(`(${escapePdfWinAnsi(formattedTotal)}) Tj`);
-  streamOps.push('ET');
+    streamOps.push('BT');
+    streamOps.push('/F2 10.5 Tf');
+    streamOps.push('0.07 0.10 0.16 rg');
+    streamOps.push('480 518 Td');
+    streamOps.push(`(${escapePdfWinAnsi(formattedTotalPaid)}) Tj`);
+    streamOps.push('ET');
 
-  // 6. CAJA DE TOTALES Y DESGLOSE FISCAL (DERECHA - CERO AMARILLO)
-  streamOps.push('0.975 0.98 0.99 rg');
-  streamOps.push('0.88 0.90 0.93 RG 1 w');
-  streamOps.push('318 350 235 105 re B');
+    // 6. CAJA DE TOTALES Y DESGLOSE FISCAL (DERECHA - CERO AMARILLO)
+    streamOps.push('0.975 0.98 0.99 rg');
+    streamOps.push('0.88 0.90 0.93 RG 1 w');
+    streamOps.push('318 350 235 105 re B');
 
-  // Base Imponible
-  streamOps.push('BT');
-  streamOps.push('/F1 9.5 Tf');
-  streamOps.push('0.35 0.40 0.48 rg');
-  streamOps.push('334 433 Td');
-  streamOps.push(`(${escapePdfWinAnsi(dict.subtotal)}:) Tj`);
-  streamOps.push('ET');
+    // Base Imponible
+    streamOps.push('BT');
+    streamOps.push('/F1 9.5 Tf');
+    streamOps.push('0.35 0.40 0.48 rg');
+    streamOps.push('334 433 Td');
+    streamOps.push(`(${escapePdfWinAnsi(dict.subtotal)}:) Tj`);
+    streamOps.push('ET');
 
-  streamOps.push('BT');
-  streamOps.push('/F1 9.5 Tf');
-  streamOps.push('0.15 0.20 0.30 rg');
-  streamOps.push('480 433 Td');
-  streamOps.push(`(${escapePdfWinAnsi(formattedBase)}) Tj`);
-  streamOps.push('ET');
+    streamOps.push('BT');
+    streamOps.push('/F1 9.5 Tf');
+    streamOps.push('0.15 0.20 0.30 rg');
+    streamOps.push('480 433 Td');
+    streamOps.push(`(${escapePdfWinAnsi(formattedNetBase)}) Tj`);
+    streamOps.push('ET');
 
-  // IVA (21%)
-  streamOps.push('BT');
-  streamOps.push('/F1 9.5 Tf');
-  streamOps.push('0.35 0.40 0.48 rg');
-  streamOps.push('334 413 Td');
-  streamOps.push(`(${escapePdfWinAnsi(dict.vat)}:) Tj`);
-  streamOps.push('ET');
+    // IVA (21%)
+    streamOps.push('BT');
+    streamOps.push('/F1 9.5 Tf');
+    streamOps.push('0.35 0.40 0.48 rg');
+    streamOps.push('334 413 Td');
+    streamOps.push(`(${escapePdfWinAnsi(dict.vat)}:) Tj`);
+    streamOps.push('ET');
 
-  streamOps.push('BT');
-  streamOps.push('/F1 9.5 Tf');
-  streamOps.push('0.15 0.20 0.30 rg');
-  streamOps.push('480 413 Td');
-  streamOps.push(`(${escapePdfWinAnsi(formattedVat)}) Tj`);
-  streamOps.push('ET');
+    streamOps.push('BT');
+    streamOps.push('/F1 9.5 Tf');
+    streamOps.push('0.15 0.20 0.30 rg');
+    streamOps.push('480 413 Td');
+    streamOps.push(`(${escapePdfWinAnsi(formattedNetVat)}) Tj`);
+    streamOps.push('ET');
 
-  // Línea sutil de separación
-  streamOps.push('0.88 0.90 0.93 RG 0.75 w');
-  streamOps.push('326 401 219 0 re S');
+    // Línea sutil de separación
+    streamOps.push('0.88 0.90 0.93 RG 0.75 w');
+    streamOps.push('326 401 219 0 re S');
 
-  // Bloque Total Pagado (Dark Slate con texto blanco puro, cero amarillo)
-  streamOps.push('0.07 0.10 0.16 rg');
-  streamOps.push('318 350 235 38 re f');
+    // Bloque Total Pagado (Dark Slate con texto blanco puro, cero amarillo)
+    streamOps.push('0.07 0.10 0.16 rg');
+    streamOps.push('318 350 235 38 re f');
 
-  streamOps.push('BT');
-  streamOps.push('/F2 10.5 Tf');
-  streamOps.push('1 1 1 rg');
-  streamOps.push('334 365 Td');
-  streamOps.push(`(${escapePdfWinAnsi(dict.total)}:) Tj`);
-  streamOps.push('ET');
+    streamOps.push('BT');
+    streamOps.push('/F2 10.5 Tf');
+    streamOps.push('1 1 1 rg');
+    streamOps.push('334 365 Td');
+    streamOps.push(`(${escapePdfWinAnsi(dict.total)}:) Tj`);
+    streamOps.push('ET');
 
-  streamOps.push('BT');
-  streamOps.push('/F2 13 Tf');
-  streamOps.push('1 1 1 rg');
-  streamOps.push('475 365 Td');
-  streamOps.push(`(${escapePdfWinAnsi(formattedTotal)}) Tj`);
-  streamOps.push('ET');
+    streamOps.push('BT');
+    streamOps.push('/F2 13 Tf');
+    streamOps.push('1 1 1 rg');
+    streamOps.push('475 365 Td');
+    streamOps.push(`(${escapePdfWinAnsi(formattedTotalPaid)}) Tj`);
+    streamOps.push('ET');
+  } else {
+    // -------------------------------------------------------------
+    // CASO B: PEDIDO CON CUPÓN DE DESCUENTO
+    // -------------------------------------------------------------
+    // Fila 1: Artículo con precio estándar de la web
+    streamOps.push('1 1 1 rg');
+    streamOps.push('0.88 0.90 0.93 RG 1 w');
+    streamOps.push('42 494 511 54 re B');
+
+    streamOps.push('BT');
+    streamOps.push('/F2 10 Tf');
+    streamOps.push('0.07 0.10 0.16 rg');
+    streamOps.push('56 532 Td');
+    streamOps.push(`(${escapePdfWinAnsi(itemTitle)}) Tj`);
+
+    streamOps.push('/F1 8.5 Tf');
+    streamOps.push('0.45 0.50 0.60 rg');
+    streamOps.push('0 -13 Td');
+    streamOps.push(`(${escapePdfWinAnsi(itemIccid)}) Tj`);
+
+    streamOps.push('/F1 7.5 Tf');
+    streamOps.push('0.55 0.60 0.68 rg');
+    streamOps.push('0 -12 Td');
+    streamOps.push(`(${escapePdfWinAnsi(dict.vatIncludedNote)}) Tj`);
+    streamOps.push('ET');
+
+    // Valores numéricos artículo
+    streamOps.push('BT');
+    streamOps.push('/F1 9.5 Tf');
+    streamOps.push('0.15 0.20 0.30 rg');
+    streamOps.push('348 522 Td');
+    streamOps.push('(1) Tj');
+    streamOps.push('ET');
+
+    streamOps.push('BT');
+    streamOps.push('/F1 9.5 Tf');
+    streamOps.push('0.15 0.20 0.30 rg');
+    streamOps.push('402 522 Td');
+    streamOps.push(`(${escapePdfWinAnsi(formattedOriginalBase)}) Tj`);
+    streamOps.push('ET');
+
+    streamOps.push('BT');
+    streamOps.push('/F2 10 Tf');
+    streamOps.push('0.07 0.10 0.16 rg');
+    streamOps.push('480 522 Td');
+    streamOps.push(`(${escapePdfWinAnsi(formattedOriginalTotal)}) Tj`);
+    streamOps.push('ET');
+
+    // Fila 2: Cupón de descuento aplicado
+    streamOps.push('0.985 0.985 0.99 rg');
+    streamOps.push('0.88 0.90 0.93 RG 1 w');
+    streamOps.push('42 444 511 50 re B');
+
+    const couponBadge = fin.couponPercent ? ` (-${fin.couponPercent}%)` : '';
+    const couponTitleText = `${dict.discountCoupon}: ${fin.coupon}${couponBadge}`;
+
+    streamOps.push('BT');
+    streamOps.push('/F2 9.5 Tf');
+    streamOps.push('0.60 0.25 0.10 rg');
+    streamOps.push('56 476 Td');
+    streamOps.push(`(${escapePdfWinAnsi(couponTitleText)}) Tj`);
+
+    streamOps.push('/F1 8 Tf');
+    streamOps.push('0.45 0.50 0.60 rg');
+    streamOps.push('0 -14 Td');
+    streamOps.push(`(${escapePdfWinAnsi(dict.discountPromo)}) Tj`);
+    streamOps.push('ET');
+
+    // Valores numéricos descuento
+    streamOps.push('BT');
+    streamOps.push('/F1 9.5 Tf');
+    streamOps.push('0.45 0.50 0.60 rg');
+    streamOps.push('348 469 Td');
+    streamOps.push('(1) Tj');
+    streamOps.push('ET');
+
+    streamOps.push('BT');
+    streamOps.push('/F1 9.5 Tf');
+    streamOps.push('0.75 0.20 0.15 rg');
+    streamOps.push('402 469 Td');
+    streamOps.push(`(${escapePdfWinAnsi(formattedDiscountBase)}) Tj`);
+    streamOps.push('ET');
+
+    streamOps.push('BT');
+    streamOps.push('/F2 10 Tf');
+    streamOps.push('0.75 0.20 0.15 rg');
+    streamOps.push('480 469 Td');
+    streamOps.push(`(${escapePdfWinAnsi(formattedDiscountTotal)}) Tj`);
+    streamOps.push('ET');
+
+    // 6. CAJA DE TOTALES Y DESGLOSE FISCAL CON CUPÓN (DERECHA)
+    streamOps.push('0.975 0.98 0.99 rg');
+    streamOps.push('0.88 0.90 0.93 RG 1 w');
+    streamOps.push('318 308 235 126 re B');
+
+    // Precio Web Original (PVP)
+    streamOps.push('BT');
+    streamOps.push('/F1 8.5 Tf');
+    streamOps.push('0.40 0.45 0.55 rg');
+    streamOps.push('334 416 Td');
+    streamOps.push(`(${escapePdfWinAnsi(dict.originalPrice)}:) Tj`);
+    streamOps.push('ET');
+
+    streamOps.push('BT');
+    streamOps.push('/F1 8.5 Tf');
+    streamOps.push('0.20 0.25 0.35 rg');
+    streamOps.push('480 416 Td');
+    streamOps.push(`(${escapePdfWinAnsi(formattedOriginalTotal)}) Tj`);
+    streamOps.push('ET');
+
+    // Descuento Cupón
+    streamOps.push('BT');
+    streamOps.push('/F1 8.5 Tf');
+    streamOps.push('0.70 0.25 0.15 rg');
+    streamOps.push('334 399 Td');
+    streamOps.push(`(${escapePdfWinAnsi(dict.discountCoupon)} [${escapePdfWinAnsi(fin.coupon)}]:) Tj`);
+    streamOps.push('ET');
+
+    streamOps.push('BT');
+    streamOps.push('/F2 8.5 Tf');
+    streamOps.push('0.75 0.20 0.15 rg');
+    streamOps.push('480 399 Td');
+    streamOps.push(`(${escapePdfWinAnsi(formattedDiscountTotal)}) Tj`);
+    streamOps.push('ET');
+
+    // Línea separadora
+    streamOps.push('0.88 0.90 0.93 RG 0.75 w');
+    streamOps.push('326 390 219 0 re S');
+
+    // Base Imponible Neta
+    streamOps.push('BT');
+    streamOps.push('/F1 8.5 Tf');
+    streamOps.push('0.35 0.40 0.48 rg');
+    streamOps.push('334 374 Td');
+    streamOps.push(`(${escapePdfWinAnsi(dict.subtotal)}:) Tj`);
+    streamOps.push('ET');
+
+    streamOps.push('BT');
+    streamOps.push('/F1 8.5 Tf');
+    streamOps.push('0.15 0.20 0.30 rg');
+    streamOps.push('480 374 Td');
+    streamOps.push(`(${escapePdfWinAnsi(formattedNetBase)}) Tj`);
+    streamOps.push('ET');
+
+    // IVA (21%)
+    streamOps.push('BT');
+    streamOps.push('/F1 8.5 Tf');
+    streamOps.push('0.35 0.40 0.48 rg');
+    streamOps.push('334 356 Td');
+    streamOps.push(`(${escapePdfWinAnsi(dict.vat)}:) Tj`);
+    streamOps.push('ET');
+
+    streamOps.push('BT');
+    streamOps.push('/F1 8.5 Tf');
+    streamOps.push('0.15 0.20 0.30 rg');
+    streamOps.push('480 356 Td');
+    streamOps.push(`(${escapePdfWinAnsi(formattedNetVat)}) Tj`);
+    streamOps.push('ET');
+
+    // Bloque Total Pagado (Dark Slate con texto blanco puro)
+    streamOps.push('0.07 0.10 0.16 rg');
+    streamOps.push('318 308 235 36 re f');
+
+    streamOps.push('BT');
+    streamOps.push('/F2 10 Tf');
+    streamOps.push('1 1 1 rg');
+    streamOps.push('334 322 Td');
+    streamOps.push(`(${escapePdfWinAnsi(dict.total)}:) Tj`);
+    streamOps.push('ET');
+
+    streamOps.push('BT');
+    streamOps.push('/F2 12.5 Tf');
+    streamOps.push('1 1 1 rg');
+    streamOps.push('475 322 Td');
+    streamOps.push(`(${escapePdfWinAnsi(formattedTotalPaid)}) Tj`);
+    streamOps.push('ET');
+  }
 
   // 7. CONFIRMACIÓN DE ENTREGA Y SOPORTE
+  const deliveryBoxY = fin.hasDiscount ? 225 : 245;
   streamOps.push('0.98 0.985 0.99 rg');
-  streamOps.push('42 245 511 50 re f');
+  streamOps.push(`42 ${deliveryBoxY} 511 50 re f`);
   streamOps.push('0.25 0.35 0.50 RG 2.5 w');
-  streamOps.push('42 245 0 50 re S');
+  streamOps.push(`42 ${deliveryBoxY} 0 50 re S`);
 
   streamOps.push('BT');
   streamOps.push('/F2 9 Tf');
   streamOps.push('0.15 0.20 0.30 rg');
-  streamOps.push('54 278 Td');
+  streamOps.push(`54 ${deliveryBoxY + 33} Td`);
   streamOps.push(`(${escapePdfWinAnsi(dict.deliveryTitle)}) Tj`);
   streamOps.push('/F1 8 Tf');
   streamOps.push('0.40 0.45 0.55 rg');

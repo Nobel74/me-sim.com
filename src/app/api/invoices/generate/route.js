@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { generateInvoicePdfBuffer, detectInvoiceLanguage, resolveInvoiceLanguage, calculateTaxBreakdown } from '../../../../lib/invoices';
+import { generateInvoicePdfBuffer, detectInvoiceLanguage, resolveInvoiceLanguage, calculateTaxBreakdown, calculateInvoiceFinancials } from '../../../../lib/invoices';
 import { getCompanyConfigAsync } from '../../../../lib/companyConfig';
 import { loadCompanyLogoBuffer } from '../../../../lib/pdfImageLoader';
 import { getOrderById } from '../../../../lib/ordersService';
@@ -73,6 +73,7 @@ export async function GET(request) {
     const company = await getCompanyConfigAsync();
     const invoiceNumber = `${company.invoicePrefix || 'MS-'}${order.orderId}`;
     const tax = calculateTaxBreakdown(order.amount || order.priceEur || 0);
+    const financials = calculateInvoiceFinancials(order);
 
     // Si se solicita formato JSON para diagnóstico o telemetría
     if (format === 'json') {
@@ -84,6 +85,7 @@ export async function GET(request) {
         currency: order.currency,
         language: invoiceLang,
         taxBreakdown: tax,
+        financials: financials,
         company: {
           name: company.companyName,
           taxId: company.taxId,
