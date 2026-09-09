@@ -346,6 +346,9 @@ export async function fetchEsimProfileTelemetry(esimTranNo, orderId = null) {
 
   try {
     let targetIccid = esimTranNo;
+    let orderQrCodeUrl = null;
+    let orderLpaString = null;
+    let orderEid = null;
     const isUuid = typeof esimTranNo === 'string' && esimTranNo.includes('-');
 
     // Si esimTranNo es un UUID o un ID de orden de StrongeSIM, consultar primero /orders/{id} para extraer el ICCID real
@@ -361,6 +364,8 @@ export async function fetchEsimProfileTelemetry(esimTranNo, orderId = null) {
           if (foundIccid) {
             targetIccid = foundIccid;
           }
+          orderQrCodeUrl = ord?.qr_code_url || prof?.qr_code_url || null;
+          orderLpaString = ord?.activation_code || prof?.activation_code || prof?.ac || null;
         }
       } catch (eOrd) {
         console.warn('Error resolviendo orden por UUID en StrongeSIM:', eOrd.message);
@@ -394,6 +399,9 @@ export async function fetchEsimProfileTelemetry(esimTranNo, orderId = null) {
               installationTime: p.installationTime || null,
               expiredTime: p.expiredTime || null,
               realIccid: p.iccid || targetIccid,
+              qrCodeUrl: p.qrCodeUrl || p.qr_code_url || p.shortUrl || orderQrCodeUrl || null,
+              lpaString: p.ac || p.activation_code || orderLpaString || null,
+              eid: p.eid || orderEid || null,
               source: 'strongesim_live_profiles',
             };
           }
@@ -428,6 +436,9 @@ export async function fetchEsimProfileTelemetry(esimTranNo, orderId = null) {
               activateTime: d.activateTime || null,
               installationTime: d.installationTime || null,
               expiredTime: d.expiredTime || null,
+              realIccid: targetIccid,
+              qrCodeUrl: orderQrCodeUrl || null,
+              lpaString: orderLpaString || null,
               source: 'strongesim_v2_order_usage',
             };
           }

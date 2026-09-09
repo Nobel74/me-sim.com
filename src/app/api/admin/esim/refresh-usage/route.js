@@ -36,14 +36,29 @@ async function processTelemetry(request, queryParams = {}) {
       };
     }
 
-    // 2. Consulta en vivo forzada a StrongeSIM con actualización automática de la caché compartida
-    const resolvedTelemetry = await getOrderTelemetryWithCache(order, true);
+    // 2. Consulta en vivo forzada a StrongeSIM con actualización automática
+    const live = await fetchEsimProfileTelemetry(order.realIccid || order.esimTranNo, order.orderId);
+    let resolvedTelemetry = resolveUniversalTelemetry(order, live);
+    if (live) {
+      if (live.qrCodeUrl && (!order.qrCodeUrl || order.qrCodeUrl.includes('api.qrserver.com'))) {
+        order.qrCodeUrl = live.qrCodeUrl;
+      }
+      if (live.lpaString && (!order.lpaString || !order.lpaString.startsWith('LPA:1$rsp-'))) {
+        order.lpaString = live.lpaString;
+      }
+      if (live.realIccid && (/^\d+$/.test(live.realIccid) || !order.esimTranNo || order.esimTranNo.includes('-'))) {
+        order.realIccid = live.realIccid;
+        order.esimTranNo = live.realIccid;
+      }
+      saveOrUpdateOrder(order);
+    }
 
     return NextResponse.json({
       success: true,
-      message: 'Telemetría de consumo actualizada desde la API del operador StrongeSIM.',
+      message: 'Telemetría de consumo y perfil eSIM actualizados desde la API del operador StrongeSIM.',
       usage: resolvedTelemetry,
       telemetry: resolvedTelemetry,
+      order,
       refreshedAt: new Date().toISOString(),
     });
   } catch (err) {

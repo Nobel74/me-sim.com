@@ -89,6 +89,16 @@ export default function AdminOrderDetailPage() {
         if (data.success && (data.telemetry || data.usage)) {
           setTelemetry(data.telemetry || data.usage);
         }
+        if (data.success && data.order) {
+          setOrder((prev) => ({
+            ...prev,
+            ...data.order,
+            qrCodeUrl: data.order.qrCodeUrl || prev.qrCodeUrl,
+            lpaString: data.order.lpaString || prev.lpaString,
+            realIccid: data.order.realIccid || prev.realIccid,
+            esimTranNo: data.order.esimTranNo || prev.esimTranNo,
+          }));
+        }
       }
     } catch (e) {
       console.warn('Telemetry refresh error:', e);
@@ -555,7 +565,7 @@ export default function AdminOrderDetailPage() {
                   ICCID (SIM Serial Number)
                 </span>
                 <button
-                  onClick={() => handleCopy(order.esimTranNo, 'iccid')}
+                  onClick={() => handleCopy(order.realIccid || (order.esimTranNo && !order.esimTranNo.includes('-') ? order.esimTranNo : order.iccid) || order.esimTranNo, 'iccid')}
                   className={`text-xs font-bold flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 transition-all shadow-xs cursor-pointer ${
                     copiedField === 'iccid'
                       ? isDark
@@ -573,7 +583,7 @@ export default function AdminOrderDetailPage() {
               <code className={`font-mono font-bold text-xs sm:text-sm px-4 py-3 rounded-xl block border-2 select-all tracking-wide ${
                 isDark ? 'bg-zinc-950 border-zinc-800 text-zinc-100' : 'bg-zinc-100/90 border-zinc-300 text-zinc-950'
               }`}>
-                {order.esimTranNo || 'No asignado'}
+                {order.realIccid || (order.esimTranNo && !order.esimTranNo.includes('-') ? order.esimTranNo : order.iccid) || order.esimTranNo || 'No asignado'}
               </code>
             </div>
 
@@ -707,13 +717,20 @@ export default function AdminOrderDetailPage() {
                   src={order.qrCodeUrl}
                   alt="eSIM QR Code StrongeSIM"
                   className="w-full h-full object-contain rounded-lg"
-                  onError={(e) => {
-                    // Fallback to dynamic LPA QR if external asset unavailable
-                    e.currentTarget.src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(order.lpaString || order.esimTranNo)}`;
-                  }}
                 />
               ) : (
-                <span className="text-xs text-zinc-500 font-bold">QR no generado</span>
+                <div className="text-center p-3 space-y-2">
+                  <span className="text-xs text-zinc-500 font-bold block">
+                    {isEn ? 'QR not yet loaded' : 'QR no cargado'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleRefreshUsage}
+                    className="px-3 py-1.5 bg-[#ffec00] hover:bg-yellow-300 text-black text-xs font-bold rounded-xl cursor-pointer shadow-sm transition-all"
+                  >
+                    {isEn ? 'Load from Operator' : 'Cargar de Operador'}
+                  </button>
+                </div>
               )}
             </div>
 

@@ -1,11 +1,27 @@
 import { NextResponse } from 'next/server';
 import { strongesimFetch } from '../../../../lib/strongesim';
+import { getOrderById } from '../../../../lib/ordersService';
 
 export async function GET(request, { params }) {
   const { orderId } = params;
 
   try {
-    const response = await strongesimFetch(`/orders-v2/${encodeURIComponent(orderId)}`, { cache: 'no-store' });
+    const localOrder = await getOrderById(orderId);
+    if (localOrder) {
+      return NextResponse.json({
+        success: true,
+        order_id: localOrder.orderId,
+        esimTranNo: localOrder.realIccid || localOrder.esimTranNo,
+        iccid: localOrder.realIccid || localOrder.esimTranNo,
+        qr_code_url: localOrder.qrCodeUrl || '',
+        lpaString: localOrder.lpaString || '',
+        status: localOrder.status,
+        plan_name: localOrder.plan || localOrder.title,
+        order: localOrder,
+      });
+    }
+
+    const response = await strongesimFetch(`/orders/${encodeURIComponent(orderId)}`, { cache: 'no-store' });
     if (response.ok) {
       const data = await response.json();
       return NextResponse.json(data);
@@ -14,15 +30,8 @@ export async function GET(request, { params }) {
     console.error(`Error fetching order ${orderId}:`, error);
   }
 
-  // Demo fallback response
-  return NextResponse.json({
-    success: true,
-    order_id: orderId,
-    esimTranNo: '898529900123456789',
-    qr_code_url: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=LPA:1$rsp.strongesim.com$898529900123456789`,
-    status: 'ACTIVE',
-    iccid: '898529900123456789',
-    plan_name: 'España 10GB 30Days',
-    isDemo: true,
-  });
+  return NextResponse.json(
+    { success: false, message: 'Pedido no encontrado' },
+    { status: 404 }
+  );
 }

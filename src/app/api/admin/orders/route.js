@@ -55,7 +55,7 @@ export async function GET(request) {
               const getMeta = (k) => meta.find((m) => m.key === k)?.value || '';
               const line = o.line_items?.[0] || {};
               const price = parseFloat(o.total || line.total || '0') || 0;
-              const esimTranNo = lo?.esimTranNo || getMeta('_esim_transaction_no') || getMeta('_esim_iccid') || ('89852' + idStr.padEnd(13, '0'));
+              const esimTranNo = lo?.realIccid || lo?.esimTranNo || getMeta('_esim_iccid') || getMeta('_esim_transaction_no') || '';
 
               let status = o.status ? (o.status === 'completed' ? 'Completed' : o.status.charAt(0).toUpperCase() + o.status.slice(1)) : 'Pending';
               if (lo?.status === 'Completed') {
@@ -64,6 +64,9 @@ export async function GET(request) {
 
               const title = lo?.title || line.name || getMeta('_esim_country') || 'eSIM Plan';
               const plan = lo?.plan || line.name || 'eSIM Data Plan';
+
+              const rawQr = lo?.qrCodeUrl || getMeta('_esim_qr_code') || '';
+              const rawLpa = lo?.lpaString || getMeta('_esim_activation_code') || getMeta('_esim_lpa') || '';
 
               ordersList.push({
                 orderId: idStr,
@@ -77,8 +80,9 @@ export async function GET(request) {
                 date: lo?.date || (o.date_created ? o.date_created.split('T')[0] : new Date().toISOString().split('T')[0]),
                 createdAt: lo?.createdAt || o.date_created || new Date().toISOString(),
                 esimTranNo,
-                qrCodeUrl: lo?.qrCodeUrl || getMeta('_esim_qr_code') || `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=LPA:1$rsp.strongesim.com$${esimTranNo}`,
-                lpaString: lo?.lpaString || getMeta('_esim_lpa') || `LPA:1$rsp.strongesim.com$${esimTranNo}`,
+                realIccid: lo?.realIccid || (esimTranNo && /^\d+$/.test(esimTranNo) ? esimTranNo : ''),
+                qrCodeUrl: rawQr,
+                lpaString: rawLpa,
                 dataAmount: lo?.dataAmount || getMeta('_esim_data_amount') || '1 GB',
                 days: lo?.days || getMeta('_esim_days') || '30',
                 country: lo?.country || getMeta('_esim_country') || 'España',
@@ -120,9 +124,34 @@ export async function GET(request) {
       return new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date);
     });
 
-    // Enriquecer cada pedido con telemetría viva y sincronizada de StrongeSIM
+    // Enriquecer cada pedido con telemetría viva y datos de operador sincronizados de StrongeSIM
     await Promise.allSettled(
       ordersList.map(async (order) => {
+        const needsOperatorSync = !order.qrCodeUrl ||
+          order.qrCodeUrl.includes('api.qrserver.com') ||
+          !order.lpaString ||
+          (order.esimTranNo && order.esimTranNo.includes('-'));
+
+        if (needsOperatorSync && (order.realIccid || order.esimTranNo || order.orderId)) {
+          try {
+            const live = await fetchEsimProfileTelemetry(order.realIccid || order.esimTranNo, order.orderId);
+            if (live) {
+              order.telemetry = resolveUniversalTelemetry(order, live);
+              if (live.qrCodeUrl && (!order.qrCodeUrl || order.qrCodeUrl.includes('api.qrserver.com'))) {
+                order.qrCodeUrl = live.qrCodeUrl;
+              }
+              if (live.lpaString && (!order.lpaString || !order.lpaString.startsWith('LPA:1$rsp-'))) {
+                order.lpaString = live.lpaString;
+              }
+              if (live.realIccid && (/^\d+$/.test(live.realIccid) || !order.esimTranNo || order.esimTranNo.includes('-'))) {
+                order.realIccid = live.realIccid;
+                order.esimTranNo = live.realIccid;
+              }
+              return;
+            }
+          } catch {}
+        }
+
         if (order.telemetry && (Number(order.telemetry.usedBytes) > 0 || Number(order.telemetry.usedMb) > 0)) {
           return;
         }
@@ -136,7 +165,22 @@ export async function GET(request) {
     if (orderIdQuery) {
       const found = ordersList.find((o) => String(o.orderId).toLowerCase() === String(orderIdQuery).toLowerCase());
       if (found) {
-        found.telemetry = await getOrderTelemetryWithCache(found);
+        try {
+          const live = await fetchEsimProfileTelemetry(found.realIccid || found.esimTranNo, found.orderId);
+          if (live) {
+            found.telemetry = resolveUniversalTelemetry(found, live);
+            if (live.qrCodeUrl) found.qrCodeUrl = live.qrCodeUrl;
+            if (live.lpaString) found.lpaString = live.lpaString;
+            if (live.realIccid) {
+              found.realIccid = live.realIccid;
+              found.esimTranNo = live.realIccid;
+            }
+          } else {
+            found.telemetry = await getOrderTelemetryWithCache(found);
+          }
+        } catch {
+          found.telemetry = await getOrderTelemetryWithCache(found);
+        }
         return NextResponse.json({ success: true, order: found });
       }
       return NextResponse.json({ success: false, message: 'Pedido no encontrado' }, { status: 404 });

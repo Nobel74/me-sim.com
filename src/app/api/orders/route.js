@@ -88,26 +88,40 @@ export async function POST(request) {
         addDiagnosticLog('STRONGESIM', 'ORDER_SUCCESS', { esimData });
 
         const nested = esimData.data || esimData;
-        const targetId = nested.id || nested.orderId || nested.transactionId;
+        const ord = nested.order || nested;
+        const targetId = ord.id || ord.orderId || ord.transactionId || nested.id || nested.orderId || nested.transactionId;
 
-        let realIccid = nested.iccid || nested.esimTranNo;
-        let qrCodeUrl = nested.qr_code_url || nested.qrCodeUrl;
-        let lpaString = nested.lpaString || nested.lpa || nested.activation_code;
+        let realIccid = ord.iccid || ord.esimTranNo || nested.iccid || nested.esimTranNo;
+        let qrCodeUrl = ord.qr_code_url || ord.qrCodeUrl || nested.qr_code_url || nested.qrCodeUrl;
+        let lpaString = ord.activation_code || ord.lpaString || ord.lpa || nested.lpaString || nested.lpa || nested.activation_code;
+
+        const profilesArr = nested.profiles || ord.profiles;
+        if (Array.isArray(profilesArr) && profilesArr.length > 0) {
+          const firstProf = profilesArr[0];
+          if (firstProf.iccid) realIccid = firstProf.iccid;
+          if (firstProf.qr_code_url || firstProf.qrCodeUrl) qrCodeUrl = firstProf.qr_code_url || firstProf.qrCodeUrl;
+          if (firstProf.activation_code || firstProf.ac) lpaString = firstProf.activation_code || firstProf.ac;
+        }
 
         // Si el perfil necesita ser recuperado vía GET /orders/{targetId}
-        if (targetId) {
+        if (targetId && (!qrCodeUrl || !lpaString || !realIccid || !/^\d+$/.test(realIccid))) {
           try {
             const profileRes = await strongesimFetch(`/orders/${targetId}`, { cache: 'no-store' });
             if (profileRes.ok) {
               const profileData = await profileRes.json();
               const pNested = profileData.data || profileData;
-              const profilesArr = pNested.profiles || (pNested.data && pNested.data.profiles);
-              const firstProfile = Array.isArray(profilesArr) ? profilesArr[0] : pNested;
+              const pOrd = pNested.order || pNested;
+              const pProfiles = pNested.profiles || (pNested.data && pNested.data.profiles);
+              const firstProfile = Array.isArray(pProfiles) ? pProfiles[0] : pOrd;
+
+              if (pOrd?.iccid) realIccid = pOrd.iccid;
+              if (pOrd?.qr_code_url) qrCodeUrl = pOrd.qr_code_url;
+              if (pOrd?.activation_code) lpaString = pOrd.activation_code;
 
               if (firstProfile) {
                 if (firstProfile.iccid) realIccid = firstProfile.iccid;
-                if (firstProfile.qr_code_url) qrCodeUrl = firstProfile.qr_code_url;
-                if (firstProfile.activation_code) lpaString = firstProfile.activation_code;
+                if (firstProfile.qr_code_url || firstProfile.qrCodeUrl) qrCodeUrl = firstProfile.qr_code_url || firstProfile.qrCodeUrl;
+                if (firstProfile.activation_code || firstProfile.ac) lpaString = firstProfile.activation_code || firstProfile.ac;
               }
             }
           } catch (pErr) {
@@ -115,11 +129,28 @@ export async function POST(request) {
           }
         }
 
-        finalIccid = (realIccid && /^\d+$/.test(realIccid)) ? realIccid : (targetId || '89852' + Math.floor(1000000000 + Math.random() * 9000000000));
-        finalLpa = lpaString || `LPA:1$rsp.strongesim.com$${finalIccid}`;
-        finalQrCodeUrl = qrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(finalLpa)}`;
+        // Si tenemos realIccid y todavía falta el QR directo de CDN de StrongeSIM, consultar /profiles/{realIccid}
+        if (realIccid && /^\d+$/.test(realIccid) && (!qrCodeUrl || !lpaString)) {
+          try {
+            const profRes = await strongesimFetch(`/profiles/${realIccid}`, { cache: 'no-store' });
+            if (profRes.ok) {
+              const profData = await profRes.json();
+              const p = Array.isArray(profData.data?.profiles) ? profData.data.profiles[0] : (profData.data?.profile || profData.data);
+              if (p) {
+                if (p.qrCodeUrl || p.qr_code_url || p.shortUrl) qrCodeUrl = p.qrCodeUrl || p.qr_code_url || p.shortUrl;
+                if (p.ac || p.activation_code) lpaString = p.ac || p.activation_code;
+              }
+            }
+          } catch (eProf) {
+            console.warn('Could not fetch direct profile from StrongeSIM:', eProf.message);
+          }
+        }
 
-        console.log(`StrongeSIM real eSIM purchased successfully. Real ICCID: ${finalIccid}`);
+        finalIccid = (realIccid && /^\d+$/.test(realIccid)) ? realIccid : (targetId || '');
+        finalLpa = lpaString || '';
+        finalQrCodeUrl = qrCodeUrl || '';
+
+        console.log(`StrongeSIM real eSIM purchased successfully. Real ICCID: ${finalIccid}, QR: ${finalQrCodeUrl}`);
       } else {
         const errorBody = await response.text();
         addDiagnosticLog('STRONGESIM', 'ORDER_REJECTED', { status: response.status, errorBody });

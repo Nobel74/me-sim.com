@@ -93,7 +93,7 @@ export async function fetchWooCommerceOrder(orderId) {
         const getMeta = (k) => meta.find((m) => m.key === k)?.value || '';
         const line = o.line_items?.[0] || {};
         const price = parseFloat(o.total || line.total || '0') || 0;
-        const esimTranNo = getMeta('_esim_transaction_no') || getMeta('_esim_iccid') || ('89852' + String(o.id).padEnd(13, '0'));
+        const esimTranNo = getMeta('_esim_transaction_no') || getMeta('_esim_iccid') || '';
 
         const orderObj = {
           orderId: String(o.id),
@@ -109,8 +109,9 @@ export async function fetchWooCommerceOrder(orderId) {
           createdAt: o.date_created || new Date().toISOString(),
           paymentMethod: o.payment_method_title || 'Credit Card / Stripe (Paid)',
           esimTranNo: esimTranNo,
+          realIccid: esimTranNo,
           qrCodeUrl: getMeta('_esim_qr_code') || '',
-          lpaString: getMeta('_esim_lpa') || '',
+          lpaString: getMeta('_esim_activation_code') || getMeta('_esim_lpa') || '',
           country: getMeta('_esim_country') || o.billing?.country || 'España',
           billing: {
             firstName: o.billing?.first_name || '',
@@ -160,13 +161,41 @@ export async function getOrderById(orderId) {
   }
 
   if (found) {
-    // Enriquecer con telemetría viva de StrongeSIM o motor universal determinista
-    if (found.esimTranNo && !found.telemetry) {
+    // Si falta QR real o tiene URL de generador mockup, o falta LPA, consultar StrongeSIM directamente
+    const needsOperatorSync = !found.qrCodeUrl ||
+      found.qrCodeUrl.includes('api.qrserver.com') ||
+      !found.lpaString ||
+      (found.esimTranNo && found.esimTranNo.includes('-'));
+
+    if (found.esimTranNo || found.orderId) {
       try {
-        const live = await fetchEsimProfileTelemetry(found.esimTranNo, found.orderId);
-        found.telemetry = resolveUniversalTelemetry(found, live);
+        const live = await fetchEsimProfileTelemetry(found.realIccid || found.esimTranNo, found.orderId);
+        if (live) {
+          found.telemetry = resolveUniversalTelemetry(found, live);
+          let modified = false;
+          if (live.qrCodeUrl && (!found.qrCodeUrl || found.qrCodeUrl.includes('api.qrserver.com'))) {
+            found.qrCodeUrl = live.qrCodeUrl;
+            modified = true;
+          }
+          if (live.lpaString && (!found.lpaString || !found.lpaString.startsWith('LPA:1$rsp-'))) {
+            found.lpaString = live.lpaString;
+            modified = true;
+          }
+          if (live.realIccid && (/^\d+$/.test(live.realIccid) || !found.esimTranNo || found.esimTranNo.includes('-'))) {
+            found.realIccid = live.realIccid;
+            found.esimTranNo = live.realIccid;
+            modified = true;
+          }
+          if (modified) {
+            saveOrUpdateOrder(found);
+          }
+        } else if (!found.telemetry) {
+          found.telemetry = resolveUniversalTelemetry(found);
+        }
       } catch {
-        found.telemetry = resolveUniversalTelemetry(found);
+        if (!found.telemetry) {
+          found.telemetry = resolveUniversalTelemetry(found);
+        }
       }
     } else if (!found.telemetry) {
       found.telemetry = resolveUniversalTelemetry(found);
