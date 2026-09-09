@@ -79,15 +79,18 @@ export default function AdminDashboardPage() {
     const handleLang = (e) => setLang(e.detail || 'es');
     const handleTheme = (e) => setTheme(e.detail || 'dark');
     const handleTab = (e) => {
-      if (e.detail && ['dashboard', 'orders', 'company', 'partners'].includes(e.detail)) {
-        setActiveTab(e.detail);
+      const raw = e.detail;
+      const tab = ['company', 'partners'].includes(raw) ? 'settings' : raw;
+      if (tab && ['dashboard', 'orders', 'settings'].includes(tab)) {
+        setActiveTab(tab);
       }
     };
     const handlePopState = () => {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get('tab');
-      if (tabParam && ['dashboard', 'orders', 'company', 'partners'].includes(tabParam)) {
-        setActiveTab(tabParam);
+      const tab = ['company', 'partners'].includes(tabParam) ? 'settings' : tabParam;
+      if (tab && ['dashboard', 'orders', 'settings'].includes(tab)) {
+        setActiveTab(tab);
       }
     };
 
@@ -99,11 +102,12 @@ export default function AdminDashboardPage() {
     const initialLang = localStorage.getItem('mesim_admin_lang') || 'es';
     const initialTheme = localStorage.getItem('mesim_admin_theme') || 'dark';
     const initialCurrency = localStorage.getItem('mesim_admin_currency') || 'EUR';
-    const initialTab = localStorage.getItem('mesim_admin_tab');
+    const initialTabRaw = localStorage.getItem('mesim_admin_tab');
+    const initialTab = ['company', 'partners'].includes(initialTabRaw) ? 'settings' : initialTabRaw;
     setLang(initialLang);
     setTheme(initialTheme);
     setDashboardCurrency(initialCurrency);
-    if (initialTab && ['dashboard', 'orders', 'company', 'partners'].includes(initialTab)) {
+    if (initialTab && ['dashboard', 'orders', 'settings'].includes(initialTab)) {
       setActiveTab(initialTab);
     }
 
@@ -115,8 +119,9 @@ export default function AdminDashboardPage() {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get('tab');
-      if (tabParam && ['dashboard', 'orders', 'company', 'partners'].includes(tabParam)) {
-        setActiveTab(tabParam);
+      const tab = ['company', 'partners'].includes(tabParam) ? 'settings' : tabParam;
+      if (tab && ['dashboard', 'orders', 'settings'].includes(tab)) {
+        setActiveTab(tab);
       }
     }
 
@@ -1341,219 +1346,11 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-      {/* TAB 3: COMPANY FISCAL CONFIGURATION (ME-SIM.COM) */}
-      {activeTab === 'company' && currentUser?.role === 'admin' && (
-        <div className="w-full space-y-6">
-          <div>
-            <h1 className={`text-2xl sm:text-3xl font-bold tracking-tight mb-1 ${isDark ? 'text-white' : 'text-zinc-900'}`}>
-              {isEn ? 'ME-SIM.COM Official Fiscal Configuration' : 'Configuración Fiscal Oficial de ME-SIM.COM'}
-            </h1>
-            <p className={`text-xs sm:text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
-              {isEn
-                ? 'These details will be dynamically injected into all auto-generated bilingual PDF invoices.'
-                : 'Estos datos de empresa se inyectarán de forma dinámica en todas las facturas en PDF autogeneradas.'}
-            </p>
-          </div>
-
-          <form onSubmit={handleSaveCompany} className={`w-full p-6 sm:p-8 rounded-3xl border shadow-xl space-y-6 ${isDark ? 'bg-zinc-900/80 border-zinc-800/80' : 'bg-white border-zinc-200'}`}>
-            {/* Logo Preview & Upload */}
-            <div className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 p-5 rounded-2xl border ${isDark ? 'bg-zinc-950/60 border-zinc-800' : 'bg-zinc-50 border-zinc-200'}`}>
-              <div className="flex items-center gap-5">
-                <div className="w-32 h-20 rounded-2xl bg-white p-2.5 flex items-center justify-center border border-zinc-300 shadow-sm overflow-hidden flex-shrink-0">
-                  {company.logo ? (
-                    <img src={company.logo} alt="Logo" className="max-h-full max-w-full object-contain" />
-                  ) : (
-                    <span className="text-xs text-zinc-400 font-bold">Sin logo</span>
-                  )}
-                </div>
-                <div className="space-y-1">
-                  <span className={`block text-xs font-black uppercase tracking-wider ${isDark ? 'text-zinc-200' : 'text-zinc-800'}`}>
-                    {isEn ? 'Official Invoice Logo' : 'Logotipo Oficial para Facturas'}
-                  </span>
-                  <p className={`text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
-                    {isEn
-                      ? 'Recommended format: PNG or SVG with transparent background'
-                      : 'Formato recomendado: PNG nítido o SVG con fondo transparente'}
-                  </p>
-                </div>
-              </div>
-              <label className={`cursor-pointer px-5 py-2.5 rounded-xl font-bold text-xs transition-all border shadow-xs flex-shrink-0 flex items-center gap-2 ${
-                isDark
-                  ? 'bg-zinc-800 hover:bg-zinc-700 text-white border-zinc-700 hover:border-yellow-400'
-                  : 'bg-white hover:bg-zinc-100 text-zinc-900 border-2 border-zinc-300 hover:border-zinc-900'
-              }`}>
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                  <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z" />
-                </svg>
-                <span>{isEn ? 'Upload New Logo' : 'Subir Nuevo Logo'}</span>
-                <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
-              </label>
-            </div>
-
-            {/* Bloque 1: Identificación Legal */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div>
-                <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${isDark ? 'text-zinc-400' : 'text-zinc-700'}`}>
-                  {isEn ? 'Company / Legal Name *' : 'Razón Social Oficial *'}
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={company.companyName || ''}
-                  onChange={(e) => setCompany({ ...company, companyName: e.target.value })}
-                  className={`w-full px-4 py-3 rounded-xl border text-sm outline-none focus:border-[#ffec00] transition-colors ${
-                    isDark ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-2 border-zinc-300 text-zinc-900'
-                  }`}
-                />
-              </div>
-              <div>
-                <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${isDark ? 'text-zinc-400' : 'text-zinc-700'}`}>
-                  {isEn ? 'Tax ID / CIF / NIF *' : 'NIF / CIF Oficial *'}
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={company.taxId || ''}
-                  onChange={(e) => setCompany({ ...company, taxId: e.target.value })}
-                  className={`w-full px-4 py-3 rounded-xl border text-sm outline-none focus:border-[#ffec00] transition-colors ${
-                    isDark ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-2 border-zinc-300 text-zinc-900'
-                  }`}
-                />
-              </div>
-            </div>
-
-            {/* Bloque 2: Domicilio Fiscal */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
-              <div className="sm:col-span-2">
-                <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${isDark ? 'text-zinc-400' : 'text-zinc-700'}`}>
-                  {isEn ? 'Fiscal Address *' : 'Dirección Fiscal *'}
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={company.address || ''}
-                  onChange={(e) => setCompany({ ...company, address: e.target.value })}
-                  className={`w-full px-4 py-3 rounded-xl border text-sm outline-none focus:border-[#ffec00] transition-colors ${
-                    isDark ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-2 border-zinc-300 text-zinc-900'
-                  }`}
-                />
-              </div>
-              <div>
-                <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${isDark ? 'text-zinc-400' : 'text-zinc-700'}`}>
-                  {isEn ? 'City *' : 'Ciudad *'}
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={company.city || ''}
-                  onChange={(e) => setCompany({ ...company, city: e.target.value })}
-                  className={`w-full px-4 py-3 rounded-xl border text-sm outline-none focus:border-[#ffec00] transition-colors ${
-                    isDark ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-2 border-zinc-300 text-zinc-900'
-                  }`}
-                />
-              </div>
-              <div>
-                <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${isDark ? 'text-zinc-400' : 'text-zinc-700'}`}>
-                  {isEn ? 'Postal / ZIP Code *' : 'Código Postal *'}
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={company.postalCode || ''}
-                  onChange={(e) => setCompany({ ...company, postalCode: e.target.value })}
-                  className={`w-full px-4 py-3 rounded-xl border text-sm outline-none focus:border-[#ffec00] transition-colors ${
-                    isDark ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-2 border-zinc-300 text-zinc-900'
-                  }`}
-                />
-              </div>
-            </div>
-
-            {/* Bloque 3: Facturación y Contacto */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
-              <div>
-                <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${isDark ? 'text-zinc-400' : 'text-zinc-700'}`}>
-                  {isEn ? 'Country *' : 'País *'}
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={company.country || ''}
-                  onChange={(e) => setCompany({ ...company, country: e.target.value })}
-                  className={`w-full px-4 py-3 rounded-xl border text-sm outline-none focus:border-[#ffec00] transition-colors ${
-                    isDark ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-2 border-zinc-300 text-zinc-900'
-                  }`}
-                />
-              </div>
-              <div>
-                <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${isDark ? 'text-zinc-400' : 'text-zinc-700'}`}>
-                  {isEn ? 'Invoice Prefix' : 'Prefijo de Factura'}
-                </label>
-                <input
-                  type="text"
-                  value={company.invoicePrefix || ''}
-                  onChange={(e) => setCompany({ ...company, invoicePrefix: e.target.value })}
-                  className={`w-full px-4 py-3 rounded-xl border text-sm outline-none focus:border-[#ffec00] transition-colors ${
-                    isDark ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-2 border-zinc-300 text-zinc-900'
-                  }`}
-                />
-              </div>
-              <div>
-                <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${isDark ? 'text-zinc-400' : 'text-zinc-700'}`}>
-                  {isEn ? 'Contact Email *' : 'Email de Facturación *'}
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={company.email || ''}
-                  onChange={(e) => setCompany({ ...company, email: e.target.value })}
-                  className={`w-full px-4 py-3 rounded-xl border text-sm outline-none focus:border-[#ffec00] transition-colors ${
-                    isDark ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-2 border-zinc-300 text-zinc-900'
-                  }`}
-                />
-              </div>
-              <div>
-                <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${isDark ? 'text-zinc-400' : 'text-zinc-700'}`}>
-                  {isEn ? 'Official Website' : 'Sitio Web'}
-                </label>
-                <input
-                  type="text"
-                  value={company.website || ''}
-                  onChange={(e) => setCompany({ ...company, website: e.target.value })}
-                  className={`w-full px-4 py-3 rounded-xl border text-sm outline-none focus:border-[#ffec00] transition-colors ${
-                    isDark ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-2 border-zinc-300 text-zinc-900'
-                  }`}
-                />
-              </div>
-            </div>
-
-            {companyStatus && (
-              <div
-                className={`p-4 rounded-xl text-xs font-bold border ${
-                  companyStatus.type === 'success'
-                    ? isDark ? 'bg-emerald-950/60 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                    : isDark ? 'bg-red-950/60 border-red-800 text-red-300' : 'bg-red-50 border-red-200 text-red-800'
-                }`}
-              >
-                {companyStatus.text}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={companySaving}
-              className="py-3.5 px-8 rounded-2xl bg-[#ffec00] hover:bg-yellow-300 text-black font-black uppercase text-xs sm:text-sm tracking-wider transition-all shadow-md active:scale-95 cursor-pointer"
-            >
-              {companySaving
-                ? (isEn ? 'Saving Company Settings...' : 'Guardando Configuración...')
-                : (isEn ? 'Save Company Fiscal Data' : 'Guardar Datos Fiscales de ME-SIM')}
-            </button>
-          </form>
-        </div>
-      )}
-
-      {/* TAB 4: PARTNERS & SECURITY MANAGEMENT (ADMIN & PARTNERS) */}
-      {activeTab === 'partners' && (
-        <div className="w-full space-y-8">
+      {/* TAB UNIFICADO: CONFIGURACIÓN (SOCIOS/SEGURIDAD ARRIBA, FISCAL ABAJO) */}
+      {['settings', 'company', 'partners'].includes(activeTab) && (
+        <div className="w-full space-y-12">
+          {/* SECCIÓN SUPERIOR: GESTIÓN DE SOCIOS, SEGURIDAD Y PERFILES */}
+          <div className="w-full space-y-8">
           <div>
             <h1 className={`text-2xl sm:text-3xl font-black tracking-tight mb-1 ${isDark ? 'text-white' : 'text-zinc-950'}`}>
               {currentUser?.role === 'admin'
@@ -2250,6 +2047,217 @@ export default function AdminDashboardPage() {
                   </button>
                 </div>
               </div>
+            </div>
+          )}
+          </div>
+
+          {/* SECCIÓN INFERIOR: CONFIGURACIÓN FISCAL OFICIAL DE ME-SIM.COM */}
+          {currentUser?.role === 'admin' && (
+            <div className="w-full space-y-6 pt-10 border-t border-zinc-200 dark:border-zinc-800">
+              <div>
+                <h1 className={`text-2xl sm:text-3xl font-bold tracking-tight mb-1 ${isDark ? 'text-white' : 'text-zinc-900'}`}>
+                  {isEn ? 'ME-SIM.COM Official Fiscal Configuration' : 'Configuración Fiscal Oficial de ME-SIM.COM'}
+                </h1>
+                <p className={`text-xs sm:text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                  {isEn
+                    ? 'These details will be dynamically injected into all auto-generated bilingual PDF invoices.'
+                    : 'Estos datos de empresa se inyectarán de forma dinámica en todas las facturas en PDF autogeneradas.'}
+                </p>
+              </div>
+
+              <form onSubmit={handleSaveCompany} className={`w-full p-6 sm:p-8 rounded-3xl border shadow-xl space-y-6 ${isDark ? 'bg-zinc-900/80 border-zinc-800/80' : 'bg-white border-zinc-200'}`}>
+                {/* Logo Preview & Upload */}
+                <div className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 p-5 rounded-2xl border ${isDark ? 'bg-zinc-950/60 border-zinc-800' : 'bg-zinc-50 border-zinc-200'}`}>
+                  <div className="flex items-center gap-5">
+                    <div className="w-32 h-20 rounded-2xl bg-white p-2.5 flex items-center justify-center border border-zinc-300 shadow-sm overflow-hidden flex-shrink-0">
+                      {company.logo ? (
+                        <img src={company.logo} alt="Logo" className="max-h-full max-w-full object-contain" />
+                      ) : (
+                        <span className="text-xs text-zinc-400 font-bold">Sin logo</span>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <span className={`block text-xs font-black uppercase tracking-wider ${isDark ? 'text-zinc-200' : 'text-zinc-800'}`}>
+                        {isEn ? 'Official Invoice Logo' : 'Logotipo Oficial para Facturas'}
+                      </span>
+                      <p className={`text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                        {isEn
+                          ? 'Recommended format: PNG or SVG with transparent background'
+                          : 'Formato recomendado: PNG nítido o SVG con fondo transparente'}
+                      </p>
+                    </div>
+                  </div>
+                  <label className={`cursor-pointer px-5 py-2.5 rounded-xl font-bold text-xs transition-all border shadow-xs flex-shrink-0 flex items-center gap-2 ${
+                    isDark
+                      ? 'bg-zinc-800 hover:bg-zinc-700 text-white border-zinc-700 hover:border-yellow-400'
+                      : 'bg-white hover:bg-zinc-100 text-zinc-900 border-2 border-zinc-300 hover:border-zinc-900'
+                  }`}>
+                    <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                      <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z" />
+                    </svg>
+                    <span>{isEn ? 'Upload New Logo' : 'Subir Nuevo Logo'}</span>
+                    <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                  </label>
+                </div>
+
+                {/* Bloque 1: Identificación Legal */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${isDark ? 'text-zinc-400' : 'text-zinc-700'}`}>
+                      {isEn ? 'Company / Legal Name *' : 'Razón Social Oficial *'}
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={company.companyName || ''}
+                      onChange={(e) => setCompany({ ...company, companyName: e.target.value })}
+                      className={`w-full px-4 py-3 rounded-xl border text-sm outline-none focus:border-[#ffec00] transition-colors ${
+                        isDark ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-2 border-zinc-300 text-zinc-900'
+                      }`}
+                    />
+                  </div>
+                  <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${isDark ? 'text-zinc-400' : 'text-zinc-700'}`}>
+                      {isEn ? 'Tax ID / CIF / NIF *' : 'NIF / CIF Oficial *'}
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={company.taxId || ''}
+                      onChange={(e) => setCompany({ ...company, taxId: e.target.value })}
+                      className={`w-full px-4 py-3 rounded-xl border text-sm outline-none focus:border-[#ffec00] transition-colors ${
+                        isDark ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-2 border-zinc-300 text-zinc-900'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                {/* Bloque 2: Domicilio Fiscal */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
+                  <div className="sm:col-span-2">
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${isDark ? 'text-zinc-400' : 'text-zinc-700'}`}>
+                      {isEn ? 'Fiscal Address *' : 'Dirección Fiscal *'}
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={company.address || ''}
+                      onChange={(e) => setCompany({ ...company, address: e.target.value })}
+                      className={`w-full px-4 py-3 rounded-xl border text-sm outline-none focus:border-[#ffec00] transition-colors ${
+                        isDark ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-2 border-zinc-300 text-zinc-900'
+                      }`}
+                    />
+                  </div>
+                  <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${isDark ? 'text-zinc-400' : 'text-zinc-700'}`}>
+                      {isEn ? 'City *' : 'Ciudad *'}
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={company.city || ''}
+                      onChange={(e) => setCompany({ ...company, city: e.target.value })}
+                      className={`w-full px-4 py-3 rounded-xl border text-sm outline-none focus:border-[#ffec00] transition-colors ${
+                        isDark ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-2 border-zinc-300 text-zinc-900'
+                      }`}
+                    />
+                  </div>
+                  <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${isDark ? 'text-zinc-400' : 'text-zinc-700'}`}>
+                      {isEn ? 'Postal / ZIP Code *' : 'Código Postal *'}
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={company.postalCode || ''}
+                      onChange={(e) => setCompany({ ...company, postalCode: e.target.value })}
+                      className={`w-full px-4 py-3 rounded-xl border text-sm outline-none focus:border-[#ffec00] transition-colors ${
+                        isDark ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-2 border-zinc-300 text-zinc-900'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                {/* Bloque 3: Facturación y Contacto */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
+                  <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${isDark ? 'text-zinc-400' : 'text-zinc-700'}`}>
+                      {isEn ? 'Country *' : 'País *'}
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={company.country || ''}
+                      onChange={(e) => setCompany({ ...company, country: e.target.value })}
+                      className={`w-full px-4 py-3 rounded-xl border text-sm outline-none focus:border-[#ffec00] transition-colors ${
+                        isDark ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-2 border-zinc-300 text-zinc-900'
+                      }`}
+                    />
+                  </div>
+                  <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${isDark ? 'text-zinc-400' : 'text-zinc-700'}`}>
+                      {isEn ? 'Invoice Prefix' : 'Prefijo de Factura'}
+                    </label>
+                    <input
+                      type="text"
+                      value={company.invoicePrefix || ''}
+                      onChange={(e) => setCompany({ ...company, invoicePrefix: e.target.value })}
+                      className={`w-full px-4 py-3 rounded-xl border text-sm outline-none focus:border-[#ffec00] transition-colors ${
+                        isDark ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-2 border-zinc-300 text-zinc-900'
+                      }`}
+                    />
+                  </div>
+                  <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${isDark ? 'text-zinc-400' : 'text-zinc-700'}`}>
+                      {isEn ? 'Contact Email *' : 'Email de Facturación *'}
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={company.email || ''}
+                      onChange={(e) => setCompany({ ...company, email: e.target.value })}
+                      className={`w-full px-4 py-3 rounded-xl border text-sm outline-none focus:border-[#ffec00] transition-colors ${
+                        isDark ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-2 border-zinc-300 text-zinc-900'
+                      }`}
+                    />
+                  </div>
+                  <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${isDark ? 'text-zinc-400' : 'text-zinc-700'}`}>
+                      {isEn ? 'Official Website' : 'Sitio Web'}
+                    </label>
+                    <input
+                      type="text"
+                      value={company.website || ''}
+                      onChange={(e) => setCompany({ ...company, website: e.target.value })}
+                      className={`w-full px-4 py-3 rounded-xl border text-sm outline-none focus:border-[#ffec00] transition-colors ${
+                        isDark ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-2 border-zinc-300 text-zinc-900'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                {companyStatus && (
+                  <div
+                    className={`p-4 rounded-xl text-xs font-bold border ${
+                      companyStatus.type === 'success'
+                        ? isDark ? 'bg-emerald-950/60 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                        : isDark ? 'bg-red-950/60 border-red-800 text-red-300' : 'bg-red-50 border-red-200 text-red-800'
+                    }`}
+                  >
+                    {companyStatus.text}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={companySaving}
+                  className="py-3.5 px-8 rounded-2xl bg-[#ffec00] hover:bg-yellow-300 text-black font-black uppercase text-xs sm:text-sm tracking-wider transition-all shadow-md active:scale-95 cursor-pointer"
+                >
+                  {companySaving
+                    ? (isEn ? 'Saving Company Settings...' : 'Guardando Configuración...')
+                    : (isEn ? 'Save Company Fiscal Data' : 'Guardar Datos Fiscales de ME-SIM')}
+                </button>
+              </form>
             </div>
           )}
         </div>
