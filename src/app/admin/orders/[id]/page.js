@@ -506,8 +506,12 @@ export default function AdminOrderDetailPage() {
                     isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-zinc-200 border-zinc-300 shadow-inner'
                   }`}>
                     <div
-                      className="h-full bg-gradient-to-r from-emerald-500 via-yellow-400 to-amber-500 rounded-full transition-all duration-1000 ease-in-out shadow-sm"
-                      style={{ width: `${pct}%` }}
+                      className="h-full w-full rounded-full transition-all duration-1000 ease-in-out shadow-sm"
+                      style={{
+                        background: 'linear-gradient(90deg, #10b981 0%, #22c55e 35%, #eab308 60%, #f97316 82%, #ef4444 100%)',
+                        clipPath: `inset(0 ${Math.max(0, 100 - pct)}% 0 0 round 9999px)`,
+                        WebkitClipPath: `inset(0 ${Math.max(0, 100 - pct)}% 0 0 round 9999px)`,
+                      }}
                     ></div>
                   </div>
 

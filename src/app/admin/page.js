@@ -1097,8 +1097,12 @@ export default function AdminDashboardPage() {
                         </div>
                         <div className={`w-full h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-zinc-800' : 'bg-zinc-200'}`}>
                           <div
-                            className="h-full bg-gradient-to-r from-emerald-500 via-yellow-400 to-amber-500 rounded-full transition-all duration-700 ease-out"
-                            style={{ width: `${pct}%` }}
+                            className="h-full w-full rounded-full transition-all duration-700 ease-out"
+                            style={{
+                              background: 'linear-gradient(90deg, #10b981 0%, #22c55e 35%, #eab308 60%, #f97316 82%, #ef4444 100%)',
+                              clipPath: `inset(0 ${Math.max(0, 100 - pct)}% 0 0 round 9999px)`,
+                              WebkitClipPath: `inset(0 ${Math.max(0, 100 - pct)}% 0 0 round 9999px)`,
+                            }}
                           />
                         </div>
                       </div>
@@ -1209,8 +1213,12 @@ export default function AdminDashboardPage() {
                               <div className="flex items-center gap-2 whitespace-nowrap">
                                 <div className={`w-24 h-2 rounded-full overflow-hidden flex-shrink-0 ${isDark ? 'bg-zinc-800' : 'bg-zinc-200'}`}>
                                   <div
-                                    className="h-full bg-gradient-to-r from-emerald-500 via-yellow-400 to-amber-500 rounded-full transition-all duration-700 ease-out"
-                                    style={{ width: `${pct}%` }}
+                                    className="h-full w-full rounded-full transition-all duration-700 ease-out"
+                                    style={{
+                                      background: 'linear-gradient(90deg, #10b981 0%, #22c55e 35%, #eab308 60%, #f97316 82%, #ef4444 100%)',
+                                      clipPath: `inset(0 ${Math.max(0, 100 - pct)}% 0 0 round 9999px)`,
+                                      WebkitClipPath: `inset(0 ${Math.max(0, 100 - pct)}% 0 0 round 9999px)`,
+                                    }}
                                   />
                                 </div>
                                 <span className="text-[11px] font-mono whitespace-nowrap">
@@ -1219,7 +1227,7 @@ export default function AdminDashboardPage() {
                                       ? `${usedMb.toFixed(1)} / ${Math.round(totalMb)} MB`
                                       : `${(usedMb / 1024).toFixed(2)} / ${(totalMb / 1024).toFixed(1)} GB`}
                                   </span>
-                                  <span className={`font-bold ml-1 ${pct > 80 ? 'text-amber-500' : pct > 0 ? 'text-emerald-500' : (isDark ? 'text-zinc-500' : 'text-zinc-400')}`}>
+                                  <span className={`font-bold ml-1 ${pct >= 90 ? 'text-red-500' : pct >= 70 ? 'text-amber-500' : pct > 0 ? 'text-emerald-500' : (isDark ? 'text-zinc-500' : 'text-zinc-400')}`}>
                                     ({pct}%)
                                   </span>
                                 </span>
