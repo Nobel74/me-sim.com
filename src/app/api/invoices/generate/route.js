@@ -226,7 +226,11 @@ export async function POST(request) {
     }
 
     const acceptLanguage = request.headers.get('accept-language') || '';
-    const invoiceLang = resolveInvoiceLanguage(finalOrder, finalBilling, requestedLang || (acceptLanguage.includes('es') ? 'es' : 'en'));
+    const invoiceLang = resolveInvoiceLanguage(
+      finalOrder,
+      finalBilling,
+      requestedLang || (finalOrder?.lang ? finalOrder.lang : (acceptLanguage.includes('es') ? 'es' : 'en'))
+    );
 
     const company = await getCompanyConfigAsync();
     const pdfBuffer = generateInvoicePdfBuffer({

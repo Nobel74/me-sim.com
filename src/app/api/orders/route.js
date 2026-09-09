@@ -3,6 +3,7 @@ import { strongesimFetch, resolveStrongeSimPlanId } from '../../../lib/strongesi
 import { addDiagnosticLog } from '../../../lib/logger';
 import { checkOrderProvisioned, markOrderProvisioned } from '../../../lib/idempotency';
 import { saveOrUpdateOrder, getLocalOrders } from '../../../lib/ordersService';
+import { resolveCustomerLanguage } from '../../../lib/i18n';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +12,16 @@ export async function POST(request) {
     const body = await request.json();
     const { planId, customerEmail, customerName, paymentIntentId, price, currency, title, country, iso, dataAmount, days, lang = 'es', couponCode } = body;
 
-    addDiagnosticLog('POST_ORDERS', 'ENTRY', { planId, customerEmail, customerName, price, country, iso, paymentIntentId, couponCode });
+    const acceptLangHeader = request.headers.get('accept-language') || '';
+    const customerLang = resolveCustomerLanguage({
+      lang,
+      acceptLanguage: acceptLangHeader,
+      country,
+      iso,
+      email: customerEmail,
+    });
+
+    addDiagnosticLog('POST_ORDERS', 'ENTRY', { planId, customerEmail, customerName, price, country, iso, paymentIntentId, couponCode, customerLang });
 
     // =========================================================================
     // 0. IDEMPOTENCIA: Evitar compras duplicadas por doble clic o reintentos
@@ -294,6 +304,10 @@ export async function POST(request) {
               { key: '_esim_qr_code', value: finalQrCodeUrl },
               { key: '_esim_activation_code', value: finalLpa },
               { key: '_esim_provisioned', value: 'yes' },
+              { key: '_order_lang', value: customerLang },
+              { key: '_customer_lang', value: customerLang },
+              { key: 'lang', value: customerLang },
+              { key: 'customer_language', value: customerLang },
             ]
           }),
         });
@@ -315,7 +329,7 @@ export async function POST(request) {
                     email: customerEmail,
                     type: 'welcome_credentials',
                     customPassword: generatedPassword,
-                    lang: lang,
+                    lang: customerLang,
                   }),
                 });
                 console.log(`Welcome credentials email sent to ${customerEmail}`);
@@ -339,6 +353,7 @@ export async function POST(request) {
         orderId: wcOrderId,
         customerName: customerName,
         customerEmail: customerEmail,
+        lang: customerLang,
         title: title || `eSIM Plan (${planId})`,
         plan: title || `eSIM Plan (${planId})`,
         amount: parseFloat(price || 0),
@@ -394,10 +409,10 @@ export async function POST(request) {
             totalPrice: `${price} ${currency || 'EUR'}`,
             customerName: customerName,
           },
-          lang: lang,
+          lang: customerLang,
         }),
       });
-      console.log(`Order confirmation email sent to ${customerEmail}`);
+      console.log(`Order confirmation email sent to ${customerEmail} (lang: ${customerLang})`);
     } catch (mailErr) {
       console.error('Error sending order confirmation email:', mailErr);
     }

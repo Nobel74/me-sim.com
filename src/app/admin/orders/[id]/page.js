@@ -121,6 +121,7 @@ export default function AdminOrderDetailPage() {
     setResendingEmail(true);
     setActionMessage(null);
     try {
+      const customerOrderLang = order.lang || 'es';
       const res = await fetch('/api/admin/esim/resend-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -136,9 +137,10 @@ export default function AdminOrderDetailPage() {
             plan: order.plan || order.title,
             amount: order.amount,
             currency: order.currency,
+            lang: customerOrderLang,
           },
           targetEmail: order.customerEmail,
-          lang,
+          lang: customerOrderLang,
         }),
       });
       const data = await res.json();
@@ -147,8 +149,8 @@ export default function AdminOrderDetailPage() {
         setActionMessage({
           type: 'success',
           text: lang === 'en'
-            ? `QR code and instructions successfully sent to ${order.customerEmail}`
-            : `QR e instrucciones enviadas correctamente a ${order.customerEmail}`,
+            ? `QR code and instructions successfully sent to ${order.customerEmail} (${customerOrderLang === 'en' ? 'English' : 'Spanish'})`
+            : `QR e instrucciones enviadas correctamente a ${order.customerEmail} (${customerOrderLang === 'en' ? 'en inglés' : 'en castellano'})`,
         });
       } else {
         setActionMessage({

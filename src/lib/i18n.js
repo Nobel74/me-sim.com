@@ -253,6 +253,90 @@ export function getCountryName(iso, lang = 'es', defaultName = '') {
   return defaultName || iso.toUpperCase();
 }
 
+export function detectLanguageFromAcceptHeader(acceptLanguageHeader = '') {
+  if (!acceptLanguageHeader || typeof acceptLanguageHeader !== 'string') return null;
+
+  const entries = acceptLanguageHeader.split(',').map((entry) => {
+    const [langPart, qPart] = entry.trim().split(';');
+    const lang = (langPart || '').trim().toLowerCase();
+    let q = 1.0;
+    if (qPart) {
+      const match = qPart.match(/q=([0-9.]+)/);
+      if (match) q = parseFloat(match[1]) || 1.0;
+    }
+    return { lang, q };
+  }).filter((e) => e.lang.length > 0);
+
+  if (entries.length === 0) return null;
+
+  entries.sort((a, b) => b.q - a.q);
+
+  const spanishLocales = ['es', 'ca', 'gl', 'eu', 'val'];
+
+  for (const entry of entries) {
+    if (entry.lang.startsWith('en')) {
+      return 'en';
+    }
+    if (spanishLocales.some((target) => entry.lang.startsWith(target))) {
+      return 'es';
+    }
+  }
+
+  return 'en';
+}
+
+export function resolveCustomerLanguage({
+  lang = '',
+  acceptLanguage = '',
+  country = '',
+  iso = '',
+  email = '',
+} = {}) {
+  // 1. Prioridad principal: El idioma en el que el cliente cargó y navegó la página
+  const cleanLang = String(lang || '').toLowerCase().trim();
+  if (cleanLang === 'en' || cleanLang.startsWith('en')) {
+    return 'en';
+  }
+  if (cleanLang === 'es' || cleanLang.startsWith('es')) {
+    return 'es';
+  }
+
+  // 2. Cabecera Accept-Language del navegador del cliente
+  if (acceptLanguage) {
+    const headerLang = detectLanguageFromAcceptHeader(acceptLanguage);
+    if (headerLang === 'en') {
+      return 'en';
+    }
+    if (headerLang === 'es') {
+      return 'es';
+    }
+  }
+
+  // 3. País de facturación o residencia
+  const cleanCountry = String(country || '').toLowerCase().trim();
+  const cleanIso = String(iso || '').toLowerCase().trim();
+  const englishCountries = [
+    'reino unido', 'united kingdom', 'uk', 'great britain', 'england',
+    'united states', 'usa', 'eeuu', 'estados unidos', 'us',
+    'canada', 'australia', 'new zealand', 'ireland', 'irlanda'
+  ];
+  const englishIsos = ['gb', 'uk', 'us', 'ca', 'au', 'nz', 'ie'];
+  if (
+    englishIsos.includes(cleanIso) ||
+    englishCountries.some((ec) => cleanCountry.includes(ec))
+  ) {
+    return 'en';
+  }
+
+  // 4. Dominio de email corporativo o regional (.uk, .co.uk, etc.)
+  const cleanEmail = String(email || '').toLowerCase().trim();
+  if (cleanEmail.endsWith('.uk') || cleanEmail.endsWith('.co.uk') || cleanEmail.endsWith('.ac.uk')) {
+    return 'en';
+  }
+
+  return 'es';
+}
+
 export function detectBrowserPreferences() {
   if (typeof window === 'undefined') {
     return { lang: 'es', currency: 'EUR' };
@@ -264,25 +348,38 @@ export function detectBrowserPreferences() {
     return { lang: savedLang, currency: savedCurr };
   }
 
-  const userLanguages = (navigator.languages || [navigator.language || 'es']).map((l) => l.toLowerCase());
+  const primaryLang = (navigator.language || (navigator.languages && navigator.languages[0]) || 'es').toLowerCase();
   const spanishLocales = ['es', 'es-es', 'ca', 'ca-es', 'gl', 'gl-es', 'eu', 'eu-es', 'cat', 'val'];
 
-  const isSpanishLocale = userLanguages.some((userLang) => {
-    return spanishLocales.some((target) => userLang.startsWith(target) || userLang.includes('es'));
-  });
+  const isPrimaryEnglish = primaryLang.startsWith('en');
+  const isPrimarySpanish = spanishLocales.some((target) => primaryLang.startsWith(target));
 
-  if (isSpanishLocale) {
-    const defaultLang = savedLang || 'es';
-    const defaultCurr = savedCurr || 'EUR';
-    if (!savedLang) localStorage.setItem('mesim_lang', defaultLang);
-    if (!savedCurr) localStorage.setItem('mesim_curr', defaultCurr);
-    return { lang: defaultLang, currency: defaultCurr };
+  let defaultLang = savedLang;
+  if (!defaultLang) {
+    if (isPrimaryEnglish) {
+      defaultLang = 'en';
+    } else if (isPrimarySpanish) {
+      defaultLang = 'es';
+    } else {
+      defaultLang = 'en';
+    }
+    localStorage.setItem('mesim_lang', defaultLang);
   }
 
-  const defaultLang = savedLang || 'en';
-  const defaultCurr = savedCurr || 'USD';
-  if (!savedLang) localStorage.setItem('mesim_lang', defaultLang);
-  if (!savedCurr) localStorage.setItem('mesim_curr', defaultCurr);
+  let defaultCurr = savedCurr;
+  if (!defaultCurr) {
+    if (primaryLang.includes('gb') || primaryLang.includes('uk')) {
+      defaultCurr = 'GBP';
+    } else if (isPrimarySpanish) {
+      defaultCurr = 'EUR';
+    } else if (isPrimaryEnglish) {
+      defaultCurr = 'USD';
+    } else {
+      defaultCurr = 'EUR';
+    }
+    localStorage.setItem('mesim_curr', defaultCurr);
+  }
+
   return { lang: defaultLang, currency: defaultCurr };
 }
 

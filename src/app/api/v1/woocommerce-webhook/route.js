@@ -4,6 +4,7 @@ import { strongesimFetch, resolveStrongeSimPlanId } from '../../../../lib/strong
 import { addDiagnosticLog } from '../../../../lib/logger';
 import { checkOrderProvisioned, markOrderProvisioned } from '../../../../lib/idempotency';
 import { saveOrUpdateOrder } from '../../../../lib/ordersService';
+import { resolveCustomerLanguage } from '../../../../lib/i18n';
 
 // Secure CORS Headers
 const corsHeaders = {
@@ -87,7 +88,15 @@ export async function POST(req) {
     const itemDays = itemObj.days || metaMap.days || metaMap._esim_days || payload.days || 30;
     const customerName = payload.customer_name || payload.customerName || `${payload.billing?.first_name || ''} ${payload.billing?.last_name || ''}`.trim() || 'Traveler';
 
-    addDiagnosticLog('WEBHOOK', 'RECEIVED_ORDER_COMPLETED', { orderId, email, sku, itemIso, itemDataAmount, itemDays, customerName });
+    // Determinar con exactitud el idioma de comunicación con el cliente según el idioma de la orden/web
+    const customerLang = resolveCustomerLanguage({
+      lang: metaMap._order_lang || metaMap._customer_lang || metaMap.lang || metaMap.customer_language || payload.lang || payload.language,
+      country: metaMap._esim_country || payload.billing?.country || itemIso,
+      iso: itemIso,
+      email: email,
+    });
+
+    addDiagnosticLog('WEBHOOK', 'RECEIVED_ORDER_COMPLETED', { orderId, email, sku, itemIso, itemDataAmount, itemDays, customerName, customerLang });
 
     console.log(`Firma HMAC verificada con éxito para el pedido #${orderId} de [${email}]`);
 
@@ -301,10 +310,12 @@ export async function POST(req) {
                 { key: '_esim_qr_code', value: finalQrCodeUrl },
                 { key: '_esim_activation_code', value: finalLpa },
                 { key: '_esim_provisioned', value: 'yes' },
+                { key: '_order_lang', value: customerLang },
+                { key: '_customer_lang', value: customerLang },
               ]
             })
           });
-          console.log(`Updated WooCommerce Order #${orderId} with real ICCID [${finalIccid}] metadata.`);
+          console.log(`Updated WooCommerce Order #${orderId} with real ICCID [${finalIccid}] and lang [${customerLang}] metadata.`);
         }
       } catch (wcMetaErr) {
         console.error(`Error updating WooCommerce Order #${orderId} metadata:`, wcMetaErr);
@@ -317,6 +328,7 @@ export async function POST(req) {
           orderId: String(orderId),
           customerName: customerName,
           customerEmail: email,
+          lang: customerLang,
           title: itemObj.name || `eSIM ${itemIso.toUpperCase()}`,
           plan: itemObj.name || `eSIM ${itemIso.toUpperCase()} ${itemDataAmount}`,
           amount: parseFloat(payload.total || 0),
@@ -356,10 +368,10 @@ export async function POST(req) {
               totalPrice: `${payload.total_amount || '0.00'} ${payload.currency || 'EUR'}`,
               customerName: customerName,
             },
-            lang: 'es',
+            lang: customerLang,
           }),
         });
-        console.log(`Order confirmation email with QR sent to ${email}`);
+        console.log(`Order confirmation email with QR sent to ${email} (lang: ${customerLang})`);
       } catch (emailErr) {
         console.error(`Error sending QR email for Order #${orderId}:`, emailErr);
       }

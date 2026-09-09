@@ -1,10 +1,20 @@
 import { NextResponse } from 'next/server';
 import { sendEmail, generateMagicCodeHtml, generateWelcomeCredentialsHtml, generatePasswordResetHtml, generateOrderConfirmationHtml } from '../../../../lib/email';
+import { resolveCustomerLanguage } from '../../../../lib/i18n';
 
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { email, type, lang = 'es', customCode, customPassword } = body;
+    const { email, type, customCode, customPassword } = body;
+
+    const acceptHeader = request.headers.get('accept-language') || '';
+    const cleanEmail = (email || '').trim().toLowerCase();
+
+    const lang = resolveCustomerLanguage({
+      lang: body.lang,
+      acceptLanguage: acceptHeader,
+      email: cleanEmail,
+    }) || 'es';
 
     if (!email || !email.includes('@')) {
       return NextResponse.json(
@@ -12,8 +22,6 @@ export async function POST(request) {
         { status: 400 }
       );
     }
-
-    const cleanEmail = email.trim().toLowerCase();
 
     if (type === 'magic_code') {
       // Generate a real random 6-digit verification code if customCode is not passed

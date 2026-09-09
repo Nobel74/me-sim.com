@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getTranslation } from '../../lib/i18n';
+import { getTranslation, detectBrowserPreferences } from '../../lib/i18n';
 import { formatCurrency, convertCurrency, getExchangeRates } from '../../lib/currency';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
@@ -33,8 +33,11 @@ function CheckoutFormContent() {
   const t = getTranslation(lang);
 
   const syncPreferences = () => {
-    setLang(localStorage.getItem('mesim_lang') || 'es');
-    setCurrency(localStorage.getItem('mesim_curr') || 'EUR');
+    const prefs = detectBrowserPreferences();
+    const activeLang = localStorage.getItem('mesim_lang') || prefs.lang || 'es';
+    const activeCurr = localStorage.getItem('mesim_curr') || prefs.currency || 'EUR';
+    setLang(activeLang);
+    setCurrency(activeCurr);
   };
 
   useEffect(() => {
@@ -165,6 +168,11 @@ function CheckoutFormContent() {
       }
 
       // 3. Submit Order to WooCommerce & Auto-Register Guest Account AFTER payment is confirmed succeeded
+      // El idioma debe ser fielmente aquel en el que el cliente cargó y navegó la web, con independencia de la divisa de pago
+      const savedLang = typeof window !== 'undefined' ? localStorage.getItem('mesim_lang') : null;
+      const browserLang = (typeof navigator !== 'undefined' && (navigator.language || (navigator.languages && navigator.languages[0]) || ''))?.toLowerCase();
+      let customerLang = lang || savedLang || (browserLang.startsWith('en') ? 'en' : 'es');
+
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -181,7 +189,7 @@ function CheckoutFormContent() {
           iso: cart[0]?.iso || 'es',
           dataAmount: cart[0]?.dataAmount || '10 GB',
           days: cart[0]?.days || 30,
-          lang,
+          lang: customerLang,
         }),
       });
 

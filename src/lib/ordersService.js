@@ -110,16 +110,27 @@ export async function fetchWooCommerceOrder(orderId) {
           }
         }
 
+        const rawLang = getMeta('_order_lang') || getMeta('_customer_lang') || getMeta('lang') || getMeta('customer_language');
+        const orderCurrency = (o.currency || 'EUR').toUpperCase();
+        const billCountry = (o.billing?.country || '').toLowerCase();
+        let resolvedLang = 'es';
+        if (rawLang === 'en' || rawLang === 'es') {
+          resolvedLang = rawLang;
+        } else if (['gb', 'uk', 'us', 'ca', 'au', 'nz', 'ie'].includes(billCountry)) {
+          resolvedLang = 'en';
+        }
+
         const orderObj = {
           orderId: String(o.id),
           customerName: `${o.billing?.first_name || ''} ${o.billing?.last_name || ''}`.trim() || o.billing?.company || 'Cliente ME-SIM',
           customerEmail: o.billing?.email || '',
+          lang: resolvedLang,
           title: line.name || getMeta('_esim_country') || 'eSIM Plan',
           plan: line.name || 'eSIM Data Plan',
           coupon: coupon || '',
           amount: price,
           priceEur: price,
-          currency: (o.currency || 'EUR').toUpperCase(),
+          currency: orderCurrency,
           status: o.status === 'completed' ? 'Completed' : o.status,
           date: o.date_created ? o.date_created.split('T')[0] : new Date().toISOString().split('T')[0],
           createdAt: o.date_created || new Date().toISOString(),

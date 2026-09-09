@@ -22,19 +22,25 @@ export function calculateTaxBreakdown(totalAmount) {
 }
 
 /**
- * Detección automática del idioma de la factura:
- * - Si el pedido está en GBP o USD, o el país es de habla inglesa -> 'en'
- * - Si el usuario seleccionó explícitamente un idioma -> respeta la preferencia
- * - Si la cabecera del navegador contiene 'es' -> 'es', de lo contrario 'en'
+ * Detección del idioma de la factura:
+ * - Prioridad 1: El idioma en el que el cliente cargó la página y realizó el pedido (order.lang).
+ * - Prioridad 2: Si el usuario o endpoint solicita explícitamente un idioma (requestedLang).
+ * - Prioridad 3: País de facturación si no hay idioma previo registrado.
+ * - La moneda NO influye en el idioma: un cliente puede pagar en EUR, USD, GBP, etc.
+ *   y la factura debe emitirse en el idioma en el que navegó y compró.
  */
 export function resolveInvoiceLanguage(order = {}, billing = {}, requestedLang = '') {
+  // 1. Idioma del pedido registrado en la compra
+  if (order?.lang && (order.lang === 'es' || order.lang === 'en')) {
+    return order.lang;
+  }
+
+  // 2. Idioma solicitado explícitamente
   if (requestedLang && (requestedLang === 'es' || requestedLang === 'en')) {
     return requestedLang;
   }
-  const currency = String(order?.currency || '').toUpperCase();
-  if (currency === 'GBP' || currency === 'USD') {
-    return 'en';
-  }
+
+  // 3. País de facturación o residencia
   const country = String(billing?.country || order?.country || '').toLowerCase();
   if (
     country.includes('reino unido') ||
@@ -49,6 +55,7 @@ export function resolveInvoiceLanguage(order = {}, billing = {}, requestedLang =
   ) {
     return 'en';
   }
+
   return 'es';
 }
 

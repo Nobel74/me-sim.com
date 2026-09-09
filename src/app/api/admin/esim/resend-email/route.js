@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAdminSessionFromRequest } from '../../../../../lib/adminAuth';
 import { sendEmail, generateOrderConfirmationHtml } from '../../../../../lib/email';
+import { resolveCustomerLanguage } from '../../../../../lib/i18n';
 
 export async function POST(request) {
   const session = getAdminSessionFromRequest(request);
@@ -12,7 +13,13 @@ export async function POST(request) {
     const body = await request.json();
     const order = body.order || body;
     const targetEmail = (body.targetEmail || order.customerEmail || order.email || order.billing?.email || '').trim().toLowerCase();
-    const lang = body.lang || order.lang || 'es';
+    
+    // Respetar prioritariamente el idioma del cliente registrado en su pedido o navegación
+    const lang = resolveCustomerLanguage({
+      lang: order.lang || body.targetLang || body.customerLang,
+      country: order.country || order.billing?.country,
+      email: targetEmail,
+    }) || (body.lang === 'en' ? 'en' : 'es');
     const isEn = lang === 'en';
 
     if (!targetEmail) {
