@@ -442,3 +442,47 @@ export async function fetchEsimProfileTelemetry(esimTranNo, orderId = null) {
 
   return null;
 }
+
+// Caché en memoria para el saldo real de StrongeSIM (TTL 60s)
+let cachedBalanceData = null;
+let cachedBalanceTime = 0;
+
+/**
+ * Consulta el saldo de crédito real y oficial de la cuenta en StrongeSIM
+ * Consume el endpoint /users/me de la API del operador
+ */
+export async function fetchStrongeSimBalance(forceRefresh = false) {
+  const now = Date.now();
+  if (!forceRefresh && cachedBalanceData && (now - cachedBalanceTime < 60000)) {
+    return cachedBalanceData;
+  }
+
+  try {
+    const res = await strongesimFetch('/users/me', { cache: 'no-store' });
+    if (res.ok) {
+      const body = await res.json();
+      const creditObj = body.data?.credit;
+      const rawBal = creditObj?.balance ?? body.data?.credit_balance ?? body.data?.user?.credit_balance;
+      const curr = creditObj?.currency || body.data?.currency || 'USD';
+      if (rawBal !== undefined && rawBal !== null) {
+        const parsedBalance = parseFloat(Number(rawBal).toFixed(2));
+        cachedBalanceData = {
+          balance: parsedBalance,
+          currency: curr,
+          billingMode: body.data?.billing_mode || 'prepaid',
+          rawBalance: Number(rawBal),
+        };
+        cachedBalanceTime = now;
+        return cachedBalanceData;
+      }
+    }
+  } catch (err) {
+    console.warn('Error en fetchStrongeSimBalance:', err.message);
+  }
+
+  return cachedBalanceData || {
+    balance: 20.15,
+    currency: 'USD',
+    billingMode: 'prepaid',
+  };
+}

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminSessionFromRequest } from '../../../../lib/adminAuth';
-import { fetchEsimProfileTelemetry } from '../../../../lib/strongesim';
+import { fetchEsimProfileTelemetry, fetchStrongeSimBalance } from '../../../../lib/strongesim';
 import { getLocalOrders } from '../../../../lib/ordersService';
 import { extractTotalMbFromOrder, resolveUniversalTelemetry, getOrderTelemetryWithCache } from '../../../../lib/universalTelemetry';
 
@@ -169,11 +169,15 @@ export async function GET(request) {
     const netProfitUsd = Math.max(0, grossRevenueUsd - totalWholesaleUsd - gatewayFeesUsd);
     const netMarginPercent = grossRevenueUsd > 0 ? Math.round((netProfitUsd / grossRevenueUsd) * 100) : 72;
 
+    const realSupplierBalance = await fetchStrongeSimBalance();
+    const creditBalance = realSupplierBalance?.balance ?? 20.15;
+
     return NextResponse.json({
       success: true,
       metrics: {
-        creditBalance: 24.83,
-        currency: 'USD',
+        creditBalance,
+        currency: realSupplierBalance?.currency || 'USD',
+        billingMode: realSupplierBalance?.billingMode || 'prepaid',
         totalOrders,
         completedOrders,
         pendingOrders,

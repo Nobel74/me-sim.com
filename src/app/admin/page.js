@@ -626,7 +626,7 @@ export default function AdminDashboardPage() {
     .reduce((acc, o) => acc + (parseFloat(o.amount) || 0), 0) || 32.68;
   const baseWholesaleUsd = orders.reduce((acc, o) => acc + (parseFloat(o.wholesaleCostUsd) || 2.34), 0) || 9.36;
   const baseGatewayFeesGbp = 2.16; // Stripe UK ~£ 2.16
-  const baseCreditBalanceUsd = metrics?.creditBalance || 24.83;
+  const baseCreditBalanceUsd = metrics?.creditBalance !== undefined && metrics?.creditBalance !== null ? metrics.creditBalance : 20.15;
 
   const convertVal = (amt, fromCurr, toCurr) => {
     if (fromCurr === toCurr) return amt;
@@ -1073,11 +1073,9 @@ export default function AdminDashboardPage() {
                         </div>
                       </div>
 
-                      {/* Customer Info (Single line) */}
-                      <div className="flex items-center gap-1.5 whitespace-nowrap truncate text-xs">
+                      {/* Customer Info (Single line - Name only) */}
+                      <div className="whitespace-nowrap truncate text-xs">
                         <span className={`font-semibold truncate ${isDark ? 'text-white' : 'text-zinc-900'}`}>{order.customerName}</span>
-                        <span className="text-zinc-400 text-xs">·</span>
-                        <span className={`text-[11px] font-mono truncate ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>{order.customerEmail}</span>
                       </div>
 
                       {/* Plan & Usage (Single line header + mini progress bar) */}
@@ -1182,29 +1180,29 @@ export default function AdminDashboardPage() {
                             #{order.orderId}
                           </td>
                           <td className="py-3 px-3 sm:px-4 whitespace-nowrap">
-                            <div className="flex items-center gap-1.5 whitespace-nowrap">
-                              <span className={`font-semibold ${isDark ? 'text-white' : 'text-zinc-900'}`}>{order.customerName}</span>
-                              <span className="text-zinc-400 text-xs">·</span>
-                              <span className={`text-xs font-mono ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>{order.customerEmail}</span>
-                            </div>
+                            <span className={`font-semibold whitespace-nowrap ${isDark ? 'text-white' : 'text-zinc-900'}`}>
+                              {order.customerName}
+                            </span>
                           </td>
-                          <td className="py-3 px-3 sm:px-4 whitespace-nowrap">
-                            <div className="flex items-center gap-3 whitespace-nowrap">
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg font-medium text-xs whitespace-nowrap ${
-                                isDark ? 'bg-zinc-800 text-zinc-300' : 'bg-zinc-100 text-zinc-800 border border-zinc-200'
-                              }`}>
-                                {order.plan || order.title}
-                              </span>
-                              {order.coupon && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-300 border border-purple-500/20 whitespace-nowrap">
-                                  <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 24 24">
-                                    <path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7z"/>
-                                  </svg>
-                                  {isEn ? `Coupon: ${order.coupon}` : `Cupón: ${order.coupon}`}
-                                </span>
-                              )}
+                          <td className="py-2.5 px-3 sm:px-4 whitespace-nowrap">
+                            <div className="flex flex-col gap-1.5 whitespace-nowrap">
                               <div className="flex items-center gap-2 whitespace-nowrap">
-                                <div className={`w-14 h-2 rounded-full overflow-hidden flex-shrink-0 ${isDark ? 'bg-zinc-800' : 'bg-zinc-200'}`}>
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-lg font-medium text-xs whitespace-nowrap ${
+                                  isDark ? 'bg-zinc-800 text-zinc-300' : 'bg-zinc-100 text-zinc-800 border border-zinc-200'
+                                }`}>
+                                  {order.plan || order.title}
+                                </span>
+                                {order.coupon && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-300 border border-purple-500/20 whitespace-nowrap">
+                                    <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 24 24">
+                                      <path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7z"/>
+                                    </svg>
+                                    {isEn ? `Coupon: ${order.coupon}` : `Cupón: ${order.coupon}`}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 whitespace-nowrap">
+                                <div className={`w-24 h-2 rounded-full overflow-hidden flex-shrink-0 ${isDark ? 'bg-zinc-800' : 'bg-zinc-200'}`}>
                                   <div
                                     className="h-full bg-gradient-to-r from-emerald-500 via-yellow-400 to-amber-500 rounded-full transition-all duration-700 ease-out"
                                     style={{ width: `${pct}%` }}
