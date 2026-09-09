@@ -799,30 +799,43 @@ export default function AdminOrderDetailPage() {
                 </span>
               </div>
 
-              {order.coupon && (
-                <div className={`flex justify-between py-1.5 border-b ${isDark ? 'border-zinc-700/20' : 'border-zinc-200'}`}>
-                  <span className={`font-medium ${isDark ? 'text-zinc-400' : 'text-zinc-700'}`}>
-                    {isEn ? 'Discount Coupon:' : 'Cupón de Descuento:'}
-                  </span>
-                  <span className="font-bold text-xs px-2.5 py-0.5 rounded-md bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 font-mono">
-                    {order.coupon} (-100%)
-                  </span>
-                </div>
-              )}
+              {order.coupon ? (
+                <div className={`p-3.5 rounded-2xl border space-y-2 my-1 ${
+                  isDark ? 'bg-zinc-900/80 border-zinc-800' : 'bg-zinc-50 border-zinc-200 shadow-xs'
+                }`}>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className={`font-medium ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                      {isEn ? 'Standard Price:' : 'Precio Estándar:'}
+                    </span>
+                    <span className={`font-mono font-bold ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
+                      {formatPrice(order.originalAmount || (parseFloat(order.amount) + parseFloat(order.discountAmount || 0)), order.currency)}
+                    </span>
+                  </div>
 
-              {order.originalAmount && (
-                <div className={`flex justify-between py-1.5 border-b ${isDark ? 'border-zinc-700/20' : 'border-zinc-200'}`}>
-                  <span className={`font-medium ${isDark ? 'text-zinc-400' : 'text-zinc-700'}`}>
-                    {isEn ? 'Original Price:' : 'Precio Original:'}
-                  </span>
-                  <span className={`font-mono line-through text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-600'}`}>
-                    {formatPrice(order.originalAmount, order.currency)}
-                  </span>
+                  <div className="flex justify-between items-center text-xs">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={`font-medium ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                        {isEn ? 'Discount Coupon:' : 'Cupón de Descuento:'}
+                      </span>
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold tracking-wide uppercase ${
+                        isDark ? 'bg-[#ffec00]/10 text-[#ffec00] border border-[#ffec00]/30' : 'bg-amber-50 text-amber-900 border border-amber-300'
+                      }`}>
+                        <svg className="w-2.5 h-2.5 fill-current flex-shrink-0" viewBox="0 0 24 24">
+                          <path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7z"/>
+                        </svg>
+                        <span>{order.coupon}</span>
+                        <span className="font-mono text-[10px]">(-{order.couponPercent || 25}%)</span>
+                      </span>
+                    </div>
+                    <span className="font-mono font-black text-xs sm:text-sm text-red-500 dark:text-red-400 whitespace-nowrap">
+                      - {formatPrice(order.discountAmount || (parseFloat(order.originalAmount || 0) - parseFloat(order.amount)), order.currency)}
+                    </span>
+                  </div>
                 </div>
-              )}
+              ) : null}
 
               {/* Price Paid by Client in Real Currency */}
-              <div className="pt-3 space-y-2">
+              <div className="pt-2 space-y-2">
                 <div className="flex justify-between items-baseline">
                   <span className={`font-black text-sm ${isDark ? 'text-zinc-200' : 'text-zinc-900'}`}>
                     {isEn ? 'Paid by Customer:' : 'Total Pagado por Cliente:'}
@@ -860,7 +873,17 @@ export default function AdminOrderDetailPage() {
                       {isEn ? 'Estimated Margin:' : 'Margen Bruto Estimado:'}
                     </span>
                     <span className={`font-mono font-black ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>
-                      {order.currency === 'GBP' ? '£ 6.34 (~77%)' : '~48%'}
+                      {(() => {
+                        const wholesaleUsd = parseFloat(order.wholesaleCostUsd || 2.34);
+                        const paidAmt = parseFloat(order.amount || 0);
+                        const curr = order.currency || 'GBP';
+                        const rateToUsd = curr === 'GBP' ? 1.28 : (curr === 'EUR' ? 1.09 : 1.0);
+                        const revenueUsd = paidAmt * rateToUsd;
+                        const profitUsd = Math.max(0, revenueUsd - wholesaleUsd);
+                        const profitInCurr = rateToUsd > 0 ? profitUsd / rateToUsd : profitUsd;
+                        const profitMarginPct = revenueUsd > 0 ? Math.round((profitUsd / revenueUsd) * 100) : 0;
+                        return `${formatPrice(profitInCurr, curr)} (~${profitMarginPct}%)`;
+                      })()}
                     </span>
                   </div>
                 </div>
