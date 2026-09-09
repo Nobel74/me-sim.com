@@ -67,9 +67,21 @@ export async function GET(request) {
 
               const rawQr = lo?.qrCodeUrl || getMeta('_esim_qr_code') || '';
               const rawLpa = lo?.lpaString || getMeta('_esim_activation_code') || getMeta('_esim_lpa') || '';
-              const coupon = (Array.isArray(o.coupon_lines) && o.coupon_lines.length > 0
-                ? o.coupon_lines.map((c) => c.code).filter(Boolean).join(', ')
-                : '') || getMeta('coupon_code') || getMeta('_coupon_code') || getMeta('coupon') || lo?.coupon || '';
+              let coupon = '';
+              if (Array.isArray(o.coupon_lines) && o.coupon_lines.length > 0) {
+                const validCodes = o.coupon_lines
+                  .map((c) => (c && c.code ? String(c.code).trim() : ''))
+                  .filter(Boolean);
+                if (validCodes.length > 0) {
+                  coupon = validCodes.join(', ');
+                }
+              }
+              if (!coupon) {
+                const metaCode = getMeta('_coupon_code') || getMeta('coupon_code');
+                if (metaCode && typeof metaCode === 'string' && metaCode.trim().length > 0) {
+                  coupon = metaCode.trim();
+                }
+              }
 
               ordersList.push({
                 orderId: idStr,

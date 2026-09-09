@@ -368,8 +368,8 @@ export default function AdminOrderDetailPage() {
                 <span className={`block text-[11px] font-bold uppercase tracking-wider mb-1.5 ${isDark ? 'text-zinc-400' : 'text-zinc-700'}`}>
                   {isEn ? 'Customer Name' : 'Nombre del Cliente'}
                 </span>
-                <span className={`font-black text-base block mb-2 ${isDark ? 'text-white' : 'text-zinc-950'}`}>{order.customerName}</span>
-                {order.coupon ? (
+                <span className={`font-black text-base block ${order.coupon && String(order.coupon).trim() ? 'mb-2' : ''} ${isDark ? 'text-white' : 'text-zinc-950'}`}>{order.customerName}</span>
+                {order.coupon && String(order.coupon).trim() ? (
                   <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-bold tracking-wide uppercase ${
                     isDark
                       ? 'bg-[#ffec00]/10 text-[#ffec00] border border-[#ffec00]/30'
@@ -378,15 +378,9 @@ export default function AdminOrderDetailPage() {
                     <svg className="w-3 h-3 fill-current flex-shrink-0" viewBox="0 0 24 24">
                       <path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7z"/>
                     </svg>
-                    <span>{isEn ? `Cupón: ${order.coupon}` : `Cupón: ${order.coupon}`}</span>
+                    <span>{isEn ? `Coupon: ${order.coupon}` : `Cupón: ${order.coupon}`}</span>
                   </span>
-                ) : (
-                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium ${
-                    isDark ? 'bg-zinc-800/40 text-zinc-500 border border-zinc-800' : 'bg-zinc-100 text-zinc-500 border border-zinc-200'
-                  }`}>
-                    <span>{isEn ? 'No coupon' : 'Sin cupón'}</span>
-                  </span>
-                )}
+                ) : null}
               </div>
 
               <div className={`p-4 rounded-2xl border ${isDark ? 'bg-zinc-950/50 border-zinc-800/80' : 'bg-zinc-50 border-zinc-200 shadow-xs'}`}>

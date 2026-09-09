@@ -1081,7 +1081,7 @@ export default function AdminDashboardPage() {
                       {/* Customer Info & WooCommerce Coupon Badge */}
                       <div className="flex flex-col items-start gap-1">
                         <span className={`font-semibold text-xs truncate ${isDark ? 'text-white' : 'text-zinc-900'}`}>{order.customerName}</span>
-                        {order.coupon ? (
+                        {order.coupon && String(order.coupon).trim() ? (
                           <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wide uppercase ${
                             isDark
                               ? 'bg-[#ffec00]/10 text-[#ffec00] border border-[#ffec00]/30'
@@ -1090,15 +1090,9 @@ export default function AdminDashboardPage() {
                             <svg className="w-2.5 h-2.5 fill-current flex-shrink-0" viewBox="0 0 24 24">
                               <path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7z"/>
                             </svg>
-                            <span>{isEn ? `Cupón: ${order.coupon}` : `Cupón: ${order.coupon}`}</span>
+                            <span>{isEn ? `Coupon: ${order.coupon}` : `Cupón: ${order.coupon}`}</span>
                           </span>
-                        ) : (
-                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                            isDark ? 'bg-zinc-800/40 text-zinc-500 border border-zinc-800' : 'bg-zinc-100 text-zinc-500 border border-zinc-200'
-                          }`}>
-                            <span>{isEn ? 'No coupon' : 'Sin cupón'}</span>
-                          </span>
-                        )}
+                        ) : null}
                       </div>
 
                       {/* Plan & Usage (Single line header + mini progress bar) */}
@@ -1211,7 +1205,7 @@ export default function AdminDashboardPage() {
                               <span className={`font-semibold whitespace-nowrap ${isDark ? 'text-white' : 'text-zinc-900'}`}>
                                 {order.customerName}
                               </span>
-                              {order.coupon ? (
+                              {order.coupon && String(order.coupon).trim() ? (
                                 <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wide uppercase ${
                                   isDark
                                     ? 'bg-[#ffec00]/10 text-[#ffec00] border border-[#ffec00]/30'
@@ -1220,15 +1214,9 @@ export default function AdminDashboardPage() {
                                   <svg className="w-2.5 h-2.5 fill-current flex-shrink-0" viewBox="0 0 24 24">
                                     <path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7z"/>
                                   </svg>
-                                  <span>{isEn ? `Cupón: ${order.coupon}` : `Cupón: ${order.coupon}`}</span>
+                                  <span>{isEn ? `Coupon: ${order.coupon}` : `Cupón: ${order.coupon}`}</span>
                                 </span>
-                              ) : (
-                                <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                                  isDark ? 'bg-zinc-800/40 text-zinc-500 border border-zinc-800' : 'bg-zinc-100 text-zinc-500 border border-zinc-200'
-                                }`}>
-                                  <span>{isEn ? 'No coupon' : 'Sin cupón'}</span>
-                                </span>
-                              )}
+                              ) : null}
                             </div>
                           </td>
                           <td className="py-2.5 px-3 sm:px-4 whitespace-nowrap">

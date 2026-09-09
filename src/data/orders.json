@@ -41,8 +41,7 @@
       "expiredTime": "2027-03-07T17:15:25+0000",
       "source": "strongesim_provisioned"
     },
-    "strongesimOrderId": "e48bd025-4dd9-4fc1-b573-b99b503bca20",
-    "coupon": "go2habibiland"
+    "strongesimOrderId": "e48bd025-4dd9-4fc1-b573-b99b503bca20"
   },
   {
     "orderId": "85",
@@ -86,8 +85,7 @@
       "expiredTime": "2027-03-07T19:43:07+0000",
       "source": "strongesim_provisioned"
     },
-    "strongesimOrderId": "9667ddf1-c3fc-4e7b-b904-0b23de72193f",
-    "coupon": "go2habibiland"
+    "strongesimOrderId": "9667ddf1-c3fc-4e7b-b904-0b23de72193f"
   },
   {
     "orderId": "81",
@@ -134,8 +132,7 @@
       "expiredTime": "2027-02-21T22:07:31+0000",
       "source": "strongesim_provisioned"
     },
-    "updatedAt": "2026-09-09T08:49:52.249Z",
-    "coupon": "go2habibiland"
+    "updatedAt": "2026-09-09T08:49:52.249Z"
   },
   {
     "orderId": "80",
@@ -182,8 +179,7 @@
       "expiredTime": "2026-09-04T06:04:06+0000",
       "source": "strongesim_live_operator"
     },
-    "updatedAt": "2026-09-09T08:49:52.325Z",
-    "coupon": "go2habibiland"
+    "updatedAt": "2026-09-09T08:49:52.325Z"
   },
   {
     "orderId": "79",
@@ -230,8 +226,7 @@
       "expiredTime": "2026-08-06T06:06:08+0000",
       "source": "strongesim_live_operator"
     },
-    "updatedAt": "2026-09-09T08:49:52.395Z",
-    "coupon": "go2habibiland"
+    "updatedAt": "2026-09-09T08:49:52.395Z"
   },
   {
     "orderId": "78",
@@ -279,8 +274,7 @@
       "expiredTime": "2026-08-26T14:00:00+0000",
       "source": "strongesim_live_operator"
     },
-    "updatedAt": "2026-09-09T08:49:52.468Z",
-    "coupon": "clem and paco"
+    "updatedAt": "2026-09-09T08:49:52.468Z"
   },
   {
     "orderId": "77",
@@ -329,8 +323,7 @@
       "source": "strongesim_live_operator"
     },
     "updatedAt": "2026-09-09T08:49:52.545Z",
-    "realIccid": "8910300000063677656",
-    "coupon": "clem and paco"
+    "realIccid": "8910300000063677656"
   },
   {
     "orderId": "76",
@@ -378,8 +371,7 @@
       "expiredTime": "2026-09-01T12:49:23+0000",
       "source": "strongesim_provisioned"
     },
-    "updatedAt": "2026-09-09T08:49:52.615Z",
-    "coupon": "clem and paco"
+    "updatedAt": "2026-09-09T08:49:52.615Z"
   },
   {
     "orderId": "75",
@@ -428,7 +420,6 @@
       "source": "strongesim_provisioned"
     },
     "updatedAt": "2026-09-09T08:49:52.701Z",
-    "realIccid": "8910300000037878503",
-    "coupon": "clem and paco"
+    "realIccid": "8910300000037878503"
   }
 ]
