@@ -67,6 +67,9 @@ export async function GET(request) {
 
               const rawQr = lo?.qrCodeUrl || getMeta('_esim_qr_code') || '';
               const rawLpa = lo?.lpaString || getMeta('_esim_activation_code') || getMeta('_esim_lpa') || '';
+              const coupon = (Array.isArray(o.coupon_lines) && o.coupon_lines.length > 0
+                ? o.coupon_lines.map((c) => c.code).filter(Boolean).join(', ')
+                : '') || getMeta('coupon_code') || getMeta('_coupon_code') || getMeta('coupon') || lo?.coupon || '';
 
               ordersList.push({
                 orderId: idStr,
@@ -74,6 +77,7 @@ export async function GET(request) {
                 customerEmail: lo?.customerEmail || o.billing?.email || '',
                 title,
                 plan,
+                coupon: coupon || '',
                 amount: price || (lo?.amount ? parseFloat(lo.amount) : 0),
                 currency: o.currency || lo?.currency || 'EUR',
                 status,
@@ -108,6 +112,7 @@ export async function GET(request) {
           ordersList.push({
             ...lo,
             orderId: idStr,
+            coupon: lo.coupon || '',
             amount: parseFloat(lo.amount || lo.priceEur || 0),
             status: lo.status || 'Completed',
             telemetry: lo.telemetry || null,

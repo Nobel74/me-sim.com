@@ -9,9 +9,9 @@ export const dynamic = 'force-dynamic';
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { planId, customerEmail, customerName, paymentIntentId, price, currency, title, country, iso, dataAmount, days, lang = 'es' } = body;
+    const { planId, customerEmail, customerName, paymentIntentId, price, currency, title, country, iso, dataAmount, days, lang = 'es', couponCode } = body;
 
-    addDiagnosticLog('POST_ORDERS', 'ENTRY', { planId, customerEmail, customerName, price, country, iso, paymentIntentId });
+    addDiagnosticLog('POST_ORDERS', 'ENTRY', { planId, customerEmail, customerName, price, country, iso, paymentIntentId, couponCode });
 
     // =========================================================================
     // 0. IDEMPOTENCIA: Evitar compras duplicadas por doble clic o reintentos
@@ -255,6 +255,7 @@ export async function POST(request) {
             transaction_id: paymentIntentId || '',
             customer_id: customerId,
             currency: currency || 'EUR',
+            coupon_lines: couponCode ? [{ code: couponCode }] : [],
             billing: {
               first_name: firstName,
               last_name: lastName,
@@ -282,6 +283,8 @@ export async function POST(request) {
             ],
             meta_data: [
               { key: '_stripe_intent_id', value: paymentIntentId || '' },
+              { key: '_coupon_code', value: couponCode || '' },
+              { key: 'coupon_code', value: couponCode || '' },
               { key: '_esim_iso', value: iso || 'es' },
               { key: '_esim_country', value: country || 'España' },
               { key: '_esim_data_amount', value: dataAmount || '10 GB' },
@@ -328,6 +331,36 @@ export async function POST(request) {
       }
     } catch (wcErr) {
       console.error('Error connecting to WooCommerce REST API:', wcErr);
+    }
+
+    // Guardar orden localmente para disponibilidad inmediata
+    try {
+      saveOrUpdateOrder({
+        orderId: wcOrderId,
+        customerName: customerName,
+        customerEmail: customerEmail,
+        title: title || `eSIM Plan (${planId})`,
+        plan: title || `eSIM Plan (${planId})`,
+        amount: parseFloat(price || 0),
+        priceEur: parseFloat(price || 0),
+        currency: currency || 'EUR',
+        status: 'Completed',
+        date: new Date().toISOString().split('T')[0],
+        createdAt: new Date().toISOString(),
+        paymentMethod: 'Stripe',
+        esimTranNo: finalIccid,
+        realIccid: finalIccid,
+        qrCodeUrl: finalQrCodeUrl,
+        lpaString: finalLpa,
+        country: country || 'España',
+        coupon: couponCode || '',
+        billing: {
+          firstName: (customerName || '').split(' ')[0] || '',
+          lastName: (customerName || '').split(' ').slice(1).join(' ') || '',
+        },
+      });
+    } catch (localSaveErr) {
+      console.warn('Could not save local order in POST /api/orders:', localSaveErr.message);
     }
 
     // =========================================================================

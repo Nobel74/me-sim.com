@@ -310,6 +310,34 @@ export async function POST(req) {
         console.error(`Error updating WooCommerce Order #${orderId} metadata:`, wcMetaErr);
       }
 
+      // Persistir orden localmente con su cupón de WooCommerce
+      try {
+        const rawCoupon = payload.coupon_lines?.[0]?.code || metaMap.coupon_code || metaMap._coupon_code || '';
+        saveOrUpdateOrder({
+          orderId: String(orderId),
+          customerName: customerName,
+          customerEmail: email,
+          title: itemObj.name || `eSIM ${itemIso.toUpperCase()}`,
+          plan: itemObj.name || `eSIM ${itemIso.toUpperCase()} ${itemDataAmount}`,
+          amount: parseFloat(payload.total || 0),
+          priceEur: parseFloat(payload.total || 0),
+          currency: payload.currency || 'EUR',
+          status: 'Completed',
+          date: new Date().toISOString().split('T')[0],
+          createdAt: new Date().toISOString(),
+          paymentMethod: payload.payment_method_title || 'WooCommerce',
+          esimTranNo: finalIccid,
+          realIccid: finalIccid,
+          qrCodeUrl: finalQrCodeUrl,
+          lpaString: finalLpa,
+          country: metaMap._esim_country || itemIso,
+          coupon: rawCoupon,
+          billing: payload.billing || {},
+        });
+      } catch (saveErr) {
+        console.warn('Error saving local order in webhook:', saveErr.message);
+      }
+
       // Send order confirmation email with real QR code
       try {
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://me-sim.com';

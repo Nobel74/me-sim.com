@@ -94,6 +94,9 @@ export async function fetchWooCommerceOrder(orderId) {
         const line = o.line_items?.[0] || {};
         const price = parseFloat(o.total || line.total || '0') || 0;
         const esimTranNo = getMeta('_esim_transaction_no') || getMeta('_esim_iccid') || '';
+        const coupon = (Array.isArray(o.coupon_lines) && o.coupon_lines.length > 0
+          ? o.coupon_lines.map((c) => c.code).filter(Boolean).join(', ')
+          : '') || getMeta('coupon_code') || getMeta('_coupon_code') || getMeta('coupon') || '';
 
         const orderObj = {
           orderId: String(o.id),
@@ -101,6 +104,7 @@ export async function fetchWooCommerceOrder(orderId) {
           customerEmail: o.billing?.email || '',
           title: line.name || getMeta('_esim_country') || 'eSIM Plan',
           plan: line.name || 'eSIM Data Plan',
+          coupon: coupon || '',
           amount: price,
           priceEur: price,
           currency: (o.currency || 'EUR').toUpperCase(),
