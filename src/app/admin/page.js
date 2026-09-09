@@ -1121,11 +1121,18 @@ export default function AdminDashboardPage() {
 
                       {/* Footer: Amount & Action Button (Single line) */}
                       <div className="pt-2 border-t border-dashed border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-2 whitespace-nowrap">
-                        <div className="flex items-center gap-1.5 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
                           <span className="text-[10px] uppercase font-bold text-zinc-400">{isEn ? 'Amount:' : 'Importe:'}</span>
-                          <span className={`font-mono font-bold text-sm ${isDark ? 'text-white' : 'text-zinc-900'}`}>
-                            {formatCurrency(parseFloat(order.amount || 0).toFixed(2), order.currency || 'EUR')}
-                          </span>
+                          <div className="flex flex-col items-start leading-tight">
+                            <span className={`font-mono font-bold text-sm ${isDark ? 'text-white' : 'text-zinc-900'}`}>
+                              {formatCurrency(parseFloat(order.amount || 0).toFixed(2), order.currency || 'EUR')}
+                            </span>
+                            {order.originalAmount && parseFloat(order.originalAmount) > parseFloat(order.amount || 0) && (
+                              <span className="text-[10px] line-through text-zinc-400 dark:text-zinc-500 font-normal">
+                                {formatCurrency(parseFloat(order.originalAmount).toFixed(2), order.currency || 'EUR')}
+                              </span>
+                            )}
+                          </div>
                         </div>
 
                         <button
@@ -1270,11 +1277,11 @@ export default function AdminDashboardPage() {
                             <span className="whitespace-nowrap">{order.date}</span>
                           </td>
                           <td className={`py-3 px-3 sm:px-4 font-bold font-mono whitespace-nowrap ${isDark ? 'text-white' : 'text-zinc-900'}`}>
-                            <div className="flex items-center gap-1.5 whitespace-nowrap">
+                            <div className="flex flex-col items-start leading-tight">
                               <span>{formatCurrency(parseFloat(order.amount || 0).toFixed(2), order.currency || 'EUR')}</span>
                               {order.originalAmount && parseFloat(order.originalAmount) > parseFloat(order.amount || 0) && (
-                                <span className="text-[11px] line-through text-zinc-400 font-normal">
-                                  ({formatCurrency(parseFloat(order.originalAmount).toFixed(2), order.currency || 'EUR')})
+                                <span className="text-[10px] line-through text-zinc-400 dark:text-zinc-500 font-normal mt-0.5">
+                                  {formatCurrency(parseFloat(order.originalAmount).toFixed(2), order.currency || 'EUR')}
                                 </span>
                               )}
                             </div>
