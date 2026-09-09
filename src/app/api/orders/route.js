@@ -658,6 +658,30 @@ export async function GET(request) {
       console.warn('[GET /api/orders] Error merging local orders:', localErr.message);
     }
 
+    // Inyectar el perfil de facturación persistente real del cliente si existe
+    try {
+      const path = await import('path');
+      const fs = await import('fs');
+      const billingProfilesFile = path.join(process.cwd(), 'src', 'data', 'billing-profiles.json');
+      if (fs.existsSync(billingProfilesFile)) {
+        const profiles = JSON.parse(fs.readFileSync(billingProfilesFile, 'utf-8'));
+        const userProfile = profiles[email.toLowerCase().trim()];
+        if (userProfile) {
+          for (const ord of orders) {
+            ord.billing = {
+              ...(ord.billing || {}),
+              ...userProfile,
+            };
+            if (userProfile.firstName || userProfile.lastName) {
+              ord.customerName = `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim();
+            }
+          }
+        }
+      }
+    } catch (profErr) {
+      console.warn('[GET /api/orders] Error applying saved billing profile:', profErr.message);
+    }
+
     console.log(`[GET /api/orders] Returning ${orders.length} mapped orders`);
     return NextResponse.json({ success: true, orders });
   } catch (error) {

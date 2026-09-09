@@ -40,34 +40,57 @@ export async function GET(request) {
       );
     }
 
-    // Intentar completar con perfil de facturación guardado si faltan datos
-    let billing = { ...(order.billing || {}) };
-    const customerEmail = order.customerEmail || (order.billing && order.billing.email);
-    if (customerEmail) {
-      try {
-        const billingProfilesFile = path.join(process.cwd(), 'src', 'data', 'billing-profiles.json');
-        if (fs.existsSync(billingProfilesFile)) {
-          const profiles = JSON.parse(fs.readFileSync(billingProfilesFile, 'utf-8'));
-          const userProfile = profiles[customerEmail.toLowerCase()];
-          if (userProfile) {
-            billing = {
-              ...userProfile,
-              ...billing,
-              firstName: billing.firstName || userProfile.firstName,
-              lastName: billing.lastName || userProfile.lastName,
-              company: billing.company || userProfile.company,
-              vatId: billing.vatId || userProfile.vatId,
-              address: billing.address || userProfile.address,
-              city: billing.city || userProfile.city,
-              postcode: billing.postcode || userProfile.postcode,
-              country: billing.country || userProfile.country,
-            };
-          }
+    // 1. Extraer datos fiscales en tiempo real desde la petición (si el cliente los introduce en el formulario activo)
+    const qFirst = searchParams.get('firstName');
+    const qLast = searchParams.get('lastName');
+    const qComp = searchParams.get('company');
+    const qVat = searchParams.get('vatId');
+    const qAddr = searchParams.get('address');
+    const qCity = searchParams.get('city');
+    const qPost = searchParams.get('postcode');
+    const qCountry = searchParams.get('country');
+    const qPhone = searchParams.get('phone');
+
+    // 2. Extraer usuario autenticado de la sesión si existe
+    let sessionEmail = '';
+    try {
+      const sessionCookie = request.cookies.get('mesim_session');
+      if (sessionCookie?.value) {
+        const sessionUser = JSON.parse(Buffer.from(sessionCookie.value, 'base64').toString('utf-8'));
+        if (sessionUser?.email) {
+          sessionEmail = sessionUser.email.toLowerCase().trim();
         }
-      } catch (err) {
-        console.warn('Could not read billing profile:', err.message);
       }
+    } catch (e) {
+      console.warn('Could not read session cookie in generate route:', e.message);
     }
+
+    // 3. Cargar perfil guardado del usuario (por sesión o por email del pedido)
+    const customerEmail = (order.customerEmail || order.billing?.email || '').toLowerCase().trim();
+    let userProfile = {};
+    try {
+      const billingProfilesFile = path.join(process.cwd(), 'src', 'data', 'billing-profiles.json');
+      if (fs.existsSync(billingProfilesFile)) {
+        const profiles = JSON.parse(fs.readFileSync(billingProfilesFile, 'utf-8'));
+        userProfile = (sessionEmail && profiles[sessionEmail]) || (customerEmail && profiles[customerEmail]) || {};
+      }
+    } catch (err) {
+      console.warn('Could not read billing profile:', err.message);
+    }
+
+    // 4. Precedencia: Datos en tiempo real del formulario > Perfil persistente del cliente > Datos del pedido
+    const orderBilling = order.billing || {};
+    const billing = {
+      firstName: (qFirst !== null && qFirst.trim() !== '') ? qFirst.trim() : (userProfile.firstName || orderBilling.firstName || ''),
+      lastName: (qLast !== null && qLast.trim() !== '') ? qLast.trim() : (userProfile.lastName || orderBilling.lastName || ''),
+      company: (qComp !== null) ? qComp.trim() : (userProfile.company !== undefined ? userProfile.company : (orderBilling.company || '')),
+      vatId: (qVat !== null) ? qVat.trim() : (userProfile.vatId !== undefined ? userProfile.vatId : (orderBilling.vatId || '')),
+      address: (qAddr !== null && qAddr.trim() !== '') ? qAddr.trim() : (userProfile.address || orderBilling.address || ''),
+      city: (qCity !== null && qCity.trim() !== '') ? qCity.trim() : (userProfile.city || orderBilling.city || ''),
+      postcode: (qPost !== null && qPost.trim() !== '') ? qPost.trim() : (userProfile.postcode || orderBilling.postcode || ''),
+      country: (qCountry !== null && qCountry.trim() !== '') ? qCountry.trim() : (userProfile.country || orderBilling.country || ''),
+      phone: (qPhone !== null) ? qPhone.trim() : (userProfile.phone || orderBilling.phone || ''),
+    };
 
     const invoiceLang = resolveInvoiceLanguage(order, billing, rawLang);
     const company = await getCompanyConfigAsync();
@@ -201,31 +224,31 @@ export async function POST(request) {
       );
     }
 
-    // Perfil fiscal: combinar pedido, datos enviados y perfil guardado
-    let finalBilling = { ...(finalOrder.billing || {}), ...(clientBilling || {}) };
+    // Perfil fiscal: máxima prioridad a datos enviados en tiempo real (clientBilling) > perfil guardado (userProfile) > pedido original
+    let userProfile = {};
     try {
       const billingProfilesFile = path.join(process.cwd(), 'src', 'data', 'billing-profiles.json');
       if (fs.existsSync(billingProfilesFile)) {
         const profiles = JSON.parse(fs.readFileSync(billingProfilesFile, 'utf-8'));
-        const userProfile = profiles[userSession.email.toLowerCase()];
-        if (userProfile) {
-          finalBilling = {
-            ...userProfile,
-            ...finalBilling,
-            firstName: finalBilling.firstName || userProfile.firstName,
-            lastName: finalBilling.lastName || userProfile.lastName,
-            company: finalBilling.company || userProfile.company,
-            vatId: finalBilling.vatId || userProfile.vatId,
-            address: finalBilling.address || userProfile.address,
-            city: finalBilling.city || userProfile.city,
-            postcode: finalBilling.postcode || userProfile.postcode,
-            country: finalBilling.country || userProfile.country,
-          };
-        }
+        userProfile = profiles[userSession.email.toLowerCase()] || {};
       }
     } catch (err) {
       console.warn('Could not read user billing profile:', err.message);
     }
+
+    const orderBilling = finalOrder.billing || {};
+    const cb = clientBilling || {};
+    const finalBilling = {
+      firstName: (cb.firstName !== undefined && cb.firstName.trim() !== '') ? cb.firstName.trim() : (userProfile.firstName || orderBilling.firstName || ''),
+      lastName: (cb.lastName !== undefined && cb.lastName.trim() !== '') ? cb.lastName.trim() : (userProfile.lastName || orderBilling.lastName || ''),
+      company: cb.company !== undefined ? cb.company.trim() : (userProfile.company !== undefined ? userProfile.company : (orderBilling.company || '')),
+      vatId: cb.vatId !== undefined ? cb.vatId.trim() : (userProfile.vatId !== undefined ? userProfile.vatId : (orderBilling.vatId || '')),
+      address: (cb.address !== undefined && cb.address.trim() !== '') ? cb.address.trim() : (userProfile.address || orderBilling.address || ''),
+      city: (cb.city !== undefined && cb.city.trim() !== '') ? cb.city.trim() : (userProfile.city || orderBilling.city || ''),
+      postcode: (cb.postcode !== undefined && cb.postcode.trim() !== '') ? cb.postcode.trim() : (userProfile.postcode || orderBilling.postcode || ''),
+      country: (cb.country !== undefined && cb.country.trim() !== '') ? cb.country.trim() : (userProfile.country || orderBilling.country || ''),
+      phone: cb.phone !== undefined ? cb.phone.trim() : (userProfile.phone || orderBilling.phone || ''),
+    };
 
     const acceptLanguage = request.headers.get('accept-language') || '';
     const invoiceLang = resolveInvoiceLanguage(

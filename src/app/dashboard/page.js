@@ -1038,6 +1038,23 @@ export default function DashboardPage() {
                           const cleanDate = ord.date ? String(ord.date).split('T')[0] : (ord.createdAt ? ord.createdAt.split('T')[0] : new Date().toISOString().split('T')[0]);
                           const invoiceFilename = `${invoiceNumber} - ${safeClientName} - ${cleanDate}.pdf`;
 
+                          // Construcción de parámetros en tiempo real desde el formulario activo del cliente
+                          const invoiceParams = new URLSearchParams({
+                            orderId: String(orderNumber),
+                            lang: lang,
+                            view: 'inline',
+                          });
+                          if (billing.firstName) invoiceParams.set('firstName', billing.firstName.trim());
+                          if (billing.lastName) invoiceParams.set('lastName', billing.lastName.trim());
+                          if (billing.company) invoiceParams.set('company', billing.company.trim());
+                          if (billing.vatId) invoiceParams.set('vatId', billing.vatId.trim());
+                          if (billing.address) invoiceParams.set('address', billing.address.trim());
+                          if (billing.city) invoiceParams.set('city', billing.city.trim());
+                          if (billing.postcode) invoiceParams.set('postcode', billing.postcode.trim());
+                          if (billing.country) invoiceParams.set('country', billing.country.trim());
+
+                          const invoiceUrl = `/api/invoices/${encodeURIComponent(invoiceFilename)}?${invoiceParams.toString()}`;
+
                           return (
                             <tr key={ord.orderId} className="hover:bg-zinc-50/80 transition-colors">
                               {/* 1. Pedido */}
@@ -1060,7 +1077,7 @@ export default function DashboardPage() {
                               {/* 4. Botón para descargar esa factura */}
                               <td className="py-4 px-4 sm:px-6 text-right whitespace-nowrap">
                                 <a
-                                  href={`/api/invoices/${encodeURIComponent(invoiceFilename)}?orderId=${encodeURIComponent(orderNumber)}&lang=${lang}&view=inline`}
+                                  href={invoiceUrl}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="inline-flex items-center gap-1.5 bg-[#ffec00] hover:bg-yellow-300 text-black text-xs font-bold font-condensed tracking-wider uppercase px-4 py-2 rounded-xl transition-all shadow-xs border border-black/10 hover:shadow-sm"
