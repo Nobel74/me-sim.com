@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAdminSessionFromRequest } from '../../../../../lib/adminAuth';
 import { sendEmail, generateOrderConfirmationHtml } from '../../../../../lib/email';
 import { resolveCustomerLanguage } from '../../../../../lib/i18n';
+import { getOrderById } from '../../../../../lib/ordersService';
 
 export async function POST(request) {
   const session = getAdminSessionFromRequest(request);
@@ -14,10 +15,22 @@ export async function POST(request) {
     const order = body.order || body;
     const targetEmail = (body.targetEmail || order.customerEmail || order.email || order.billing?.email || '').trim().toLowerCase();
     
+    // Obtener datos fiscales completos del pedido desde el servicio persistente para reflejar cupones y desglose real
+    const orderId = order.orderId || order.id || body.orderId;
+    let fullOrder = null;
+    if (orderId) {
+      try {
+        fullOrder = await getOrderById(orderId);
+      } catch (err) {
+        console.warn('Could not fetch full order in resend-email:', err.message);
+      }
+    }
+    const resolvedOrder = { ...(fullOrder || {}), ...order };
+
     // Respetar prioritariamente el idioma del cliente registrado en su pedido o navegación
     const lang = resolveCustomerLanguage({
-      lang: order.lang || body.targetLang || body.customerLang,
-      country: order.country || order.billing?.country,
+      lang: resolvedOrder.lang || body.targetLang || body.customerLang,
+      country: resolvedOrder.country || resolvedOrder.billing?.country,
       email: targetEmail,
     }) || (body.lang === 'en' ? 'en' : 'es');
     const isEn = lang === 'en';
@@ -29,15 +42,24 @@ export async function POST(request) {
       );
     }
 
-    const finalTran = order.esimTranNo || order.iccid || '';
-    const finalLpa = order.lpaString || order.lpaCode || (finalTran ? `LPA:1$rsp.strongesim.com$${finalTran}` : '');
-    const finalQr = order.qrCodeUrl || (finalLpa ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(finalLpa)}` : '');
+    const finalTran = resolvedOrder.esimTranNo || resolvedOrder.iccid || '';
+    const finalLpa = resolvedOrder.lpaString || resolvedOrder.lpaCode || (finalTran ? `LPA:1$rsp.strongesim.com$${finalTran}` : '');
+    const finalQr = resolvedOrder.qrCodeUrl || (finalLpa ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(finalLpa)}` : '');
 
     const orderData = {
-      orderId: order.orderId || order.id || 'ORD-SUPPORT',
-      customerName: order.customerName || (order.billing ? `${order.billing.first_name || ''} ${order.billing.last_name || ''}`.trim() : '') || 'Cliente ME-SIM',
-      title: order.title || order.plan || 'Plan eSIM',
-      totalPrice: order.totalPrice || (order.amount ? `${order.amount} ${order.currency || 'EUR'}` : '0.00 EUR'),
+      orderId: resolvedOrder.orderId || orderId || 'ORD-SUPPORT',
+      customerName: resolvedOrder.customerName || (resolvedOrder.billing ? `${resolvedOrder.billing.first_name || ''} ${resolvedOrder.billing.last_name || ''}`.trim() : '') || 'Cliente ME-SIM',
+      title: resolvedOrder.title || resolvedOrder.plan || 'Plan eSIM',
+      totalPrice: resolvedOrder.totalPrice || (resolvedOrder.amount ? `${resolvedOrder.amount} ${resolvedOrder.currency || 'EUR'}` : '0.00 EUR'),
+      amount: parseFloat(resolvedOrder.amount || resolvedOrder.priceEur || 0),
+      price: parseFloat(resolvedOrder.amount || resolvedOrder.priceEur || 0),
+      currency: (resolvedOrder.currency || 'EUR').toUpperCase(),
+      coupon: resolvedOrder.coupon || '',
+      couponCode: resolvedOrder.coupon || '',
+      couponPercent: parseFloat(resolvedOrder.couponPercent || 0),
+      originalAmount: parseFloat(resolvedOrder.originalAmount || resolvedOrder.amount || 0),
+      originalPrice: parseFloat(resolvedOrder.originalAmount || resolvedOrder.amount || 0),
+      discountAmount: parseFloat(resolvedOrder.discountAmount || 0),
       esimTranNo: finalTran,
       qrCodeUrl: finalQr,
       lpaCode: finalLpa,

@@ -1,4 +1,5 @@
 import { addDiagnosticLog } from './logger.js';
+import { calculateInvoiceFinancials } from './invoices.js';
 
 export async function sendEmail({ to, subject, htmlText, type = 'magic_code', data = {} }) {
   console.log(`[EMAIL SERVICE] Preparing ${type} email for: ${to}`);
@@ -122,19 +123,22 @@ export function generateMagicCodeHtml(code, lang = 'es') {
 export function generateOrderConfirmationHtml(orderData, lang = 'es') {
   const isEn = lang === 'en';
   
-  // Extract pure number value from totalPrice to calculate taxes
-  const rawPriceStr = orderData.totalPrice ? String(orderData.totalPrice).replace(/[^0-9.,]/g, '').replace(',', '.') : '0';
-  const total = parseFloat(rawPriceStr) || 0;
+  // Cálculo fiscal unificado con el motor de facturas (Base Imponible, IVA 21% y Descuentos)
+  const fin = calculateInvoiceFinancials(orderData);
   
-  // Tax breakdown (21% VAT)
-  const basePrice = total / 1.21;
-  const taxAmount = total - basePrice;
-  const currencySymbol = orderData.totalPrice ? String(orderData.totalPrice).replace(/[0-9.,\s]/g, '') || '€' : '€';
+  const rawCurrency = orderData.currency || (orderData.totalPrice ? String(orderData.totalPrice).replace(/[0-9.,\s]/g, '') : 'EUR') || 'EUR';
+  const currency = rawCurrency.toUpperCase().trim() || 'EUR';
 
-  // Format nicely
-  const baseFormatted = `${basePrice.toFixed(2)} ${currencySymbol}`;
-  const taxFormatted = `${taxAmount.toFixed(2)} ${currencySymbol}`;
-  const totalFormatted = orderData.totalPrice;
+  const formatEmailAmount = (numStr, isNegative = false) => {
+    const val = parseFloat(numStr || 0).toFixed(2);
+    return `${isNegative ? '- ' : ''}${val} ${currency}`;
+  };
+
+  const netBaseFormatted = formatEmailAmount(fin.netBase);
+  const netVatFormatted = formatEmailAmount(fin.netVat);
+  const totalPaidFormatted = formatEmailAmount(fin.totalPaid);
+  const originalTotalFormatted = formatEmailAmount(fin.originalTotal);
+  const discountTotalFormatted = formatEmailAmount(fin.discountTotal, true);
 
   // Format order date & time
   const orderDateString = new Date().toLocaleString(isEn ? 'en-US' : 'es-ES', { 
@@ -179,27 +183,73 @@ export function generateOrderConfirmationHtml(orderData, lang = 'es') {
               </tr>
             </thead>
             <tbody>
-              <tr style="border-bottom: 1px solid #e4e4e7; color: #18181b;">
+              ${fin.hasDiscount ? `
+              <!-- Fila del producto con precio original web -->
+              <tr style="border-bottom: 1px solid #f4f4f5; color: #18181b;">
                 <td style="padding: 14px 0;">
                   <strong style="display: block; font-size: 15px;">${orderData.title}</strong>
-                  <span style="font-size: 12px; color: #71717a;">ICCID: ${orderData.esimTranNo}</span>
+                  ${orderData.esimTranNo ? `<span style="font-size: 12px; color: #71717a;">ICCID: ${orderData.esimTranNo}</span>` : ''}
                 </td>
-                <td style="padding: 14px 0; text-align: right; font-weight: 600; font-size: 15px;">
-                  ${totalFormatted}
+                <td style="padding: 14px 0; text-align: right; font-weight: 600; font-size: 15px; vertical-align: top;">
+                  ${originalTotalFormatted}
                 </td>
               </tr>
+              <!-- Fila de cupón de descuento promocional -->
+              <tr style="border-bottom: 1px solid #e4e4e7; background-color: #f8fafc;">
+                <td style="padding: 10px 8px; color: #15803d; border-radius: 6px 0 0 6px;">
+                  <strong style="display: block; font-size: 13px;">${isEn ? 'Coupon Discount' : 'Descuento Cupón'}: ${fin.coupon}${fin.couponPercent ? ` (-${fin.couponPercent}%)` : ''}</strong>
+                  <span style="font-size: 11px; color: #71717a;">${isEn ? 'Promotional discount applied online' : 'Descuento promocional aplicado en web'}</span>
+                </td>
+                <td style="padding: 10px 8px; text-align: right; font-weight: 700; font-size: 14px; color: #15803d; border-radius: 0 6px 6px 0; vertical-align: top;">
+                  ${discountTotalFormatted}
+                </td>
+              </tr>
+              <!-- Desglose fiscal completo con cupón -->
               <tr>
-                <td style="padding: 10px 0 4px; color: #71717a;">${isEn ? 'Tax Base (excl. VAT):' : 'Base Imponible (sin IVA):'}</td>
-                <td style="padding: 10px 0 4px; text-align: right; color: #71717a;">${baseFormatted}</td>
+                <td style="padding: 10px 0 4px; color: #71717a;">${isEn ? 'Original Web Price:' : 'Precio Web Original:'}</td>
+                <td style="padding: 10px 0 4px; text-align: right; color: #71717a;">${originalTotalFormatted}</td>
+              </tr>
+              <tr>
+                <td style="padding: 4px 0; color: #15803d;">${isEn ? `Discount (${fin.coupon}${fin.couponPercent ? ` -${fin.couponPercent}%` : ''}):` : `Descuento (${fin.coupon}${fin.couponPercent ? ` -${fin.couponPercent}%` : ''}):`}</td>
+                <td style="padding: 4px 0; text-align: right; color: #15803d; font-weight: 600;">${discountTotalFormatted}</td>
+              </tr>
+              <tr>
+                <td style="padding: 4px 0; color: #71717a;">${isEn ? 'Tax Base (excl. VAT):' : 'Base Imponible (sin IVA):'}</td>
+                <td style="padding: 4px 0; text-align: right; color: #71717a;">${netBaseFormatted}</td>
               </tr>
               <tr style="border-bottom: 1px solid #e4e4e7;">
                 <td style="padding: 4px 0 10px; color: #71717a;">${isEn ? 'VAT / Taxes (21%):' : 'IVA / Impuestos (21%):'}</td>
-                <td style="padding: 4px 0 10px; text-align: right; color: #71717a;">${taxFormatted}</td>
+                <td style="padding: 4px 0 10px; text-align: right; color: #71717a;">${netVatFormatted}</td>
               </tr>
               <tr style="font-size: 16px; font-weight: 700; color: #000000;">
                 <td style="padding: 14px 0;">Total:</td>
-                <td style="padding: 14px 0; text-align: right; color: #000000;">${totalFormatted}</td>
+                <td style="padding: 14px 0; text-align: right; color: #000000;">${totalPaidFormatted}</td>
               </tr>
+              ` : `
+              <!-- Fila única pedido estándar sin descuento -->
+              <tr style="border-bottom: 1px solid #e4e4e7; color: #18181b;">
+                <td style="padding: 14px 0;">
+                  <strong style="display: block; font-size: 15px;">${orderData.title}</strong>
+                  ${orderData.esimTranNo ? `<span style="font-size: 12px; color: #71717a;">ICCID: ${orderData.esimTranNo}</span>` : ''}
+                </td>
+                <td style="padding: 14px 0; text-align: right; font-weight: 600; font-size: 15px; vertical-align: top;">
+                  ${totalPaidFormatted}
+                </td>
+              </tr>
+              <!-- Desglose fiscal estándar -->
+              <tr>
+                <td style="padding: 10px 0 4px; color: #71717a;">${isEn ? 'Tax Base (excl. VAT):' : 'Base Imponible (sin IVA):'}</td>
+                <td style="padding: 10px 0 4px; text-align: right; color: #71717a;">${netBaseFormatted}</td>
+              </tr>
+              <tr style="border-bottom: 1px solid #e4e4e7;">
+                <td style="padding: 4px 0 10px; color: #71717a;">${isEn ? 'VAT / Taxes (21%):' : 'IVA / Impuestos (21%):'}</td>
+                <td style="padding: 4px 0 10px; text-align: right; color: #71717a;">${netVatFormatted}</td>
+              </tr>
+              <tr style="font-size: 16px; font-weight: 700; color: #000000;">
+                <td style="padding: 14px 0;">Total:</td>
+                <td style="padding: 14px 0; text-align: right; color: #000000;">${totalPaidFormatted}</td>
+              </tr>
+              `}
             </tbody>
           </table>
         </div>
