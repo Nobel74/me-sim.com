@@ -31,7 +31,10 @@ export function getEsimStatusInfo(telemetry, order = null, isEn = false) {
     } catch {}
   }
 
+  const isCancelled = order?.status?.toLowerCase() === 'cancelled' || order?.status?.toLowerCase() === 'refunded';
+
   const isFinished =
+    isCancelled ||
     smdp.includes('DELETED') ||
     smdp.includes('EXPIRED') ||
     smdp.includes('TERMINATED') ||
@@ -54,35 +57,11 @@ export function getEsimStatusInfo(telemetry, order = null, isEn = false) {
     };
   }
 
-  // 2. NARANJA: "Instalada (Sin Activar)"
-  // Si se ha escaneado e instalado en el dispositivo pero el tráfico consumido es 0
-  const isInstalled =
-    smdp.includes('INSTALLED') ||
-    smdp.includes('DOWNLOADED') ||
-    esim.includes('INSTALLED') ||
-    esim.includes('DOWNLOADED') ||
-    esim.includes('GOT_RESOURCE');
+  // 2. VERDE: "Activa"
+  // REGLA ESTRICTA: Hasta que no haya consumo de datos (> 0 MB), NUNCA pasa a estado "Activa".
+  const hasTraffic = usedBytes > 0 || usedMb > 0 || percentageUsed > 0;
 
-  const hasNoTraffic = usedBytes === 0 && usedMb === 0 && percentageUsed === 0;
-
-  if (isInstalled && hasNoTraffic) {
-    return {
-      statusKey: 'installed_inactive',
-      label: isEn ? 'Installed (Not Activated)' : 'Instalada (Sin Activar)',
-      colorName: 'amber',
-      dotClass: 'bg-amber-500',
-      textClass: 'text-amber-600 dark:text-amber-400',
-      badgeClass: 'bg-amber-500/15 text-amber-800 dark:text-amber-400 border border-amber-500/30',
-      rawTechnical: smdp || esim ? `${esim || 'INSTALLED'} (${smdp || 'INSTALLED'})` : 'INSTALLED',
-    };
-  }
-
-  // 3. VERDE: "Activa"
-  // Tiene consumo en curso o está activa en la red de telecomunicaciones
-  const isTrafficActive = usedBytes > 0 || usedMb > 0 || percentageUsed > 0;
-  const isStatusActive = esim.includes('ACTIVE') || smdp.includes('ENABLED') || smdp.includes('IN_USE');
-
-  if (isTrafficActive || isStatusActive) {
+  if (hasTraffic) {
     return {
       statusKey: 'active',
       label: isEn ? 'Active' : 'Activa',
@@ -94,7 +73,23 @@ export function getEsimStatusInfo(telemetry, order = null, isEn = false) {
     };
   }
 
-  // 4. Por defecto / Nueva compra pendiente de instalación
+  // 3. NARANJA: "Instalada (Sin Activar)"
+  // eSIM generada o instalada en el dispositivo del cliente pero sin tráfico/consumo todavía.
+  const hasEsim = !!(order?.esimTranNo || order?.iccid || telemetry?.esimStatus || smdp);
+
+  if (hasEsim) {
+    return {
+      statusKey: 'installed_inactive',
+      label: isEn ? 'Installed (Not Activated)' : 'Instalada (Sin Activar)',
+      colorName: 'amber',
+      dotClass: 'bg-amber-500',
+      textClass: 'text-amber-600 dark:text-amber-400',
+      badgeClass: 'bg-amber-500/15 text-amber-800 dark:text-amber-400 border border-amber-500/30',
+      rawTechnical: smdp || esim ? `${esim || 'INSTALLED'} (${smdp || 'INSTALLED'})` : 'INSTALLED',
+    };
+  }
+
+  // 4. Por defecto / Pendiente de asignación de eSIM
   return {
     statusKey: 'pending',
     label: isEn ? 'Pending Installation' : 'Pendiente de Instalación',

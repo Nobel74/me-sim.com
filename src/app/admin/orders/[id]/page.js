@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { formatCurrency } from '../../../../lib/currency';
 import { getEsimStatusInfo } from '../../../../lib/esimStatus';
+import { extractTotalMbFromOrder } from '../../../../lib/universalTelemetry';
 
 export default function AdminOrderDetailPage() {
   const router = useRouter();
@@ -86,12 +87,7 @@ export default function AdminOrderDetailPage() {
       if (res.ok) {
         const data = await res.json();
         if (data.success && (data.telemetry || data.usage)) {
-          const incoming = data.telemetry || data.usage;
-          if (incoming && (Number(incoming.usedBytes) > 0 || Number(incoming.usedMb) > 0)) {
-            setTelemetry(incoming);
-          } else {
-            setTelemetry((prev) => (prev && Number(prev.usedMb) > 0 ? prev : incoming));
-          }
+          setTelemetry(data.telemetry || data.usage);
         }
       }
     } catch (e) {
@@ -123,6 +119,8 @@ export default function AdminOrderDetailPage() {
             orderId: order.orderId,
             customerName: order.customerName,
             customerEmail: order.customerEmail,
+            esimTranNo: order.esimTranNo || order.iccid || '',
+            iccid: order.esimTranNo || order.iccid || '',
             qrCodeUrl: order.qrCodeUrl,
             lpaString: order.lpaString,
             plan: order.plan || order.title,
@@ -482,18 +480,15 @@ export default function AdminOrderDetailPage() {
               </button>
             </div>
 
-            {/* Live Progress Bar with Ease-in-out Smooth Animation */}
             {(() => {
-              const t = (telemetry && Number(telemetry.usedMb) > 0)
-                ? telemetry
-                : (order?.telemetry && Number(order.telemetry.usedMb) > 0)
-                ? order.telemetry
-                : (telemetry || order?.telemetry || {
-                    totalMb: 1024,
-                    usedMb: 420,
-                    percentageUsed: 41.0,
-                  });
-              const pct = Math.min(100, Math.max(0, t.percentageUsed ?? 41.0));
+              const t = telemetry || order?.telemetry || {
+                totalMb: extractTotalMbFromOrder(order),
+                usedMb: 0,
+                percentageUsed: 0,
+              };
+              const totalMb = t.totalMb || extractTotalMbFromOrder(order);
+              const usedMb = Number(t.usedMb || 0);
+              const pct = totalMb > 0 ? Math.min(100, Math.max(0, parseFloat(((usedMb / totalMb) * 100).toFixed(1)))) : 0;
               return (
                 <div className="space-y-2 pt-1">
                   <div className="flex justify-between text-xs sm:text-sm font-semibold">
@@ -501,9 +496,9 @@ export default function AdminOrderDetailPage() {
                       {isEn ? 'Data Consumed in Real-Time:' : 'Consumo en Tiempo Real:'}
                     </span>
                     <span className={`font-black font-mono ${isDark ? 'text-white' : 'text-zinc-950'}`}>
-                      {t.totalMb < 1000
-                        ? `${t.usedMb.toFixed(1)} MB de ${Math.round(t.totalMb)} MB (${pct}%)`
-                        : `${(t.usedMb / 1024).toFixed(2)} GB de ${(t.totalMb / 1024).toFixed(1)} GB (${pct}%)`}
+                      {totalMb < 1000
+                        ? `${usedMb.toFixed(1)} MB de ${Math.round(totalMb)} MB (${pct}%)`
+                        : `${(usedMb / 1024).toFixed(2)} GB de ${(totalMb / 1024).toFixed(1)} GB (${pct}%)`}
                     </span>
                   </div>
 

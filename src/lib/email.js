@@ -9,7 +9,7 @@ export async function sendEmail({ to, subject, htmlText, type = 'magic_code', da
   const smtpUser = process.env.SMTP_USER;
   const smtpPassword = process.env.SMTP_PASSWORD;
 
-  // 1. Try sending via WooCommerce WP-Mail API endpoint (Best deliverability & valid DKIM/SPF)
+  // 1. Envío a través del servidor de correo de WordPress (api.me-sim.com)
   const rawWcUrl = process.env.WOOCOMMERCE_API_URL || process.env.NEXT_PUBLIC_WC_API_URL || 'https://api.me-sim.com';
   let wpUrl = rawWcUrl;
   if (wpUrl.includes('/wp-json')) {
@@ -36,20 +36,21 @@ export async function sendEmail({ to, subject, htmlText, type = 'magic_code', da
 
     if (res.ok) {
       const responseData = await res.json();
-      addDiagnosticLog('EMAIL_SERVICE', 'WP_MAIL_SUCCESS', { to, type, responseData });
-      console.log(`[EMAIL SERVICE] Sent via WordPress WP-Mail API (api.me-sim.com) to ${to}`);
-      return { success: true, message: 'Email enviado a través de WooCommerce API', responseData, provider: 'WooCommerce API' };
-    } else {
-      const errTxt = await res.text();
-      addDiagnosticLog('EMAIL_SERVICE', 'WP_MAIL_ERROR', { status: res.status, errTxt });
+      if (responseData && responseData.success) {
+        addDiagnosticLog('EMAIL_SERVICE', 'WP_MAIL_SUCCESS', { to, type, responseData });
+        console.log(`[EMAIL SERVICE] Sent via WordPress WP-Mail API (api.me-sim.com) to ${to}`);
+        return { success: true, message: 'Email enviado a través de WordPress API', responseData, provider: 'WordPress WP-Mail' };
+      }
     }
+    const errTxt = await res.text();
+    addDiagnosticLog('EMAIL_SERVICE', 'WP_MAIL_ERROR', { status: res.status, errTxt });
   } catch (err) {
     addDiagnosticLog('EMAIL_SERVICE', 'WP_MAIL_EXCEPTION', { error: err.message });
-    console.warn('[EMAIL SERVICE] WooCommerce API call fallback:', err.message);
+    console.warn('[EMAIL SERVICE] WordPress WP-Mail attempt error:', err.message);
   }
 
-  // 2. Fallback to Direct SMTP if configured with valid password
-  if (smtpPassword && smtpPassword !== 'me-sim-password' && smtpUser && smtpHost) {
+  // 2. Fallback a SMTP Directo con credenciales de mail.me-sim.com
+  if (smtpUser && smtpHost && smtpPassword) {
     try {
       const nodemailer = (await import('nodemailer')).default;
       const transporter = nodemailer.createTransport({
@@ -81,11 +82,11 @@ export async function sendEmail({ to, subject, htmlText, type = 'magic_code', da
     }
   }
 
-  // 3. Fallback for Local Dev Mode
+  // Error real sin datos falsos o simulaciones ficticias
+  addDiagnosticLog('EMAIL_SERVICE', 'SEND_FAILED', { to, subject, type });
   return {
-    success: true,
-    message: `[MODO MOCK/DEV] Correo "${subject}" simulado para ${to}`,
-    simulated: true,
+    success: false,
+    message: `No se pudo enviar el correo a ${to}. Compruebe la configuración del servidor de correo.`,
   };
 }
 

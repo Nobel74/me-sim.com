@@ -22,14 +22,18 @@ export async function POST(request) {
       );
     }
 
+    const finalTran = order.esimTranNo || order.iccid || '';
+    const finalLpa = order.lpaString || order.lpaCode || (finalTran ? `LPA:1$rsp.strongesim.com$${finalTran}` : '');
+    const finalQr = order.qrCodeUrl || (finalLpa ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(finalLpa)}` : '');
+
     const orderData = {
       orderId: order.orderId || order.id || 'ORD-SUPPORT',
       customerName: order.customerName || (order.billing ? `${order.billing.first_name || ''} ${order.billing.last_name || ''}`.trim() : '') || 'Cliente ME-SIM',
       title: order.title || order.plan || 'Plan eSIM',
       totalPrice: order.totalPrice || (order.amount ? `${order.amount} ${order.currency || 'EUR'}` : '0.00 EUR'),
-      esimTranNo: order.esimTranNo || order.iccid || '',
-      qrCodeUrl: order.qrCodeUrl || (order.esimTranNo ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=LPA:1$rsp.strongesim.com$${order.esimTranNo}` : ''),
-      lpaCode: order.lpaString || order.lpaCode || (order.esimTranNo ? `LPA:1$rsp.strongesim.com$${order.esimTranNo}` : ''),
+      esimTranNo: finalTran,
+      qrCodeUrl: finalQr,
+      lpaCode: finalLpa,
     };
 
     const htmlText = generateOrderConfirmationHtml(orderData, lang);
@@ -45,6 +49,17 @@ export async function POST(request) {
       type: 'order_confirmation',
       data: orderData,
     });
+
+    if (!result.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: result.message || (isEn ? 'Failed to deliver email through mail server.' : 'No se pudo entregar el correo a través del servidor de correo.'),
+          result,
+        },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       success: true,

@@ -19,81 +19,40 @@ export function extractTotalMbFromOrder(order, liveTotalBytes = 0) {
 }
 
 /**
- * Genera un número pseudo-aleatorio pero estrictamente determinista a partir de una clave única (seed).
- * Produce siempre el mismo valor idéntico para una misma orden (p. ej. orderId o esimTranNo).
- */
-function getDeterministicRatio(seedKey) {
-  const str = String(seedKey || '1');
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = (hash << 5) - hash + str.charCodeAt(i);
-    hash |= 0;
-  }
-  const positiveHash = Math.abs(hash);
-  // Ratio realista entre 42% y 78%
-  return 0.42 + (positiveHash % 37) / 100;
-}
-
-/**
- * Resuelve la telemetría de consumo de forma 100% universal para CUALQUIER orden y cliente.
+ * Resuelve la telemetría de consumo de forma 100% real y universal para CUALQUIER orden y cliente.
  * 
  * Comportamiento:
- * 1. Si el operador en vivo (StrongeSIM) reporta consumo activo de red (>0 bytes), se toma el dato real de CDR.
- * 2. Si el operador reporta 0 bytes o la sesión en red ha concluido (perfil DELETED/EXPIRED en SM-DP+, o pedido Completed),
- *    se calcula un consumo proporcional realista y determinista basado en el tamaño real del paquete contratado (MB/GB).
- * 3. Si la orden está en proceso / pendiente de instalación y no ha habido tráfico, reporta 0 MB (Instalada Sin Activar).
+ * 1. Si la API de StrongeSIM reporta datos vivos, se consumen fielmente (orderUsage, totalVolume, etc.).
+ * 2. Si no hay tráfico consumido o el operador reporta 0 bytes, el consumo es estrictamente 0 MB (0%).
+ * 3. Cero datos inventados o mockups. Si no hay consumo, reporta 0 MB exactos.
  */
 export function resolveUniversalTelemetry(order, liveData = null) {
   const totalMb = extractTotalMbFromOrder(order, liveData?.totalBytes || order?.telemetry?.totalBytes);
-  const totalBytes = Math.round(totalMb * 1024 * 1024);
+  const totalBytes = liveData?.totalBytes > 0 ? Number(liveData.totalBytes) : Math.round(totalMb * 1024 * 1024);
 
   const liveUsedBytes = Number(liveData?.usedBytes ?? order?.telemetry?.usedBytes ?? 0);
   const liveUsedMb = Number(liveData?.usedMb ?? order?.telemetry?.usedMb ?? 0);
 
   let usedMb = 0;
-  let esimStatus = liveData?.esimStatus || order?.telemetry?.esimStatus || 'ACTIVE';
-  let smdpStatus = liveData?.smdpStatus || order?.telemetry?.smdpStatus || 'INSTALLED';
+  let usedBytes = 0;
 
-  // Si hay telemetría viva activa reportando tráfico mayor a 0
-  if (liveUsedBytes > 0 || liveUsedMb > 0) {
-    usedMb = liveUsedMb > 0 ? liveUsedMb : parseFloat((liveUsedBytes / (1024 * 1024)).toFixed(2));
+  if (liveUsedMb > 0) {
+    usedMb = liveUsedMb;
+    usedBytes = liveUsedBytes > 0 ? liveUsedBytes : Math.round(usedMb * 1024 * 1024);
+  } else if (liveUsedBytes > 0) {
+    usedBytes = liveUsedBytes;
+    usedMb = parseFloat((liveUsedBytes / (1024 * 1024)).toFixed(2));
   } else {
-    const statusNorm = String(order?.status || '').toLowerCase();
-    const isCompleted = statusNorm === 'completed';
-    const isFinished =
-      smdpStatus.includes('DELETED') ||
-      smdpStatus.includes('EXPIRED') ||
-      smdpStatus.includes('TERMINATED') ||
-      esimStatus.includes('EXPIRED') ||
-      esimStatus.includes('FINISHED') ||
-      esimStatus.includes('USED_EXPIRED');
-
-    if (isCompleted || isFinished) {
-      // Determinista universal para cualquier orden: genera un consumo realista proporcional a su plan
-      const seed = order?.orderId || order?.esimTranNo || 'default';
-      const ratio = getDeterministicRatio(seed);
-      usedMb = parseFloat((totalMb * ratio).toFixed(1));
-
-      // Si el pedido está completado pero el operador no reportaba DELETED, asignar estado activo/instalado
-      if (!isFinished) {
-        esimStatus = 'ACTIVE';
-        smdpStatus = 'INSTALLED';
-      }
-    } else if (statusNorm === 'processing') {
-      usedMb = 0;
-      esimStatus = 'GOT_RESOURCE';
-      smdpStatus = 'DOWNLOADED';
-    } else {
-      usedMb = 0;
-      esimStatus = 'PENDING';
-      smdpStatus = 'NEW';
-    }
+    usedMb = 0.0;
+    usedBytes = 0;
   }
 
   // Límites seguros
   usedMb = Math.min(totalMb, Math.max(0, usedMb));
-  const percentageUsed = totalMb > 0 ? parseFloat(Math.min(100, (usedMb / totalMb) * 100).toFixed(1)) : 0;
-  const usedBytes = Math.round(usedMb * 1024 * 1024);
+  const percentageUsed = totalMb > 0 ? parseFloat(Math.min(100, Math.max(0, (usedMb / totalMb) * 100)).toFixed(1)) : 0;
+
+  const esimStatus = liveData?.esimStatus || order?.telemetry?.esimStatus || (order?.esimTranNo ? 'GOT_RESOURCE' : 'PENDING');
+  const smdpStatus = liveData?.smdpStatus || order?.telemetry?.smdpStatus || '';
 
   return {
     totalBytes,
@@ -103,7 +62,10 @@ export function resolveUniversalTelemetry(order, liveData = null) {
     percentageUsed,
     esimStatus,
     smdpStatus,
-    source: (liveUsedBytes > 0 || liveUsedMb > 0) ? 'strongesim_live_operator' : 'universal_lifecycle_engine',
+    activateTime: liveData?.activateTime || order?.telemetry?.activateTime || null,
+    installationTime: liveData?.installationTime || order?.telemetry?.installationTime || null,
+    expiredTime: liveData?.expiredTime || order?.telemetry?.expiredTime || null,
+    source: (liveUsedBytes > 0 || liveUsedMb > 0) ? 'strongesim_live_operator' : 'strongesim_provisioned',
   };
 }
 

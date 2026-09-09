@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { formatCurrency, getExchangeRates } from '../../lib/currency';
 import { getEsimStatusInfo } from '../../lib/esimStatus';
+import { extractTotalMbFromOrder } from '../../lib/universalTelemetry';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -1093,11 +1094,13 @@ export default function AdminDashboardPage() {
 
                         {(() => {
                           const telem = order.telemetry || {
-                            totalMb: 1024,
-                            usedMb: 350,
-                            percentageUsed: 34.2,
+                            totalMb: extractTotalMbFromOrder(order),
+                            usedMb: 0,
+                            percentageUsed: 0,
                           };
-                          const pct = Math.min(100, Math.max(0, telem.percentageUsed || 0));
+                          const totalMb = telem.totalMb || extractTotalMbFromOrder(order);
+                          const usedMb = Number(telem.usedMb || 0);
+                          const pct = totalMb > 0 ? Math.min(100, Math.max(0, parseFloat(((usedMb / totalMb) * 100).toFixed(1)))) : 0;
                           return (
                             <div className="space-y-1 mt-1">
                               <div className="flex items-center justify-between text-[10px] font-mono">
@@ -1105,9 +1108,9 @@ export default function AdminDashboardPage() {
                                   {isEn ? 'Data Usage:' : 'Consumo:'}
                                 </span>
                                 <span className={`font-bold ${isDark ? 'text-white' : 'text-zinc-900'}`}>
-                                  {telem.totalMb < 1000
-                                    ? `${Number(telem.usedMb).toFixed(1)} / ${Math.round(telem.totalMb)} MB (${pct}%)`
-                                    : `${(telem.usedMb / 1024).toFixed(2)} / ${(telem.totalMb / 1024).toFixed(1)} GB (${pct}%)`}
+                                  {totalMb < 1000
+                                    ? `${usedMb.toFixed(1)} / ${Math.round(totalMb)} MB (${pct}%)`
+                                    : `${(usedMb / 1024).toFixed(2)} / ${(totalMb / 1024).toFixed(1)} GB (${pct}%)`}
                                 </span>
                               </div>
                               <div className={`w-full h-2 rounded-full overflow-hidden ${isDark ? 'bg-zinc-800' : 'bg-zinc-200'}`}>
@@ -1213,18 +1216,20 @@ export default function AdminDashboardPage() {
                               )}
                               {(() => {
                                 const telem = order.telemetry || {
-                                  totalMb: 1024,
-                                  usedMb: 350,
-                                  percentageUsed: 34.2,
+                                  totalMb: extractTotalMbFromOrder(order),
+                                  usedMb: 0,
+                                  percentageUsed: 0,
                                 };
-                                const pct = Math.min(100, Math.max(0, telem.percentageUsed || 0));
+                                const totalMb = telem.totalMb || extractTotalMbFromOrder(order);
+                                const usedMb = Number(telem.usedMb || 0);
+                                const pct = totalMb > 0 ? Math.min(100, Math.max(0, parseFloat(((usedMb / totalMb) * 100).toFixed(1)))) : 0;
                                 return (
                                   <div className="space-y-1 mt-1.5 min-w-[140px]">
                                     <div className="flex items-center justify-between text-[10px] font-mono">
                                       <span className={isDark ? 'text-zinc-400' : 'text-zinc-500'}>
-                                        {telem.totalMb < 1000
-                                          ? `${Number(telem.usedMb).toFixed(1)} / ${Math.round(telem.totalMb)} MB`
-                                          : `${(telem.usedMb / 1024).toFixed(2)} / ${(telem.totalMb / 1024).toFixed(1)} GB`}
+                                        {totalMb < 1000
+                                          ? `${usedMb.toFixed(1)} / ${Math.round(totalMb)} MB`
+                                          : `${(usedMb / 1024).toFixed(2)} / ${(totalMb / 1024).toFixed(1)} GB`}
                                       </span>
                                       <span className={`font-bold ${pct > 80 ? 'text-amber-500' : 'text-emerald-500'}`}>
                                         {pct}%

@@ -367,7 +367,10 @@ export async function fetchEsimProfileTelemetry(esimTranNo, orderId = null) {
               usedMb,
               percentageUsed,
               esimStatus: p.esimStatus || 'GOT_RESOURCE',
-              smdpStatus: p.smdpStatus || 'DELETED',
+              smdpStatus: p.smdpStatus || '',
+              activateTime: p.activateTime || null,
+              installationTime: p.installationTime || null,
+              expiredTime: p.expiredTime || null,
               source: 'strongesim_live_profiles',
             };
           }
@@ -385,11 +388,11 @@ export async function fetchEsimProfileTelemetry(esimTranNo, orderId = null) {
           const bodyV2 = await resV2.json();
           const d = bodyV2.data || bodyV2;
           if (d) {
-            const totalBytes = Number(d.total_volume || d.totalBytes) || 1073741824;
+            const totalBytes = Number(d.total_volume || d.totalBytes) || 0;
             const usedBytes = Number(d.order_usage || d.usedBytes) || 0;
-            const totalMb = parseFloat((totalBytes / (1024 * 1024)).toFixed(2));
+            const totalMb = totalBytes > 0 ? parseFloat((totalBytes / (1024 * 1024)).toFixed(2)) : 0;
             const usedMb = parseFloat((usedBytes / (1024 * 1024)).toFixed(2));
-            const percentageUsed = parseFloat(Math.min(100, Math.max(0, (usedBytes / totalBytes) * 100)).toFixed(1));
+            const percentageUsed = totalBytes > 0 ? parseFloat(Math.min(100, Math.max(0, (usedBytes / totalBytes) * 100)).toFixed(1)) : 0;
 
             return {
               totalBytes,
@@ -398,7 +401,10 @@ export async function fetchEsimProfileTelemetry(esimTranNo, orderId = null) {
               usedMb,
               percentageUsed,
               esimStatus: d.status || 'GOT_RESOURCE',
-              smdpStatus: d.smdpStatus || 'DELETED',
+              smdpStatus: d.smdpStatus || '',
+              activateTime: d.activateTime || null,
+              installationTime: d.installationTime || null,
+              expiredTime: d.expiredTime || null,
               source: 'strongesim_v2_order_usage',
             };
           }
