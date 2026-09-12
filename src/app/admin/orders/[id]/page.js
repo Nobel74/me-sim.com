@@ -81,7 +81,8 @@ export default function AdminOrderDetailPage() {
     setRefreshingUsage(true);
     try {
       const q = new URLSearchParams();
-      if (iccid) q.set('iccid', iccid);
+      const targetIccid = iccid || order?.realIccid || order?.esimTranNo;
+      if (targetIccid) q.set('iccid', targetIccid);
       if (id || orderId) q.set('orderId', id || orderId);
       const res = await fetch(`/api/admin/esim/refresh-usage?${q.toString()}`, { cache: 'no-store' });
       if (res.ok) {
@@ -99,9 +100,22 @@ export default function AdminOrderDetailPage() {
             esimTranNo: data.order.esimTranNo || prev.esimTranNo,
           }));
         }
+        return true;
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        setActionMessage({
+          type: 'error',
+          text: errData.message || (lang === 'en' ? 'Could not refresh operator telemetry' : 'No se pudo refrescar la telemetría del operador'),
+        });
+        return false;
       }
     } catch (e) {
       console.warn('Telemetry refresh error:', e);
+      setActionMessage({
+        type: 'error',
+        text: lang === 'en' ? 'Network error refreshing telemetry' : 'Error de conexión al refrescar telemetría',
+      });
+      return false;
     } finally {
       setRefreshingUsage(false);
     }
@@ -109,11 +123,13 @@ export default function AdminOrderDetailPage() {
 
   const handleRefreshUsage = async () => {
     setActionMessage(null);
-    await fetchLiveTelemetry(order?.esimTranNo, order?.orderId);
-    setActionMessage({
-      type: 'success',
-      text: lang === 'en' ? 'Live telemetry data refreshed from operator.' : 'Telemetría de consumo actualizada en tiempo real desde la red.',
-    });
+    const ok = await fetchLiveTelemetry(order?.realIccid || order?.esimTranNo, order?.orderId);
+    if (ok) {
+      setActionMessage({
+        type: 'success',
+        text: lang === 'en' ? 'Live telemetry data refreshed from operator.' : 'Telemetría de consumo actualizada en tiempo real desde la red.',
+      });
+    }
   };
 
   const handleResendEmail = async () => {
@@ -525,8 +541,10 @@ export default function AdminOrderDetailPage() {
                     </span>
                     <span className={`font-black font-mono ${isDark ? 'text-white' : 'text-zinc-950'}`}>
                       {totalMb < 1000
-                        ? `${usedMb.toFixed(1)} MB de ${Math.round(totalMb)} MB (${pct}%)`
-                        : `${(usedMb / 1024).toFixed(2)} GB de ${(totalMb / 1024).toFixed(1)} GB (${pct}%)`}
+                        ? `${usedMb.toFixed(1)} MB ${isEn ? 'of' : 'de'} ${Math.round(totalMb)} MB (${pct}%)`
+                        : usedMb > 0 && usedMb < 10
+                        ? `${usedMb.toFixed(2)} MB ${isEn ? 'of' : 'de'} ${(totalMb / 1024).toFixed(1)} GB (${pct}%)`
+                        : `${(usedMb / 1024).toFixed(2)} GB ${isEn ? 'of' : 'de'} ${(totalMb / 1024).toFixed(1)} GB (${pct}%)`}
                     </span>
                   </div>
 
@@ -562,6 +580,78 @@ export default function AdminOrderDetailPage() {
                       );
                     })()}
                     <span>{t.totalMb < 1000 ? `${Math.round(t.totalMb)} MB` : `${(t.totalMb / 1024).toFixed(1)} GB`}</span>
+                  </div>
+
+                  {/* Detailed Lifecycle & Network Telemetry Grid */}
+                  <div className={`mt-4 pt-3.5 border-t grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs ${
+                    isDark ? 'border-zinc-800/80' : 'border-zinc-200'
+                  }`}>
+                    {/* 1. SM-DP+ GSMA Network State */}
+                    <div className={`p-2.5 rounded-xl border ${isDark ? 'bg-zinc-900/60 border-zinc-800' : 'bg-zinc-50 border-zinc-200'}`}>
+                      <span className={`block text-[10px] font-bold uppercase tracking-wider mb-1 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                        {isEn ? 'Network State (SM-DP+)' : 'Estado en Red (SM-DP+)'}
+                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          (t.smdpStatus || '').includes('DELETED')
+                            ? 'bg-red-500/15 text-red-400 border border-red-500/30'
+                            : (t.smdpStatus || '').includes('ENABLED') || (t.smdpStatus || '').includes('IN_USE')
+                            ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                            : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                        }`}>
+                          <span>{t.smdpStatus || (t.esimStatus === 'GOT_RESOURCE' ? 'READY' : 'PROVISIONED')}</span>
+                        </span>
+                        {t.esimStatus && (
+                          <span className={`text-[10px] font-mono ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                            [{t.esimStatus}]
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 2. Installation Date */}
+                    <div className={`p-2.5 rounded-xl border ${isDark ? 'bg-zinc-900/60 border-zinc-800' : 'bg-zinc-50 border-zinc-200'}`}>
+                      <span className={`block text-[10px] font-bold uppercase tracking-wider mb-1 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                        {isEn ? 'Installation Time' : 'Fecha de Instalación'}
+                      </span>
+                      <span className={`font-mono text-[11px] font-semibold block ${isDark ? 'text-zinc-200' : 'text-zinc-800'}`}>
+                        {t.installationTime
+                          ? new Date(t.installationTime).toLocaleString(isEn ? 'en-US' : 'es-ES', { dateStyle: 'short', timeStyle: 'short' })
+                          : (isEn ? 'Pending Download' : 'Pendiente de descarga')}
+                      </span>
+                    </div>
+
+                    {/* 3. Activation Date */}
+                    <div className={`p-2.5 rounded-xl border ${isDark ? 'bg-zinc-900/60 border-zinc-800' : 'bg-zinc-50 border-zinc-200'}`}>
+                      <span className={`block text-[10px] font-bold uppercase tracking-wider mb-1 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                        {isEn ? 'Activation Time' : 'Fecha de Activación'}
+                      </span>
+                      <span className={`font-mono text-[11px] font-semibold block ${
+                        t.activateTime
+                          ? isDark ? 'text-emerald-400' : 'text-emerald-700'
+                          : isDark ? 'text-zinc-400' : 'text-zinc-500'
+                      }`}>
+                        {t.activateTime
+                          ? new Date(t.activateTime).toLocaleString(isEn ? 'en-US' : 'es-ES', { dateStyle: 'short', timeStyle: 'short' })
+                          : (isEn ? 'Awaiting First Traffic' : 'Esperando primer tráfico')}
+                      </span>
+                    </div>
+
+                    {/* 4. Expiration Date */}
+                    <div className={`p-2.5 rounded-xl border ${isDark ? 'bg-zinc-900/60 border-zinc-800' : 'bg-zinc-50 border-zinc-200'}`}>
+                      <span className={`block text-[10px] font-bold uppercase tracking-wider mb-1 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                        {isEn ? 'Expiration Date' : 'Fecha de Expiración'}
+                      </span>
+                      <span className={`font-mono text-[11px] font-semibold block ${
+                        t.expiredTime && new Date(t.expiredTime).getTime() < Date.now()
+                          ? isDark ? 'text-red-400' : 'text-red-600'
+                          : isDark ? 'text-zinc-200' : 'text-zinc-800'
+                      }`}>
+                        {t.expiredTime
+                          ? new Date(t.expiredTime).toLocaleString(isEn ? 'en-US' : 'es-ES', { dateStyle: 'short', timeStyle: 'short' })
+                          : (isEn ? 'Based on Plan Validity' : 'Según validez del plan')}
+                      </span>
+                    </div>
                   </div>
                 </div>
               );

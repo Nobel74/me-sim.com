@@ -1250,6 +1250,8 @@ export default function AdminDashboardPage() {
                                   <span className={isDark ? 'text-zinc-300' : 'text-zinc-700'}>
                                     {totalMb < 1000
                                       ? `${usedMb.toFixed(1)} / ${Math.round(totalMb)} MB`
+                                      : usedMb > 0 && usedMb < 10
+                                      ? `${usedMb.toFixed(2)} MB / ${(totalMb / 1024).toFixed(1)} GB`
                                       : `${(usedMb / 1024).toFixed(2)} / ${(totalMb / 1024).toFixed(1)} GB`}
                                   </span>
                                   <span className={`font-bold ml-1 ${pct >= 90 ? 'text-red-500' : pct >= 70 ? 'text-amber-500' : pct > 0 ? 'text-emerald-500' : (isDark ? 'text-zinc-500' : 'text-zinc-400')}`}>

@@ -223,7 +223,16 @@ export function verifyAdminToken(token) {
 }
 
 export function getAdminSessionFromRequest(request) {
-  const token = request.cookies.get(COOKIE_NAME)?.value;
+  let token = null;
+  try {
+    if (request?.cookies && typeof request.cookies.get === 'function') {
+      token = request.cookies.get(COOKIE_NAME)?.value;
+    } else if (typeof request?.headers?.get === 'function') {
+      const cookieHeader = request.headers.get('cookie') || '';
+      const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${COOKIE_NAME}=([^;]*)`));
+      token = match ? decodeURIComponent(match[1]) : null;
+    }
+  } catch {}
   return verifyAdminToken(token);
 }
 

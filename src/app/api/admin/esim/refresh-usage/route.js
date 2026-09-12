@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAdminSessionFromRequest } from '../../../../../lib/adminAuth';
 import { fetchEsimProfileTelemetry } from '../../../../../lib/strongesim';
-import { getOrderById } from '../../../../../lib/ordersService';
+import { getOrderById, saveOrUpdateOrder } from '../../../../../lib/ordersService';
 import { resolveUniversalTelemetry, getOrderTelemetryWithCache } from '../../../../../lib/universalTelemetry';
 
 export const dynamic = 'force-dynamic';
@@ -37,8 +37,11 @@ async function processTelemetry(request, queryParams = {}) {
     }
 
     // 2. Consulta en vivo forzada a StrongeSIM con actualización automática
-    const live = await fetchEsimProfileTelemetry(order.realIccid || order.esimTranNo, order.orderId);
+    const targetIccid = order.realIccid || order.esimTranNo || esimTranNo;
+    const live = await fetchEsimProfileTelemetry(targetIccid, order.orderId, order.strongesimOrderId);
     let resolvedTelemetry = resolveUniversalTelemetry(order, live);
+    order.telemetry = resolvedTelemetry;
+
     if (live) {
       if (live.qrCodeUrl && (!order.qrCodeUrl || order.qrCodeUrl.includes('api.qrserver.com'))) {
         order.qrCodeUrl = live.qrCodeUrl;
@@ -50,8 +53,8 @@ async function processTelemetry(request, queryParams = {}) {
         order.realIccid = live.realIccid;
         order.esimTranNo = live.realIccid;
       }
-      saveOrUpdateOrder(order);
     }
+    saveOrUpdateOrder(order);
 
     return NextResponse.json({
       success: true,

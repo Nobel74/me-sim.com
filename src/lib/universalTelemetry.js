@@ -30,21 +30,23 @@ export function resolveUniversalTelemetry(order, liveData = null) {
   const totalMb = extractTotalMbFromOrder(order, liveData?.totalBytes || order?.telemetry?.totalBytes);
   const totalBytes = liveData?.totalBytes > 0 ? Number(liveData.totalBytes) : Math.round(totalMb * 1024 * 1024);
 
-  const liveUsedBytes = Number(liveData?.usedBytes ?? order?.telemetry?.usedBytes ?? 0);
-  const liveUsedMb = Number(liveData?.usedMb ?? order?.telemetry?.usedMb ?? 0);
+  const prevUsedBytes = Number(order?.telemetry?.usedBytes || 0);
+  const prevUsedMb = Number(order?.telemetry?.usedMb || 0);
 
-  let usedMb = 0;
-  let usedBytes = 0;
+  const liveUsedBytes = Number(liveData?.usedBytes || 0);
+  const liveUsedMb = Number(liveData?.usedMb || 0);
 
-  if (liveUsedMb > 0) {
-    usedMb = liveUsedMb;
-    usedBytes = liveUsedBytes > 0 ? liveUsedBytes : Math.round(usedMb * 1024 * 1024);
-  } else if (liveUsedBytes > 0) {
-    usedBytes = liveUsedBytes;
-    usedMb = parseFloat((liveUsedBytes / (1024 * 1024)).toFixed(2));
-  } else {
-    usedMb = 0.0;
-    usedBytes = 0;
+  // Principio de Telecomunicaciones: El consumo de datos es monótono (nunca decrece).
+  // Si StrongeSIM reporta 0 bytes pero la eSIM ya tenía consumo confirmado registrado
+  // (ej. tras finalizar el viaje, cancelarse o borrarse la eSIM de SM-DP+),
+  // se preserva fielmente el consumo histórico acumulado.
+  let usedBytes = Math.max(prevUsedBytes, liveUsedBytes);
+  let usedMb = Math.max(prevUsedMb, liveUsedMb);
+
+  if (usedBytes > 0 && usedMb === 0) {
+    usedMb = parseFloat((usedBytes / (1024 * 1024)).toFixed(2));
+  } else if (usedMb > 0 && usedBytes === 0) {
+    usedBytes = Math.round(usedMb * 1024 * 1024);
   }
 
   // Límites seguros
@@ -65,7 +67,7 @@ export function resolveUniversalTelemetry(order, liveData = null) {
     activateTime: liveData?.activateTime || order?.telemetry?.activateTime || null,
     installationTime: liveData?.installationTime || order?.telemetry?.installationTime || null,
     expiredTime: liveData?.expiredTime || order?.telemetry?.expiredTime || null,
-    source: (liveUsedBytes > 0 || liveUsedMb > 0) ? 'strongesim_live_operator' : 'strongesim_provisioned',
+    source: (usedBytes > 0 || usedMb > 0) ? 'strongesim_live_operator' : 'strongesim_provisioned',
   };
 }
 
@@ -81,7 +83,7 @@ const CACHE_TTL_MS = 3 * 60 * 1000;
  */
 export async function getOrderTelemetryWithCache(order, forceRefresh = false) {
   if (!order) return null;
-  const key = String(order.esimTranNo || order.orderId || '');
+  const key = String(order.realIccid || order.esimTranNo || order.strongesimOrderId || order.orderId || '');
   const now = Date.now();
 
   if (!forceRefresh && key && telemetryCache.has(key)) {
@@ -92,13 +94,15 @@ export async function getOrderTelemetryWithCache(order, forceRefresh = false) {
   }
 
   let live = null;
-  const targetTran = order.esimTranNo;
+  const targetTran = order.realIccid || order.esimTranNo;
   const targetId = order.orderId;
-  if (targetTran || targetId) {
+  const targetStrongesimOrderId = order.strongesimOrderId;
+
+  if (targetTran || targetId || targetStrongesimOrderId) {
     try {
       const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(null), 8000));
       live = await Promise.race([
-        fetchEsimProfileTelemetry(targetTran, targetId),
+        fetchEsimProfileTelemetry(targetTran, targetId, targetStrongesimOrderId),
         timeoutPromise,
       ]);
     } catch {
@@ -106,13 +110,13 @@ export async function getOrderTelemetryWithCache(order, forceRefresh = false) {
     }
   }
 
-  // Si la consulta en vivo no obtuvo respuesta, pero el pedido ya contenía telemetría real (>0 bytes) previamente guardada, preservarla
-  if (!live && order.telemetry && (Number(order.telemetry.usedBytes) > 0 || Number(order.telemetry.usedMb) > 0)) {
+  // Si la consulta en vivo no obtuvo respuesta, pero el pedido ya contenía telemetría previamente guardada, preservarla
+  if (!live && order.telemetry) {
     return order.telemetry;
   }
 
   const resolved = resolveUniversalTelemetry(order, live);
-  if (key && (live || resolved.usedBytes > 0)) {
+  if (key) {
     telemetryCache.set(key, { telemetry: resolved, timestamp: now });
   }
   return resolved;

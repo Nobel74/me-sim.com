@@ -189,6 +189,7 @@ export async function fetchWooCommerceOrder(orderId) {
           paymentMethod: o.payment_method_title || 'Credit Card / Stripe (Paid)',
           esimTranNo: esimTranNo,
           realIccid: esimTranNo,
+          strongesimOrderId: getMeta('_strongesim_order_id') || getMeta('_esim_order_id') || '',
           qrCodeUrl: getMeta('_esim_qr_code') || '',
           lpaString: getMeta('_esim_activation_code') || getMeta('_esim_lpa') || '',
           country: getMeta('_esim_country') || o.billing?.country || 'España',
@@ -248,9 +249,9 @@ export async function getOrderById(orderId) {
       !found.lpaString ||
       (found.esimTranNo && found.esimTranNo.includes('-'));
 
-    if (found.esimTranNo || found.orderId) {
+    if (found.esimTranNo || found.orderId || found.strongesimOrderId) {
       try {
-        const live = await fetchEsimProfileTelemetry(found.realIccid || found.esimTranNo, found.orderId);
+        const live = await fetchEsimProfileTelemetry(found.realIccid || found.esimTranNo, found.orderId, found.strongesimOrderId);
         if (live) {
           found.telemetry = resolveUniversalTelemetry(found, live);
           let modified = false;
@@ -267,9 +268,7 @@ export async function getOrderById(orderId) {
             found.esimTranNo = live.realIccid;
             modified = true;
           }
-          if (modified) {
-            saveOrUpdateOrder(found);
-          }
+          saveOrUpdateOrder(found);
         } else if (!found.telemetry) {
           found.telemetry = resolveUniversalTelemetry(found);
         }

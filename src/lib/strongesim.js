@@ -1,19 +1,40 @@
 import { addDiagnosticLog } from './logger.js';
 import { ALL_WORLD_COUNTRIES } from './i18n.js';
 
-let authToken = null;
-let sessionId = null;
-let tokenExpiresAt = 0;
 let lastAuthError = '';
 
 export function getLastAuthError() {
   return lastAuthError;
 }
 
+function loadCachedSession() {
+  if (typeof globalThis !== 'undefined' && globalThis.__strongesimAuth && Date.now() < globalThis.__strongesimAuth.tokenExpiresAt) {
+    return globalThis.__strongesimAuth;
+  }
+  return null;
+}
+
+function saveCachedSession(token, session, ttlMs = 900000) {
+  const sessionData = {
+    authToken: token,
+    sessionId: session,
+    tokenExpiresAt: Date.now() + ttlMs,
+  };
+  if (typeof globalThis !== 'undefined') {
+    globalThis.__strongesimAuth = sessionData;
+  }
+}
+
+function clearCachedSession() {
+  if (typeof globalThis !== 'undefined') {
+    globalThis.__strongesimAuth = null;
+  }
+}
+
 export async function getStrongeSIMAuth() {
-  const now = Date.now();
-  if (authToken && now < tokenExpiresAt) {
-    return { accessToken: authToken, sessionId };
+  const cached = loadCachedSession();
+  if (cached) {
+    return { accessToken: cached.authToken, sessionId: cached.sessionId };
   }
 
   const baseUrl = process.env.STRONGESIM_BASE_URL || process.env.STRONGESIM_API_URL || 'https://api.strongesim.com/api/v1';
@@ -56,13 +77,13 @@ export async function getStrongeSIMAuth() {
     });
 
     if (response.ok && responseData.success) {
-      authToken = responseData.data?.accessToken || responseData.data?.token || responseData.accessToken;
-      sessionId = responseData.data?.sessionId || responseData.data?.session_id || 'session_active';
+      const token = responseData.data?.accessToken || responseData.data?.token || responseData.accessToken;
+      const sess = responseData.data?.sessionId || responseData.data?.session_id || 'session_active';
 
-      if (authToken) {
-        tokenExpiresAt = now + 3600 * 1000;
+      if (token) {
+        saveCachedSession(token, sess, 900 * 1000);
         lastAuthError = '';
-        return { accessToken: authToken, sessionId };
+        return { accessToken: token, sessionId: sess };
       }
     }
 
@@ -76,27 +97,46 @@ export async function getStrongeSIMAuth() {
 }
 
 /**
- * Realiza peticiones autenticadas al servidor de StrongeSIM
+ * Realiza peticiones autenticadas al servidor de StrongeSIM con auto re-login ante expiración 401
  */
 export async function strongesimFetch(endpoint, options = {}) {
   let rawBaseUrl = process.env.STRONGESIM_BASE_URL || process.env.STRONGESIM_API_URL || 'https://api.strongesim.com/api/v1';
   let cleanBaseUrl = rawBaseUrl.replace(/\/+$/, '');
   let cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
 
-  const { accessToken, sessionId } = await getStrongeSIMAuth();
+  // Si el endpoint especifica explícitamente /api/ (ej. /api/v2/order-usage o /api/v1/orders),
+  // usar la URL raíz del dominio para evitar concatenar duplicados como /api/v1/api/v2
+  const originUrl = cleanBaseUrl.replace(/\/api\/v1\/?$/, '');
+  const finalUrl = cleanEndpoint.startsWith('/api/')
+    ? `${originUrl}${cleanEndpoint}`
+    : `${cleanBaseUrl}${cleanEndpoint}`;
 
-  const headers = {
+  let { accessToken, sessionId } = await getStrongeSIMAuth();
+
+  const buildHeaders = (token, sess) => ({
     'Content-Type': 'application/json',
     'Accept': 'application/json',
-    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-    ...(sessionId ? { 'X-Session-ID': sessionId } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(sess ? { 'X-Session-ID': sess } : {}),
     ...(options.headers || {}),
-  };
-
-  const response = await fetch(`${cleanBaseUrl}${cleanEndpoint}`, {
-    ...options,
-    headers,
   });
+
+  let response = await fetch(finalUrl, {
+    ...options,
+    headers: buildHeaders(accessToken, sessionId),
+  });
+
+  // Si el servidor responde 401 (token expirado o sesión cerrada), invalidar token y reintentar inmediatamente con login fresco
+  if (response.status === 401) {
+    clearCachedSession();
+    const freshAuth = await getStrongeSIMAuth();
+    if (freshAuth.accessToken) {
+      response = await fetch(finalUrl, {
+        ...options,
+        headers: buildHeaders(freshAuth.accessToken, freshAuth.sessionId),
+      });
+    }
+  }
 
   return response;
 }
@@ -341,69 +381,57 @@ export async function resolveStrongeSimPlanId({ sku, iso = 'es', dataAmount = ''
  * @param {string} esimTranNo - ICCID o número de transacción de eSIM
  * @param {string} orderId - ID de la orden o pedido
  */
-export async function fetchEsimProfileTelemetry(esimTranNo, orderId = null) {
-  if (!esimTranNo && !orderId) return null;
+export async function fetchEsimProfileTelemetry(esimTranNo, orderId = null, strongesimOrderId = null) {
+  if (!esimTranNo && !orderId && !strongesimOrderId) return null;
 
   try {
-    let targetIccid = esimTranNo;
+    let targetIccid = esimTranNo && !esimTranNo.includes('-') && /^\d+$/.test(String(esimTranNo).trim()) ? String(esimTranNo).trim() : (esimTranNo || '');
     let orderQrCodeUrl = null;
     let orderLpaString = null;
     let orderEid = null;
-    const isUuid = typeof esimTranNo === 'string' && esimTranNo.includes('-');
 
-    // Si esimTranNo es un UUID o un ID de orden de StrongeSIM, consultar primero /orders/{id} para extraer el ICCID real
-    if (isUuid || (!targetIccid && orderId)) {
-      const targetOrderId = isUuid ? esimTranNo : orderId;
-      try {
-        const orderRes = await strongesimFetch(`/orders/${encodeURIComponent(targetOrderId)}`, { cache: 'no-store' });
-        if (orderRes.ok) {
-          const oBody = await orderRes.json();
-          const ord = oBody.data?.order || oBody.data;
-          const prof = oBody.data?.profiles?.[0];
-          const foundIccid = ord?.iccid || prof?.iccid;
-          if (foundIccid) {
-            targetIccid = foundIccid;
+    // Determinar candidatos a identificador de orden en StrongeSIM (UUID o ID)
+    const orderCandidates = [
+      strongesimOrderId,
+      (typeof esimTranNo === 'string' && esimTranNo.includes('-')) ? esimTranNo : null,
+      (typeof orderId === 'string' && orderId.includes('-')) ? orderId : null,
+      orderId,
+    ].filter(Boolean);
+
+    // Si aún no tenemos targetIccid o esimTranNo es UUID, buscar primero en /orders/{targetOrderId}
+    if ((!targetIccid || targetIccid.includes('-')) && orderCandidates.length > 0) {
+      for (const targetOrderId of orderCandidates) {
+        try {
+          const orderRes = await strongesimFetch(`/orders/${encodeURIComponent(targetOrderId)}`, { cache: 'no-store' });
+          if (orderRes.ok) {
+            const oBody = await orderRes.json();
+            const ord = oBody.data?.order || oBody.data;
+            const prof = oBody.data?.profiles?.[0];
+            const foundIccid = ord?.iccid || prof?.iccid;
+            if (foundIccid) {
+              targetIccid = foundIccid;
+            }
+            orderQrCodeUrl = ord?.qr_code_url || prof?.qr_code_url || null;
+            orderLpaString = ord?.activation_code || prof?.activation_code || prof?.ac || null;
+            orderEid = ord?.eid || prof?.eid || null;
+            if (targetIccid && !targetIccid.includes('-')) break;
           }
-          orderQrCodeUrl = ord?.qr_code_url || prof?.qr_code_url || null;
-          orderLpaString = ord?.activation_code || prof?.activation_code || prof?.ac || null;
+        } catch (eOrd) {
+          console.warn('Error resolviendo orden en StrongeSIM:', eOrd.message);
         }
-      } catch (eOrd) {
-        console.warn('Error resolviendo orden por UUID en StrongeSIM:', eOrd.message);
       }
     }
 
-    // 1. Consulta directa a endpoint de perfiles v1
-    if (targetIccid) {
+    // 1. Consulta a endpoint oficial de perfiles v1 por ICCID
+    let profileData = null;
+    if (targetIccid && !targetIccid.includes('-')) {
       try {
         const res = await strongesimFetch(`/profiles/${encodeURIComponent(targetIccid)}`, { cache: 'no-store' });
         if (res.ok) {
           const body = await res.json();
           const p = Array.isArray(body.data?.profiles) ? body.data.profiles[0] : (body.data?.profile || body.data);
-          if (p) {
-            const totalBytes = Number(p.totalVolume) || 0;
-            let usedBytes = Number(p.orderUsage) || 0;
-
-            const totalMb = totalBytes > 0 ? parseFloat((totalBytes / (1024 * 1024)).toFixed(2)) : 1024;
-            const usedMb = parseFloat((usedBytes / (1024 * 1024)).toFixed(2));
-            const percentageUsed = totalBytes > 0 ? parseFloat(Math.min(100, Math.max(0, (usedBytes / totalBytes) * 100)).toFixed(1)) : 0;
-
-            return {
-              totalBytes,
-              usedBytes,
-              totalMb,
-              usedMb,
-              percentageUsed,
-              esimStatus: p.esimStatus || 'GOT_RESOURCE',
-              smdpStatus: p.smdpStatus || '',
-              activateTime: p.activateTime || null,
-              installationTime: p.installationTime || null,
-              expiredTime: p.expiredTime || null,
-              realIccid: p.iccid || targetIccid,
-              qrCodeUrl: p.qrCodeUrl || p.qr_code_url || p.shortUrl || orderQrCodeUrl || null,
-              lpaString: p.ac || p.activation_code || orderLpaString || null,
-              eid: p.eid || orderEid || null,
-              source: 'strongesim_live_profiles',
-            };
+          if (p && (p.totalVolume !== undefined || p.orderUsage !== undefined || p.iccid || p.esimStatus)) {
+            profileData = p;
           }
         }
       } catch (e1) {
@@ -411,19 +439,102 @@ export async function fetchEsimProfileTelemetry(esimTranNo, orderId = null) {
       }
     }
 
-    // 2. Consulta alternativa por v2 order-usage
-    if (orderId) {
+    // 2. Consulta por orden StrongeSIM (v2 order-usage o v1 orders/:id/usage)
+    let v2UsageData = null;
+    for (const targetOrderId of orderCandidates) {
+      if (!targetOrderId || !targetOrderId.includes('-')) continue;
+
       try {
-        const resV2 = await strongesimFetch(`/api/v2/order-usage/${encodeURIComponent(orderId)}`, { cache: 'no-store' });
+        const resV2 = await strongesimFetch(`/api/v2/order-usage/${encodeURIComponent(targetOrderId)}`, { cache: 'no-store' });
         if (resV2.ok) {
           const bodyV2 = await resV2.json();
           const d = bodyV2.data || bodyV2;
-          if (d) {
-            const totalBytes = Number(d.total_volume || d.totalBytes) || 0;
-            const usedBytes = Number(d.order_usage || d.usedBytes) || 0;
-            const totalMb = totalBytes > 0 ? parseFloat((totalBytes / (1024 * 1024)).toFixed(2)) : 0;
-            const usedMb = parseFloat((usedBytes / (1024 * 1024)).toFixed(2));
-            const percentageUsed = totalBytes > 0 ? parseFloat(Math.min(100, Math.max(0, (usedBytes / totalBytes) * 100)).toFixed(1)) : 0;
+          if (d && (d.real_time_usage || d.stored_usage || d.plan_data || d.total_volume !== undefined || d.totalBytes !== undefined)) {
+            v2UsageData = d;
+            break;
+          }
+        }
+      } catch (e2) {
+        console.warn('Error en strongesimFetch /api/v2/order-usage:', e2.message);
+      }
+    }
+
+    // 3. Fusión de datos vivos: elegir el mayor volumen consumido confirmado y preservar ciclo de vida GSMA
+    if (profileData || v2UsageData) {
+      const p = profileData || {};
+      const d = v2UsageData || {};
+      const realTime = d.real_time_usage || {};
+      const stored = d.stored_usage || {};
+      const plan = d.plan_data || {};
+
+      const profileTotal = Number(p.totalVolume) || 0;
+      const v2Total = Number(realTime.total_data_bytes || d.total_volume || d.totalBytes || 0);
+      const totalBytes = Math.max(profileTotal, v2Total);
+
+      let totalMb = Number(realTime.total_data_mb || plan.total_data_mb || 0);
+      if (totalBytes > 0 && (!totalMb || totalMb === 0)) {
+        totalMb = parseFloat((totalBytes / (1024 * 1024)).toFixed(2));
+      }
+
+      const profileUsed = Number(p.orderUsage) || 0;
+      const v2Used = Number(realTime.data_used_bytes || d.order_usage || d.usedBytes || 0);
+      const usedBytes = Math.max(profileUsed, v2Used);
+
+      let usedMb = Number(realTime.data_used_mb || stored.data_used_mb || 0);
+      if (usedBytes > 0) {
+        usedMb = parseFloat((usedBytes / (1024 * 1024)).toFixed(2));
+      }
+
+      const percentageUsed = totalBytes > 0 ? parseFloat(Math.min(100, Math.max(0, (usedBytes / totalBytes) * 100)).toFixed(1)) : 0;
+
+      return {
+        totalBytes,
+        usedBytes,
+        totalMb,
+        usedMb,
+        percentageUsed,
+        esimStatus: p.esimStatus || d.order_status || d.status || 'GOT_RESOURCE',
+        smdpStatus: p.smdpStatus || d.smdpStatus || '',
+        activateTime: p.activateTime || d.activateTime || null,
+        installationTime: p.installationTime || d.installationTime || null,
+        expiredTime: p.expiredTime || d.expiredTime || null,
+        realIccid: p.iccid || d.esim_tran_no || targetIccid,
+        qrCodeUrl: p.qrCodeUrl || p.qr_code_url || p.shortUrl || orderQrCodeUrl || null,
+        lpaString: p.ac || p.activation_code || orderLpaString || null,
+        eid: p.eid || orderEid || null,
+        source: 'strongesim_live_operator',
+      };
+    }
+
+    // 2. Consulta por orden StrongeSIM (v2 order-usage o v1 orders/:id/usage)
+    for (const targetOrderId of orderCandidates) {
+      if (!targetOrderId) continue;
+
+      // 2a. v2 order-usage
+      try {
+        const resV2 = await strongesimFetch(`/api/v2/order-usage/${encodeURIComponent(targetOrderId)}`, { cache: 'no-store' });
+        if (resV2.ok) {
+          const bodyV2 = await resV2.json();
+          const d = bodyV2.data || bodyV2;
+          if (d && (d.real_time_usage || d.stored_usage || d.plan_data || d.total_volume !== undefined || d.totalBytes !== undefined)) {
+            const realTime = d.real_time_usage || {};
+            const stored = d.stored_usage || {};
+            const plan = d.plan_data || {};
+
+            let totalBytes = Number(realTime.total_data_bytes || d.total_volume || d.totalBytes || 0);
+            let totalMb = Number(realTime.total_data_mb || plan.total_data_mb || 0);
+            if (!totalBytes && totalMb > 0) totalBytes = Math.round(totalMb * 1024 * 1024);
+            if (totalBytes > 0 && !totalMb) totalMb = parseFloat((totalBytes / (1024 * 1024)).toFixed(2));
+
+            let usedBytes = Number(realTime.data_used_bytes || d.order_usage || d.usedBytes || 0);
+            let usedMb = Number(realTime.data_used_mb || stored.data_used_mb || 0);
+            if (!usedBytes && usedMb > 0) usedBytes = Math.round(usedMb * 1024 * 1024);
+            if (usedBytes > 0 && !usedMb) usedMb = parseFloat((usedBytes / (1024 * 1024)).toFixed(2));
+
+            let percentageUsed = Number(realTime.data_used_percentage || plan.usage_percentage || 0);
+            if (!percentageUsed && totalBytes > 0) {
+              percentageUsed = parseFloat(Math.min(100, Math.max(0, (usedBytes / totalBytes) * 100)).toFixed(1));
+            }
 
             return {
               totalBytes,
@@ -431,12 +542,12 @@ export async function fetchEsimProfileTelemetry(esimTranNo, orderId = null) {
               totalMb,
               usedMb,
               percentageUsed,
-              esimStatus: d.status || 'GOT_RESOURCE',
+              esimStatus: d.order_status || d.status || 'GOT_RESOURCE',
               smdpStatus: d.smdpStatus || '',
               activateTime: d.activateTime || null,
               installationTime: d.installationTime || null,
               expiredTime: d.expiredTime || null,
-              realIccid: targetIccid,
+              realIccid: d.esim_tran_no || targetIccid || null,
               qrCodeUrl: orderQrCodeUrl || null,
               lpaString: orderLpaString || null,
               source: 'strongesim_v2_order_usage',
@@ -445,6 +556,48 @@ export async function fetchEsimProfileTelemetry(esimTranNo, orderId = null) {
         }
       } catch (e2) {
         console.warn('Error en strongesimFetch /api/v2/order-usage:', e2.message);
+      }
+
+      // 2b. v1 orders/:id/usage
+      try {
+        const resV1 = await strongesimFetch(`/api/v1/orders/${encodeURIComponent(targetOrderId)}/usage`, { cache: 'no-store' });
+        if (resV1.ok) {
+          const bodyV1 = await resV1.json();
+          const u = bodyV1.data?.usage || bodyV1.usage;
+          if (u) {
+            const unit = String(u.unit || 'MB').toUpperCase();
+            const mult = unit === 'GB' ? 1024 * 1024 * 1024 : unit === 'KB' ? 1024 : 1024 * 1024;
+            const multMb = unit === 'GB' ? 1024 : unit === 'KB' ? 1 / 1024 : 1;
+
+            const totalNum = Number(u.total || 0);
+            const usedNum = Number(u.used || 0);
+
+            const totalBytes = Math.round(totalNum * mult);
+            const usedBytes = Math.round(usedNum * mult);
+            const totalMb = parseFloat((totalNum * multMb).toFixed(2));
+            const usedMb = parseFloat((usedNum * multMb).toFixed(2));
+            const percentageUsed = totalMb > 0 ? parseFloat(Math.min(100, Math.max(0, (usedMb / totalMb) * 100)).toFixed(1)) : 0;
+
+            return {
+              totalBytes,
+              usedBytes,
+              totalMb,
+              usedMb,
+              percentageUsed,
+              esimStatus: 'GOT_RESOURCE',
+              smdpStatus: '',
+              activateTime: null,
+              installationTime: null,
+              expiredTime: null,
+              realIccid: targetIccid || null,
+              qrCodeUrl: orderQrCodeUrl || null,
+              lpaString: orderLpaString || null,
+              source: 'strongesim_v1_order_usage',
+            };
+          }
+        }
+      } catch (e3) {
+        console.warn('Error en strongesimFetch /api/v1/orders/:id/usage:', e3.message);
       }
     }
   } catch (err) {

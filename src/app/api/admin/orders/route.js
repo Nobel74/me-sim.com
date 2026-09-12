@@ -6,17 +6,12 @@ import { extractTotalMbFromOrder, resolveUniversalTelemetry, getOrderTelemetryWi
 
 export const dynamic = 'force-dynamic';
 
-export { extractTotalMbFromOrder, resolveUniversalTelemetry };
-export const getResolvedOrderTelemetry = resolveUniversalTelemetry;
-
-
 export async function GET(request) {
-  const session = getAdminSessionFromRequest(request);
-  if (!session) {
-    return NextResponse.json({ success: false, message: 'No autenticado' }, { status: 401 });
-  }
-
   try {
+    const session = getAdminSessionFromRequest(request);
+    if (!session) {
+      return NextResponse.json({ success: false, message: 'No autenticado' }, { status: 401 });
+    }
     const wcUrl = process.env.WOOCOMMERCE_API_URL || 'https://api.me-sim.com';
     const ck = process.env.WOOCOMMERCE_CONSUMER_KEY || process.env.WC_CONSUMER_KEY;
     const cs = process.env.WOOCOMMERCE_CONSUMER_SECRET || process.env.WC_CONSUMER_SECRET;
@@ -170,6 +165,7 @@ export async function GET(request) {
                 iso: lo?.iso || getMeta('_esim_iso') || 'es',
                 wholesaleCostUsd: lo?.wholesaleCostUsd || 2.34,
                 billing: lo?.billing || o.billing || {},
+                strongesimOrderId: lo?.strongesimOrderId || getMeta('_strongesim_order_id') || getMeta('_esim_order_id') || '',
                 telemetry: lo?.telemetry || null,
               });
             }
@@ -241,9 +237,9 @@ export async function GET(request) {
           !order.lpaString ||
           (order.esimTranNo && order.esimTranNo.includes('-'));
 
-        if (needsOperatorSync && (order.realIccid || order.esimTranNo || order.orderId)) {
+        if (needsOperatorSync && (order.realIccid || order.esimTranNo || order.strongesimOrderId || order.orderId)) {
           try {
-            const live = await fetchEsimProfileTelemetry(order.realIccid || order.esimTranNo, order.orderId);
+            const live = await fetchEsimProfileTelemetry(order.realIccid || order.esimTranNo, order.orderId, order.strongesimOrderId);
             if (live) {
               order.telemetry = resolveUniversalTelemetry(order, live);
               if (live.qrCodeUrl && (!order.qrCodeUrl || order.qrCodeUrl.includes('api.qrserver.com'))) {
@@ -261,9 +257,7 @@ export async function GET(request) {
           } catch {}
         }
 
-        if (order.telemetry && (Number(order.telemetry.usedBytes) > 0 || Number(order.telemetry.usedMb) > 0)) {
-          return;
-        }
+        // Consultar telemetría sincronizada con caché (TTL 3 min) para que las tarjetas activas se actualicen sin saturar la red
         order.telemetry = await getOrderTelemetryWithCache(order);
       })
     );
@@ -275,7 +269,7 @@ export async function GET(request) {
       const found = ordersList.find((o) => String(o.orderId).toLowerCase() === String(orderIdQuery).toLowerCase());
       if (found) {
         try {
-          const live = await fetchEsimProfileTelemetry(found.realIccid || found.esimTranNo, found.orderId);
+          const live = await fetchEsimProfileTelemetry(found.realIccid || found.esimTranNo, found.orderId, found.strongesimOrderId);
           if (live) {
             found.telemetry = resolveUniversalTelemetry(found, live);
             if (live.qrCodeUrl) found.qrCodeUrl = live.qrCodeUrl;

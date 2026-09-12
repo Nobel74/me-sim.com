@@ -15,16 +15,27 @@ export function getEsimStatusInfo(telemetry, order = null, isEn = false) {
   const usedMb = Number(telemetry?.usedMb || 0);
   const percentageUsed = Number(telemetry?.percentageUsed || 0);
 
-  // 1. ROJO: "Finalizado"
-  // Si el SM-DP+ indica DELETED/EXPIRED, o la red indica TERMINATED/FINISHED, o alcanzó el 100% de datos, o expiró por días de validez
+  // 1. Evaluación precisa de expiración real de ciclo de vida
   let isExpiredByDate = false;
-  if (order?.createdAt || order?.date) {
+
+  // A) Si el operador StrongeSIM reporta fecha oficial de expiración
+  if (telemetry?.expiredTime) {
     try {
-      const created = new Date(order.createdAt || order.date);
-      const days = parseInt(order.days || order.plan?.match(/(\d+)\s*Days?/i)?.[1] || '0', 10);
-      if (!isNaN(created.getTime()) && days > 0) {
-        const expiry = created.getTime() + days * 24 * 60 * 60 * 1000;
-        if (Date.now() > expiry) {
+      const expTime = new Date(telemetry.expiredTime).getTime();
+      if (!isNaN(expTime) && Date.now() > expTime) {
+        isExpiredByDate = true;
+      }
+    } catch {}
+  }
+
+  // B) Si la eSIM ya fue activada en la red móvil (activateTime), calcular fin del período de validez en días
+  if (!isExpiredByDate && telemetry?.activateTime) {
+    try {
+      const actTime = new Date(telemetry.activateTime).getTime();
+      const days = parseInt(order?.days || order?.plan?.match(/(\d+)\s*Days?/i)?.[1] || '0', 10);
+      if (!isNaN(actTime) && days > 0) {
+        const calculatedExpiry = actTime + days * 24 * 60 * 60 * 1000;
+        if (Date.now() > calculatedExpiry) {
           isExpiredByDate = true;
         }
       }
@@ -45,7 +56,9 @@ export function getEsimStatusInfo(telemetry, order = null, isEn = false) {
     percentageUsed >= 100 ||
     isExpiredByDate;
 
+  // 1. ROJO: "Finalizado"
   if (isFinished) {
+    const rawParts = [esim, smdp].filter(Boolean);
     return {
       statusKey: 'finished',
       label: isEn ? 'Finished' : 'Finalizado',
@@ -53,15 +66,16 @@ export function getEsimStatusInfo(telemetry, order = null, isEn = false) {
       dotClass: 'bg-red-500',
       textClass: 'text-red-600 dark:text-red-400',
       badgeClass: 'bg-red-500/15 text-red-700 dark:text-red-400 border border-red-500/30',
-      rawTechnical: smdp || esim ? `${esim || 'GOT_RESOURCE'} (${smdp || 'DELETED'})` : 'DELETED',
+      rawTechnical: rawParts.length > 0 ? rawParts.join(' / ') : 'DELETED',
     };
   }
 
   // 2. VERDE: "Activa"
-  // REGLA ESTRICTA: Hasta que no haya consumo de datos (> 0 MB), NUNCA pasa a estado "Activa".
+  // Si la tarjeta está consumiendo datos en la red (> 0 MB) y no ha finalizado
   const hasTraffic = usedBytes > 0 || usedMb > 0 || percentageUsed > 0;
 
   if (hasTraffic) {
+    const rawParts = [esim || 'ACTIVE', smdp || 'IN_USE'].filter(Boolean);
     return {
       statusKey: 'active',
       label: isEn ? 'Active' : 'Activa',
@@ -69,15 +83,16 @@ export function getEsimStatusInfo(telemetry, order = null, isEn = false) {
       dotClass: 'bg-emerald-500',
       textClass: 'text-emerald-600 dark:text-emerald-400',
       badgeClass: 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-400 border border-emerald-500/30',
-      rawTechnical: smdp || esim ? `${esim || 'ACTIVE'} (${smdp || 'IN_USE'})` : 'ACTIVE',
+      rawTechnical: rawParts.join(' / '),
     };
   }
 
   // 3. NARANJA: "Instalada (Sin Activar)"
   // eSIM generada o instalada en el dispositivo del cliente pero sin tráfico/consumo todavía.
-  const hasEsim = !!(order?.esimTranNo || order?.iccid || telemetry?.esimStatus || smdp);
+  const hasEsim = !!(order?.realIccid || order?.esimTranNo || order?.iccid || telemetry?.esimStatus || smdp);
 
   if (hasEsim) {
+    const rawParts = [esim || 'GOT_RESOURCE', smdp || 'INSTALLED'].filter(Boolean);
     return {
       statusKey: 'installed_inactive',
       label: isEn ? 'Installed (Not Activated)' : 'Instalada (Sin Activar)',
@@ -85,7 +100,7 @@ export function getEsimStatusInfo(telemetry, order = null, isEn = false) {
       dotClass: 'bg-amber-500',
       textClass: 'text-amber-600 dark:text-amber-400',
       badgeClass: 'bg-amber-500/15 text-amber-800 dark:text-amber-400 border border-amber-500/30',
-      rawTechnical: smdp || esim ? `${esim || 'INSTALLED'} (${smdp || 'INSTALLED'})` : 'INSTALLED',
+      rawTechnical: rawParts.join(' / '),
     };
   }
 
@@ -97,6 +112,6 @@ export function getEsimStatusInfo(telemetry, order = null, isEn = false) {
     dotClass: 'bg-zinc-400',
     textClass: 'text-zinc-600 dark:text-zinc-400',
     badgeClass: 'bg-zinc-500/10 text-zinc-700 dark:text-zinc-300 border border-zinc-400/30',
-    rawTechnical: smdp || esim ? `${esim} (${smdp})` : 'AVAILABLE',
+    rawTechnical: [esim, smdp].filter(Boolean).join(' / ') || 'AVAILABLE',
   };
 }
