@@ -38,7 +38,7 @@ export default function RegionCard({ regionData, lang = 'es', currency = 'EUR', 
                 className="w-6 h-6 sm:w-8 sm:h-8 rounded-full overflow-hidden border-2 border-white shadow-xs bg-zinc-100"
               >
                 <img
-                  src={`/flags/${fIso}.webp`}
+                  src={fIso === 'global' || fIso === 'bq' ? `/flags/${fIso}.gif` : `/flags/${fIso}.webp`}
                   alt={fIso}
                   className="w-full h-full object-cover"
                   onError={(e) => {

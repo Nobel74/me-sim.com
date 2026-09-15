@@ -60,6 +60,7 @@ export const ALL_WORLD_COUNTRIES = [
   { iso: 'li', nameEs: 'Liechtenstein', nameEn: 'Liechtenstein', region: 'europe', baseEur: 4.90 },
   { iso: 'sm', nameEs: 'San Marino', nameEn: 'San Marino', region: 'europe', baseEur: 4.90 },
   { iso: 'va', nameEs: 'Ciudad del Vaticano', nameEn: 'Vatican City', region: 'europe', baseEur: 4.90 },
+  { iso: 'xk', nameEs: 'Kosovo', nameEn: 'Kosovo', region: 'europe', baseEur: 4.90 },
 
   // --- AMÉRICA DEL NORTE (3 Países) ---
   { iso: 'us', nameEs: 'Estados Unidos', nameEn: 'United States', region: 'north-america', baseEur: 4.90 },
@@ -209,6 +210,7 @@ export const ALL_WORLD_COUNTRIES = [
   { iso: 'ms', nameEs: 'Montserrat', nameEn: 'Montserrat', region: 'caribbean', baseEur: 5.90 },
   { iso: 'tc', nameEs: 'Islas Turcas y Caicos', nameEn: 'Turks and Caicos Islands', region: 'caribbean', baseEur: 5.90 },
   { iso: 'vc', nameEs: 'San Vicente y las Granadinas', nameEn: 'Saint Vincent and the Grenadines', region: 'caribbean', baseEur: 5.90 },
+  { iso: 'bq', nameEs: 'Bonaire, San Eustaquio y Saba', nameEn: 'Bonaire, Sint Eustatius and Saba', region: 'caribbean', baseEur: 5.90 },
 
   // --- OCEANÍA (13 Países e Islas) ---
   { iso: 'au', nameEs: 'Australia', nameEn: 'Australia', region: 'oceania', baseEur: 4.90 },
@@ -224,6 +226,7 @@ export const ALL_WORLD_COUNTRIES = [
   { iso: 'sb', nameEs: 'Islas Salomón', nameEn: 'Solomon Islands', region: 'oceania', baseEur: 7.90 },
   { iso: 'fm', nameEs: 'Micronesia', nameEn: 'Micronesia', region: 'oceania', baseEur: 7.90 },
   { iso: 'pw', nameEs: 'Palaos', nameEn: 'Palau', region: 'oceania', baseEur: 7.90 },
+  { iso: 'nr', nameEs: 'Nauru', nameEn: 'Nauru', region: 'oceania', baseEur: 6.90 },
   { iso: 'global', nameEs: 'Global', nameEn: 'Global', region: 'global', baseEur: 9.90 },
 ];
 

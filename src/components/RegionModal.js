@@ -114,7 +114,7 @@ export default function RegionModal({ regionData, onClose, lang = 'es', currency
                   >
                     <div className="flex items-center gap-3">
                       <img
-                        src={`/flags/${c.iso}.webp`}
+                        src={c.iso === 'global' || c.iso === 'bq' ? `/flags/${c.iso}.gif` : `/flags/${c.iso}.webp`}
                         alt={cName}
                         className="w-8 h-8 rounded-full object-cover border border-zinc-200 shadow-2xs flex-shrink-0"
                         onError={(e) => {

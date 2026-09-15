@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { strongesimFetch } from '../../../lib/strongesim';
-import { COUNTRY_NAMES, REGION_NAMES } from '../../../lib/i18n';
+import { ALL_WORLD_COUNTRIES, COUNTRY_NAMES, REGION_NAMES } from '../../../lib/i18n';
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -119,50 +119,14 @@ export async function GET(request) {
     { iso: 'europe-morocco', name: 'Europa + Marruecos (36+ Países)', region: 'europe', baseEur: 4.90 },
   ];
 
-  const countryMeta = [
-    { iso: 'fr', name: 'Francia', region: 'europe', baseEur: 4.90 },
-    { iso: 'es', name: 'España', region: 'europe', baseEur: 4.90 },
-    { iso: 'us', name: 'Estados Unidos', region: 'north-america', baseEur: 4.90 },
-    { iso: 'cn', name: 'China', region: 'asia', baseEur: 4.90 },
-    { iso: 'it', name: 'Italia', region: 'europe', baseEur: 4.90 },
-    { iso: 'tr', name: 'Turquía', region: 'europe', baseEur: 4.90 },
-    { iso: 'mx', name: 'México', region: 'north-america', baseEur: 4.90 },
-    { iso: 'th', name: 'Tailandia', region: 'asia', baseEur: 4.90 },
-    { iso: 'de', name: 'Alemania', region: 'europe', baseEur: 4.90 },
-    { iso: 'gb', name: 'Reino Unido', region: 'europe', baseEur: 4.90 },
-    { iso: 'jp', name: 'Japón', region: 'asia', baseEur: 4.90 },
-    { iso: 'at', name: 'Austria', region: 'europe', baseEur: 4.90 },
-    { iso: 'gr', name: 'Grecia', region: 'europe', baseEur: 4.90 },
-    { iso: 'my', name: 'Malasia', region: 'asia', baseEur: 4.90 },
-    { iso: 'ae', name: 'Emiratos Árabes Unidos', region: 'middle-east', baseEur: 4.90 },
-    { iso: 'sa', name: 'Arabia Saudita', region: 'middle-east', baseEur: 5.90 },
-    { iso: 'pt', name: 'Portugal', region: 'europe', baseEur: 4.90 },
-    { iso: 'ca', name: 'Canadá', region: 'north-america', baseEur: 4.90 },
-    { iso: 'pl', name: 'Polonia', region: 'europe', baseEur: 4.90 },
-    { iso: 'nl', name: 'Países Bajos', region: 'europe', baseEur: 4.90 },
-    { iso: 'in', name: 'India', region: 'asia', baseEur: 5.90 },
-    { iso: 'hr', name: 'Croacia', region: 'europe', baseEur: 4.90 },
-    { iso: 'hu', name: 'Hungría', region: 'europe', baseEur: 4.90 },
-    { iso: 'kr', name: 'Corea del Sur', region: 'asia', baseEur: 4.90 },
-    { iso: 'vn', name: 'Vietnam', region: 'asia', baseEur: 4.90 },
-    { iso: 'ma', name: 'Marruecos', region: 'africa', baseEur: 4.90 },
-    { iso: 'ch', name: 'Suiza', region: 'europe', baseEur: 4.90 },
-    { iso: 'sg', name: 'Singapur', region: 'asia', baseEur: 4.90 },
-    { iso: 'id', name: 'Indonesia', region: 'asia', baseEur: 4.90 },
-    { iso: 'eg', name: 'Egipto', region: 'africa', baseEur: 5.90 },
-    { iso: 'et', name: 'Etiopía', region: 'africa', baseEur: 6.90 },
-    { iso: 'ke', name: 'Kenia', region: 'africa', baseEur: 5.90 },
-    { iso: 'br', name: 'Brasil', region: 'south-america', baseEur: 5.90 },
-    { iso: 'ar', name: 'Argentina', region: 'south-america', baseEur: 5.90 },
-    { iso: 'co', name: 'Colombia', region: 'south-america', baseEur: 4.90 },
-    { iso: 'cl', name: 'Chile', region: 'south-america', baseEur: 4.90 },
-    { iso: 'pe', name: 'Perú', region: 'south-america', baseEur: 4.90 },
-    { iso: 'au', name: 'Australia', region: 'oceania', baseEur: 4.90 },
-    { iso: 'nz', name: 'Nueva Zelanda', region: 'oceania', baseEur: 4.90 },
-    { iso: 'aw', name: 'Aruba', region: 'caribbean', baseEur: 5.90 },
-    { iso: 'cw', name: 'Curazao', region: 'caribbean', baseEur: 5.90 },
-    { iso: 'jm', name: 'Jamaica', region: 'caribbean', baseEur: 5.90 },
-  ];
+  const countryMeta = ALL_WORLD_COUNTRIES
+    .filter((c) => c.iso !== 'global')
+    .map((c) => ({
+      iso: c.iso,
+      name: c.nameEs,
+      region: c.region,
+      baseEur: c.baseEur || 4.90,
+    }));
 
   // Dynamic regional markup calculations
   const applyMarkup = (plansList) => {
@@ -357,6 +321,11 @@ export async function GET(request) {
     });
   });
 
-  const finalFallback = deduplicatePlans(fallbackPlans);
+  let finalFallback = deduplicatePlans(fallbackPlans);
+  if (targetCode) {
+    finalFallback = finalFallback.filter(
+      (p) => p.iso === targetCode || (p.region && p.region.toLowerCase() === targetCode)
+    );
+  }
   return NextResponse.json({ success: true, plans: applyMarkup(finalFallback), count: finalFallback.length });
 }

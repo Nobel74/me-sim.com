@@ -39,6 +39,13 @@ const COUNTRY_ALIASES = {
   eg: ['egipto', 'egypt', 'eg'],
   ru: ['rusia', 'russia', 'ru'],
   re: ['reunion', 'reunión', 're'],
+  zw: ['zimbabue', 'zimbabwe', 'zw'],
+  vu: ['vanuatu', 'vu'],
+  to: ['tonga', 'to'],
+  pg: ['papua nueva guinea', 'papua new guinea', 'papua', 'pg'],
+  nr: ['nauru', 'nr'],
+  xk: ['kosovo', 'xk'],
+  bq: ['bonaire', 'san eustaquio', 'saba', 'sint eustatius', 'bq', 'caribe neerlandes', 'islas bes'],
   global: ['global', 'world', 'mundial', 'internacional', 'multipaís', 'multipais', 'multi-country'],
 };
 
@@ -173,7 +180,7 @@ export default function HeroSearch({ lang = 'es', currency = 'EUR', rates = {}, 
                     >
                       <div className="flex items-center gap-2.5 sm:gap-3.5">
                         <img
-                          src={dest.iso === 'global' ? '/flags/global.gif' : `/flags/${dest.iso}.webp`}
+                          src={dest.iso === 'global' || dest.iso === 'bq' ? `/flags/${dest.iso}.gif` : `/flags/${dest.iso}.webp`}
                           alt={name}
                           className="w-7 h-7 sm:w-9 sm:h-9 rounded-full object-cover border border-zinc-200 shadow-sm"
                         />
@@ -209,7 +216,7 @@ export default function HeroSearch({ lang = 'es', currency = 'EUR', rates = {}, 
                       >
                         <div className="flex items-center gap-2.5 sm:gap-3.5">
                           <img
-                            src={item.iso === 'global' ? '/flags/global.gif' : `/flags/${item.iso}.webp`}
+                            src={item.iso === 'global' || item.iso === 'bq' ? `/flags/${item.iso}.gif` : `/flags/${item.iso}.webp`}
                             alt={item.countryName}
                             className="w-7 h-7 sm:w-9 sm:h-9 rounded-full object-cover border border-zinc-200 shadow-sm"
                             onError={(e) => {

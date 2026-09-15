@@ -372,7 +372,7 @@ export default function DestinationPage() {
         <div className="relative z-10 p-4 sm:p-10 md:p-12 w-full flex flex-col items-center sm:items-start text-center sm:text-left">
           <div className="flex flex-wrap justify-center sm:justify-start items-center gap-2 mb-3.5">
             <img
-              src={isoCode === 'global' ? '/flags/global.gif' : `/flags/${isoCode}.webp`}
+              src={isoCode === 'global' || isoCode === 'bq' ? `/flags/${isoCode}.gif` : `/flags/${isoCode}.webp`}
               alt={countryName}
               className="w-9 h-9 sm:w-11 sm:h-11 rounded-full object-cover border-2 border-white/30 shadow-md flex-shrink-0"
               onError={(e) => {
@@ -737,7 +737,7 @@ export default function DestinationPage() {
                   className="bg-zinc-50 border border-zinc-200/90 hover:border-black/30 px-3.5 py-2 rounded-2xl font-medium text-black flex items-center gap-2.5 text-sm shadow-2xs transition-all hover:bg-white"
                 >
                   <img
-                    src={`/flags/${c.iso}.webp`}
+                    src={c.iso === 'global' || c.iso === 'bq' ? `/flags/${c.iso}.gif` : `/flags/${c.iso}.webp`}
                     alt={lang === 'en' ? c.nameEn : c.nameEs}
                     className="w-5 h-5 rounded-full object-cover shadow-2xs border border-zinc-200 flex-shrink-0"
                     onError={(e) => {

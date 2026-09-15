@@ -278,7 +278,7 @@ export default function AllDestinationsPage() {
                         >
                           <div className="flex items-center gap-2.5 sm:gap-3.5">
                             <img
-                              src={item.iso === 'global' ? '/flags/global.gif' : `/flags/${item.iso}.webp`}
+                              src={item.iso === 'global' || item.iso === 'bq' ? `/flags/${item.iso}.gif` : `/flags/${item.iso}.webp`}
                               alt={item.countryName}
                               className="w-7 h-7 sm:w-9 sm:h-9 rounded-full object-cover border border-zinc-200 shadow-sm"
                               onError={(e) => {

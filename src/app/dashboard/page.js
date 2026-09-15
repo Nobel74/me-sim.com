@@ -756,7 +756,7 @@ export default function DashboardPage() {
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-zinc-100">
                       <div className="flex items-center gap-4 w-full md:w-auto">
                         <img
-                          src={(order.iso || 'es').toLowerCase() === 'global' ? '/flags/global.gif' : `/flags/${(order.iso || 'es').toLowerCase()}.webp`}
+                          src={(order.iso || 'es').toLowerCase() === 'global' || (order.iso || '').toLowerCase() === 'bq' ? `/flags/${(order.iso || 'es').toLowerCase()}.gif` : `/flags/${(order.iso || 'es').toLowerCase()}.webp`}
                           alt={order.country}
                           className="w-12 h-12 rounded-full border border-zinc-200 object-cover shadow-sm flex-shrink-0"
                           onError={(e) => {

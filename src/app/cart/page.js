@@ -155,7 +155,7 @@ export default function CartPage() {
                   <div className="flex items-center gap-4 min-w-0">
                     <div className="w-11 h-11 rounded-full overflow-hidden border border-zinc-200 flex-shrink-0 shadow-sm">
                       <img
-                        src={(item.iso || 'gl').toLowerCase() === 'global' ? '/flags/global.gif' : `/flags/${(item.iso || 'gl').toLowerCase()}.webp`}
+                        src={(item.iso || 'gl').toLowerCase() === 'global' || (item.iso || '').toLowerCase() === 'bq' ? `/flags/${(item.iso || 'gl').toLowerCase()}.gif` : `/flags/${(item.iso || 'gl').toLowerCase()}.webp`}
                         alt={item.country}
                         className="w-full h-full object-cover"
                         onError={(e) => {
