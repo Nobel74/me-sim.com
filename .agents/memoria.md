@@ -1,11 +1,11 @@
 # 📝 Memoria del Proyecto y Bitácora de Sesiones - ME-SIM.COM
 
-## 📅 Última Actualización: 15 de Septiembre de 2026 - 14:40 CEST
+## 📅 Última Actualización: 16 de Septiembre de 2026 - 08:45 CEST
 
 ---
 
 ### 📌 Resumen de la Sesión Actual
-En esta sesión se desarrolló e implementó de extremo a extremo el **Módulo de Gestión Dinámica de Precios y Márgenes por Región** (`/admin/precios`), junto con su auditoría matemática, sincronización comercial con el catálogo público (`/destination/[iso]`), selector global multi-divisa dinámico y refactorización visual alineada al 100% con el **Panel de Finanzas** (`/admin/finanzas`).
+En esta sesión se desarrolló e implementó de extremo a extremo el **Módulo de Gestión Dinámica de Precios y Márgenes por Región** (`/admin/precios`), junto con su auditoría matemática, sincronización comercial con el catálogo público (`/destination/[iso]`), selector global multi-divisa dinámico, refactorización visual alineada al 100% con el **Panel de Finanzas** (`/admin/finanzas`) y unificación de cabeceras liberadas y nomenclatura de menú.
 
 #### Objetivos Clave Completados:
 1. **Auditoría Financiera y Normativa:** Detección de la bajada de tarifas de StrongeSIM y creación del documento maestro normativo [`docs/DIRECTIVAS_PRECIOS_Y_MARGENES.md`](file:///c:/Users/Paco/Documents/me-sim/docs/DIRECTIVAS_PRECIOS_Y_MARGENES.md).
@@ -14,6 +14,9 @@ En esta sesión se desarrolló e implementó de extremo a extremo el **Módulo d
 4. **Sincronización Comercial de PVP Web:** Corrección de la muestra de datos en el admin reemplazando los paquetes brutos diarios de StrongeSIM por los 14 tiers comerciales oficiales de ME-SIM, garantizando que el PVP mostrado en el admin coincide al 100% con la tienda pública.
 5. **Rediseño Visual Premium & Switcher Multi-Divisa:** Refactorización de [`/admin/precios`](file:///c:/Users/Paco/Documents/me-sim/src/app/admin/precios/page.js) con estilos visuales del panel de finanzas (`rounded-2xl`, sombras refinadas, modo oscuro/claro nítido), iconografía plana **Lucide React**, selector multi-divisa (EUR, GBP, USD, AUD) con recálculo dinámico en tiempo real, consolidación a columna única de **Coste Proveedor**, eliminación de la tarjeta redundante de tipo de cambio USD->EUR y botonera jerarquizada con botón verde esmeralda para publicar.
 6. **Resolución Universal de Filtro por Zonas:** Normalización de `mapIsoToRegion` para vincular de forma infalible todos los países e islas del mundo (198 destinos) y paquetes regionales multidestino a sus 14 bloques oficiales (Caribe, Europa, Sudamérica, África, etc.).
+7. **Unificación de Navegación y Cabecera Liberada:**
+   - En [`src/app/admin/AdminLayoutClient.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/admin/AdminLayoutClient.js), simplificación del elemento del menú a **"Precios"** (`Pricing` en EN) en todas las resoluciones (escritorio `xl`, tablet y cajón móvil).
+   - En [`src/app/admin/precios/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/admin/precios/page.js), liberación de la cabecera eliminando la card contenedora envolvente para igualar el patrón exacto de diseño de Finanzas y Clientes (título + selector multi-moneda a ras de lienzo, con barra de acciones/toolbar independiente debajo).
 
 ---
 

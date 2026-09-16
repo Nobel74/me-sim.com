@@ -183,7 +183,7 @@ export default function AdminLayoutClient({ children }) {
     },
     {
       id: 'precios',
-      label: { es: 'Precios y Márgenes', en: 'Pricing & Margins' },
+      label: { es: 'Precios', en: 'Pricing' },
       shortLabel: { es: 'Precios', en: 'Pricing' },
       icon: (
         <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">

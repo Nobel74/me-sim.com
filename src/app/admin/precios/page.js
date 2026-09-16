@@ -372,188 +372,180 @@ export default function AdminPreciosPage() {
   const isDark = theme === 'dark';
 
   return (
-    <div className={`w-full max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 py-6 space-y-6 transition-colors duration-300 ${
+    <div className={`space-y-6 transition-colors duration-300 ${
       isDark ? 'text-zinc-100' : 'text-zinc-900'
     }`}>
 
-      {/* 1. CABECERA PRINCIPAL: Título, Selector de Divisa Global y Acciones Jerarquizadas */}
-      <div className={`rounded-2xl p-5 sm:p-6 border shadow-lg transition-all ${
-        isDark
-          ? 'bg-zinc-900/80 border-zinc-800/80'
-          : 'bg-white border-zinc-200'
-      }`}>
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-          {/* Título y Descripción */}
-          <div className="space-y-1.5">
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className={`text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2.5 ${
-                isDark ? 'text-white' : 'text-zinc-900'
-              }`}>
-                <span className="w-2.5 h-6 bg-[#ffec00] rounded-full inline-block" />
-                {isEs ? 'Directivas de Precios y Márgenes por Zonas' : 'Regional Pricing & Margins Directives'}
-              </h1>
-              <span
-                className={`px-3 py-1 text-xs font-black uppercase tracking-wider rounded-xl border flex items-center gap-1.5 ${
-                  mode === 'draft'
-                    ? isDark
-                      ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
-                      : 'bg-amber-50 text-amber-800 border-amber-300'
-                    : isDark
-                      ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                      : 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                }`}
-              >
-                <span className={`w-2 h-2 rounded-full ${mode === 'draft' ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`} />
-                {mode === 'draft' ? (isEs ? 'Modo Borrador' : 'Draft Mode') : (isEs ? 'En Vivo (Producción)' : 'Live Production')}
-              </span>
-            </div>
-            <p className={`text-xs sm:text-sm font-medium ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
-              {isEs
-                ? 'Audita, simula y ajusta los multiplicadores regionales, el suelo de PVP y la tasa de conversión con cero riesgo en producción.'
-                : 'Audit, simulate and update regional markups, Floor Price and FX conversion rate with zero production risk.'}
-            </p>
-          </div>
-
-          {/* Switcher Global de 4 Monedas Oficiales: EUR, GBP, USD, AUD */}
-          <div className="flex items-center gap-2.5 flex-wrap self-start lg:self-auto">
-            <span className={`text-xs font-bold uppercase tracking-wider hidden sm:inline ${
-              isDark ? 'text-zinc-400' : 'text-zinc-500'
+      {/* 1. CABECERA PRINCIPAL (LIBERADA): Título, Modo y Selector de Divisa Global (Formato idéntico a Finanzas) */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex flex-wrap items-center gap-3 mb-1">
+            <h1 className={`text-2xl sm:text-3xl font-bold tracking-tight ${
+              isDark ? 'text-white' : 'text-zinc-900'
             }`}>
-              {isEs ? 'Ver en Moneda:' : 'Currency View:'}
+              {isEs ? 'Directivas de Precios y Márgenes por Zonas' : 'Regional Pricing & Margins Directives'}
+            </h1>
+            <span
+              className={`px-3 py-1 text-xs font-black uppercase tracking-wider rounded-xl border flex items-center gap-1.5 ${
+                mode === 'draft'
+                  ? isDark
+                    ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                    : 'bg-amber-50 text-amber-800 border-amber-300'
+                  : isDark
+                    ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                    : 'bg-emerald-50 text-emerald-800 border-emerald-300'
+              }`}
+            >
+              <span className={`w-2 h-2 rounded-full ${mode === 'draft' ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`} />
+              {mode === 'draft' ? (isEs ? 'Modo Borrador' : 'Draft Mode') : (isEs ? 'En Vivo (Producción)' : 'Live Production')}
             </span>
-            <div className={`flex items-center p-1 rounded-2xl border shadow-xs ${
-              isDark ? 'bg-zinc-950 border-zinc-800' : 'bg-zinc-100/90 border-zinc-200'
-            }`}>
-              {[
-                { code: 'EUR', symbol: '€', name: isEs ? 'Euros' : 'Euro' },
-                { code: 'GBP', symbol: '£', name: isEs ? 'Libras Esterlinas' : 'British Pound' },
-                { code: 'USD', symbol: '$', name: isEs ? 'Dólares USA' : 'US Dollar' },
-                { code: 'AUD', symbol: 'A$', name: isEs ? 'Dólares AUD' : 'Australian Dollar' },
-              ].map((c) => {
-                const active = selectedCurrency === c.code;
-                return (
-                  <button
-                    key={c.code}
-                    onClick={() => handleCurrencyChange(c.code)}
-                    title={`${c.name} (${c.symbol})`}
-                    className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all duration-200 flex items-center gap-1.5 ${
-                      active
-                        ? 'bg-[#ffec00] text-black shadow-md scale-[1.03]'
-                        : isDark
-                        ? 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
-                        : 'text-zinc-600 hover:text-black hover:bg-white'
-                    }`}
-                  >
-                    <span className="font-mono text-xs opacity-75">{c.symbol}</span>
-                    <span>{c.code}</span>
-                  </button>
-                );
-              })}
-            </div>
+          </div>
+          <p className={`text-xs sm:text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+            {isEs
+              ? 'Audita, simula y ajusta los multiplicadores regionales, el suelo de PVP y la tasa de conversión con cero riesgo en producción.'
+              : 'Audit, simulate and update regional markups, Floor Price and FX conversion rate with zero production risk.'}
+          </p>
+        </div>
+
+        {/* Switcher de 4 Monedas Oficiales: EUR, GBP, USD, AUD (Idéntico a Finanzas) */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className={`text-xs font-bold uppercase tracking-wider hidden sm:inline ${
+            isDark ? 'text-zinc-400' : 'text-zinc-500'
+          }`}>
+            {isEs ? 'Ver en Moneda:' : 'Currency View:'}
+          </span>
+          <div className={`flex items-center p-1 rounded-2xl border shadow-xs ${
+            isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'
+          }`}>
+            {[
+              { code: 'EUR', symbol: '€', name: isEs ? 'Euros' : 'Euro' },
+              { code: 'GBP', symbol: '£', name: isEs ? 'Libras Esterlinas' : 'British Pound' },
+              { code: 'USD', symbol: '$', name: isEs ? 'Dólares USA' : 'US Dollar' },
+              { code: 'AUD', symbol: 'A$', name: isEs ? 'Dólares AUD' : 'Australian Dollar' },
+            ].map((c) => {
+              const active = selectedCurrency === c.code;
+              return (
+                <button
+                  key={c.code}
+                  onClick={() => handleCurrencyChange(c.code)}
+                  title={`${c.name} (${c.symbol})`}
+                  className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all duration-200 flex items-center gap-1.5 ${
+                    active
+                      ? 'bg-[#ffec00] text-black shadow-md scale-[1.03]'
+                      : isDark
+                      ? 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
+                      : 'text-zinc-600 hover:text-black hover:bg-zinc-100'
+                  }`}
+                >
+                  <span className="font-mono text-xs opacity-75">{c.symbol}</span>
+                  <span>{c.code}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Barra de Acciones y Controles (Formato Toolbar unificado idéntico a Clientes) */}
+      <div className={`p-3.5 sm:p-4 rounded-2xl border flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shadow-xs ${
+        isDark ? 'bg-zinc-900/60 border-zinc-800' : 'bg-white border-zinc-200'
+      }`}>
+        {/* Toggle Principal de Estado: Borrador vs En Vivo */}
+        <div className="flex items-center gap-2">
+          <span className={`text-xs font-bold uppercase tracking-wider hidden md:inline ${
+            isDark ? 'text-zinc-400' : 'text-zinc-500'
+          }`}>
+            {isEs ? 'Vista:' : 'View:'}
+          </span>
+          <div className={`flex items-center p-1 rounded-xl border text-xs ${
+            isDark ? 'bg-zinc-950 border-zinc-800' : 'bg-zinc-100 border-zinc-200'
+          }`}>
+            <button
+              onClick={() => setMode('draft')}
+              className={`px-3.5 py-1.5 rounded-lg font-extrabold transition-all flex items-center gap-1.5 ${
+                mode === 'draft'
+                  ? 'bg-[#ffec00] text-black shadow-sm'
+                  : isDark ? 'text-zinc-400 hover:text-white' : 'text-zinc-600 hover:text-black'
+              }`}
+            >
+              <Sliders className="w-3.5 h-3.5" />
+              <span>{isEs ? 'Borrador' : 'Draft'}</span>
+            </button>
+            <button
+              onClick={() => setMode('live')}
+              className={`px-3.5 py-1.5 rounded-lg font-extrabold transition-all flex items-center gap-1.5 ${
+                mode === 'live'
+                  ? 'bg-emerald-500 text-white shadow-sm'
+                  : isDark ? 'text-zinc-400 hover:text-white' : 'text-zinc-600 hover:text-black'
+              }`}
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>{isEs ? 'En Vivo' : 'Live'}</span>
+            </button>
           </div>
         </div>
 
-        {/* Barra de Acciones Jerarquizada */}
-        <div className={`mt-5 pt-4 border-t flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 ${
-          isDark ? 'border-zinc-800/80' : 'border-zinc-200'
-        }`}>
-          {/* Toggle Principal de Estado: Borrador vs En Vivo */}
-          <div className="flex items-center gap-2">
-            <span className={`text-xs font-bold uppercase tracking-wider hidden md:inline ${
-              isDark ? 'text-zinc-400' : 'text-zinc-500'
-            }`}>
-              {isEs ? 'Vista:' : 'View:'}
-            </span>
-            <div className={`flex items-center p-1 rounded-xl border text-xs ${
-              isDark ? 'bg-zinc-950 border-zinc-800' : 'bg-zinc-100 border-zinc-200'
-            }`}>
-              <button
-                onClick={() => setMode('draft')}
-                className={`px-3.5 py-1.5 rounded-lg font-extrabold transition-all flex items-center gap-1.5 ${
-                  mode === 'draft'
-                    ? 'bg-[#ffec00] text-black shadow-sm'
-                    : isDark ? 'text-zinc-400 hover:text-white' : 'text-zinc-600 hover:text-black'
-                }`}
-              >
-                <Sliders className="w-3.5 h-3.5" />
-                <span>{isEs ? 'Borrador' : 'Draft'}</span>
-              </button>
-              <button
-                onClick={() => setMode('live')}
-                className={`px-3.5 py-1.5 rounded-lg font-extrabold transition-all flex items-center gap-1.5 ${
-                  mode === 'live'
-                    ? 'bg-emerald-500 text-white shadow-sm'
-                    : isDark ? 'text-zinc-400 hover:text-white' : 'text-zinc-600 hover:text-black'
-                }`}
-              >
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>{isEs ? 'En Vivo' : 'Live'}</span>
-              </button>
-            </div>
-          </div>
+        {/* Botones de Acción: Secundarios (Outline) + Primario (Verde Destacado) */}
+        <div className="flex flex-wrap items-center justify-end gap-2.5">
+          {/* Botón Secundario: Rollback */}
+          {hasBackup && (
+            <button
+              onClick={handleRollback}
+              disabled={rollingBack || publishing || saving}
+              title={isEs ? 'Restablecer versión anterior desde backup' : 'Rollback to previous backup'}
+              className={`px-3 py-2 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 ${
+                isDark
+                  ? 'border-zinc-700 bg-transparent hover:bg-zinc-800 text-zinc-300 hover:text-white'
+                  : 'border-zinc-300 bg-transparent hover:bg-zinc-100 text-zinc-700 hover:text-black'
+              }`}
+            >
+              <RotateCcw className={`w-3.5 h-3.5 ${rollingBack ? 'animate-spin' : ''}`} />
+              <span>{rollingBack ? (isEs ? 'Revirtiendo...' : 'Rolling back...') : (isEs ? 'Rollback / Revertir' : 'Rollback')}</span>
+            </button>
+          )}
 
-          {/* Botones de Acción: Secundarios (Outline) + Primario (Verde Destacado) */}
-          <div className="flex flex-wrap items-center justify-end gap-2.5">
-            {/* Botón Secundario: Rollback */}
-            {hasBackup && (
+          {/* Botón Secundario: Reset Borrador */}
+          {mode === 'draft' && (
+            <>
               <button
-                onClick={handleRollback}
-                disabled={rollingBack || publishing || saving}
-                title={isEs ? 'Restablecer versión anterior desde backup' : 'Rollback to previous backup'}
+                onClick={handleResetDraft}
+                disabled={saving || publishing}
+                title={isEs ? 'Descartar cambios y sincronizar con En Vivo' : 'Discard changes and sync with Live'}
                 className={`px-3 py-2 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 ${
                   isDark
                     ? 'border-zinc-700 bg-transparent hover:bg-zinc-800 text-zinc-300 hover:text-white'
                     : 'border-zinc-300 bg-transparent hover:bg-zinc-100 text-zinc-700 hover:text-black'
                 }`}
               >
-                <RotateCcw className={`w-3.5 h-3.5 ${rollingBack ? 'animate-spin' : ''}`} />
-                <span>{rollingBack ? (isEs ? 'Revirtiendo...' : 'Rolling back...') : (isEs ? 'Rollback / Revertir' : 'Rollback')}</span>
+                <RefreshCw className={`w-3.5 h-3.5 ${saving ? 'animate-spin' : ''}`} />
+                <span>{isEs ? 'Reset Borrador' : 'Reset Draft'}</span>
               </button>
-            )}
 
-            {/* Botón Secundario: Reset Borrador */}
-            {mode === 'draft' && (
-              <>
-                <button
-                  onClick={handleResetDraft}
-                  disabled={saving || publishing}
-                  title={isEs ? 'Descartar cambios y sincronizar con En Vivo' : 'Discard changes and sync with Live'}
-                  className={`px-3 py-2 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 ${
-                    isDark
-                      ? 'border-zinc-700 bg-transparent hover:bg-zinc-800 text-zinc-300 hover:text-white'
-                      : 'border-zinc-300 bg-transparent hover:bg-zinc-100 text-zinc-700 hover:text-black'
-                  }`}
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${saving ? 'animate-spin' : ''}`} />
-                  <span>{isEs ? 'Reset Borrador' : 'Reset Draft'}</span>
-                </button>
+              {/* Botón Guardar Borrador */}
+              <button
+                onClick={handleSaveDraft}
+                disabled={saving || publishing}
+                className={`px-3.5 py-2 font-extrabold rounded-xl text-xs transition-all shadow-sm flex items-center gap-1.5 ${
+                  isDark
+                    ? 'bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700'
+                    : 'bg-zinc-200 hover:bg-zinc-300 text-zinc-900 border border-zinc-300'
+                }`}
+              >
+                <Save className="w-3.5 h-3.5" />
+                <span>{saving ? (isEs ? 'Guardando...' : 'Saving...') : (isEs ? 'Guardar Borrador' : 'Save Draft')}</span>
+              </button>
+            </>
+          )}
 
-                {/* Botón Guardar Borrador */}
-                <button
-                  onClick={handleSaveDraft}
-                  disabled={saving || publishing}
-                  className={`px-3.5 py-2 font-extrabold rounded-xl text-xs transition-all shadow-sm flex items-center gap-1.5 ${
-                    isDark
-                      ? 'bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700'
-                      : 'bg-zinc-200 hover:bg-zinc-300 text-zinc-900 border border-zinc-300'
-                  }`}
-                >
-                  <Save className="w-3.5 h-3.5" />
-                  <span>{saving ? (isEs ? 'Guardando...' : 'Saving...') : (isEs ? 'Guardar Borrador' : 'Save Draft')}</span>
-                </button>
-              </>
-            )}
-
-            {/* Botón Primario: Publicar a Producción (Destacado en Verde Esmeralda) */}
-            <button
-              onClick={handlePublishLive}
-              disabled={publishing || saving}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl text-xs transition-all shadow-md flex items-center gap-2 active:scale-95 disabled:opacity-50"
-            >
-              <CheckCircle2 className={`w-4 h-4 ${publishing ? 'animate-spin' : ''}`} />
-              <span>{publishing ? (isEs ? 'Publicando...' : 'Publishing...') : (isEs ? 'Publicar a Producción' : 'Publish to Production')}</span>
-            </button>
-          </div>
+          {/* Botón Primario: Publicar a Producción (Destacado en Verde Esmeralda) */}
+          <button
+            onClick={handlePublishLive}
+            disabled={publishing || saving}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl text-xs transition-all shadow-md flex items-center gap-2 active:scale-95 disabled:opacity-50"
+          >
+            <CheckCircle2 className={`w-4 h-4 ${publishing ? 'animate-spin' : ''}`} />
+            <span>{publishing ? (isEs ? 'Publicando...' : 'Publishing...') : (isEs ? 'Publicar a Producción' : 'Publish to Production')}</span>
+          </button>
         </div>
       </div>
 
