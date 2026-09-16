@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { getTranslation, getCountryName } from '../../lib/i18n';
 import { formatCurrency, convertCurrency } from '../../lib/currency';
@@ -9,6 +9,7 @@ import CountryCard from '../../components/CountryCard';
 import RegionCard from '../../components/RegionCard';
 import ModeSwitcher from '../../components/ModeSwitcher';
 import FaqSection from '../../components/FaqSection';
+import LoadingProgressBar from '../../components/LoadingProgressBar';
 
 const PREFERRED_ISO_ORDER = [
   'fr', 'es', 'us', 'cn', 'it', 'tr', 'mx', 'th', 'de', 'gb',
@@ -25,7 +26,6 @@ const REGION_CARDS_DATA = [
     descEn: 'One eSIM from Lisbon to Helsinki',
     badgeEs: '35+ países',
     badgeEn: '35+ countries',
-    priceEur: 4.90,
     flags: ['es', 'fr', 'it', 'de'],
     extraCount: '+31',
   },
@@ -37,7 +37,6 @@ const REGION_CARDS_DATA = [
     descEn: 'Tokyo to Bangkok on a single plan',
     badgeEs: '18 países',
     badgeEn: '18 countries',
-    priceEur: 5.90,
     flags: ['jp', 'th', 'vn', 'kr'],
     extraCount: '+14',
   },
@@ -49,7 +48,6 @@ const REGION_CARDS_DATA = [
     descEn: 'All Gulf states, one eSIM',
     badgeEs: '12 países',
     badgeEn: '12 countries',
-    priceEur: 5.90,
     flags: ['ae', 'sa', 'eg'],
     extraCount: '+9',
   },
@@ -61,7 +59,6 @@ const REGION_CARDS_DATA = [
     descEn: 'USA, Canada & Mexico, connected',
     badgeEs: '3 países',
     badgeEn: '3 countries',
-    priceEur: 4.90,
     flags: ['us', 'ca', 'mx'],
     extraCount: '+0',
   },
@@ -73,7 +70,6 @@ const REGION_CARDS_DATA = [
     descEn: 'One eSIM across 14 destinations',
     badgeEs: '14 países',
     badgeEn: '14 countries',
-    priceEur: 6.90,
     flags: ['br', 'ar', 'co', 'cl'],
     extraCount: '+10',
   },
@@ -85,7 +81,6 @@ const REGION_CARDS_DATA = [
     descEn: 'Explore all islands, no SIM swapping',
     badgeEs: '16 islas',
     badgeEn: '16 islands',
-    priceEur: 6.90,
     flags: ['aw', 'cw', 'jm'],
     extraCount: '+13',
   },
@@ -97,7 +92,6 @@ const REGION_CARDS_DATA = [
     descEn: 'Cairo to Cape Town, covered',
     badgeEs: '26 países',
     badgeEn: '26 countries',
-    priceEur: 7.90,
     flags: ['ma', 'eg', 'ke', 'et'],
     extraCount: '+22',
   },
@@ -109,7 +103,6 @@ const REGION_CARDS_DATA = [
     descEn: 'Total connectivity across the Pacific',
     badgeEs: '8 países',
     badgeEn: '8 countries',
-    priceEur: 5.90,
     flags: ['au', 'nz'],
     extraCount: '+6',
   },
@@ -121,7 +114,6 @@ const REGION_CARDS_DATA = [
     descEn: 'Australia, UK & USA on one single eSIM',
     badgeEs: '3 países',
     badgeEn: '3 countries',
-    priceEur: 4.90,
     flags: ['au', 'gb', 'us'],
     extraCount: null,
   },
@@ -133,7 +125,6 @@ const REGION_CARDS_DATA = [
     descEn: 'Full access to Google, WhatsApp & IG with zero VPN needed',
     badgeEs: 'Sin Cortafuegos',
     badgeEn: 'No Firewall',
-    priceEur: 4.90,
     flags: ['cn', 'hk', 'mo'],
     extraCount: null,
   },
@@ -145,7 +136,6 @@ const REGION_CARDS_DATA = [
     descEn: 'High-tech East Asia triangle connectivity',
     badgeEs: '3 países',
     badgeEn: '3 countries',
-    priceEur: 5.90,
     flags: ['jp', 'kr', 'tw'],
     extraCount: null,
   },
@@ -157,7 +147,6 @@ const REGION_CARDS_DATA = [
     descEn: 'Thailand, Malaysia, Singapore, Indonesia & Vietnam',
     badgeEs: '10 países',
     badgeEn: '10 countries',
-    priceEur: 5.90,
     flags: ['th', 'my', 'sg', 'id', 'vn'],
     extraCount: '+5',
   },
@@ -169,9 +158,19 @@ const REGION_CARDS_DATA = [
     descEn: 'All EU countries & Morocco on a single eSIM',
     badgeEs: '36+ países',
     badgeEn: '36+ countries',
-    priceEur: 4.90,
     flags: ['es', 'fr', 'ma', 'de'],
     extraCount: '+32',
+  },
+  {
+    iso: 'global',
+    nameEs: 'Plan Global Multipaís',
+    nameEn: 'Global Multi-Country Plan',
+    descEs: 'Conectividad total en más de 85 países en una sola eSIM',
+    descEn: 'Total connectivity across 85+ countries on a single eSIM',
+    badgeEs: 'Mundial',
+    badgeEn: 'Worldwide',
+    flags: ['us', 'es', 'jp', 'gb'],
+    extraCount: '+81',
   },
 ];
 
@@ -250,19 +249,40 @@ export default function HomePreviewPage() {
   }, []);
 
   const getMinPriceDisplay = () => {
-    if (!plans || plans.length === 0) return currency === 'EUR' ? '2.90 €' : '£2.89';
+    if (!plans || plans.length === 0) return currency === 'EUR' ? '4.26 €' : '£4.25';
     const minEur = Math.min(...plans.map((p) => p.priceEur || p.price || 999));
-    if (minEur === 999) return currency === 'EUR' ? '2.90 €' : '£2.89';
+    if (minEur === 999) return currency === 'EUR' ? '4.26 €' : '£4.25';
     const converted = convertCurrency(minEur, currency, rates);
     return formatCurrency(converted, currency);
   };
 
   const localPlansMap = new Map();
   plans.forEach((plan) => {
-    if (plan.iso && !plan.is_region && !localPlansMap.has(plan.iso)) {
-      localPlansMap.set(plan.iso, plan);
+    if (plan.iso && !plan.is_region) {
+      const existing = localPlansMap.get(plan.iso);
+      if (!existing || (plan.priceEur || plan.price) < (existing.priceEur || existing.price)) {
+        localPlansMap.set(plan.iso, plan);
+      }
     }
   });
+
+  const regionMinPriceMap = useMemo(() => {
+    const map = new Map();
+    if (!plans || plans.length === 0) return map;
+    for (const p of plans) {
+      if (p.is_region) {
+        const iso = (p.iso || '').toLowerCase();
+        const price = typeof p.priceEur === 'number' ? p.priceEur : (typeof p.price === 'number' ? p.price : null);
+        if (price !== null && !isNaN(price)) {
+          const current = map.get(iso);
+          if (current === undefined || price < current) {
+            map.set(iso, price);
+          }
+        }
+      }
+    }
+    return map;
+  }, [plans]);
 
   const orderedLocalPlans = PREFERRED_ISO_ORDER
     .map((iso) => localPlansMap.get(iso))
@@ -387,34 +407,55 @@ export default function HomePreviewPage() {
 
         {/* MODE 1: LOCAL */}
         {mode === 'local' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 landscape:grid-cols-2 sm:landscape:grid-cols-3 lg:landscape:grid-cols-3 xl:landscape:grid-cols-4 gap-4 sm:gap-5 mb-16">
-            {filteredLocalPlans.map((plan) => (
-              <CountryCard
-                key={plan.id}
-                iso={plan.iso}
-                countryName={getCountryName(plan.iso, lang, plan.country)}
-                priceEur={plan.priceEur}
-                lang={lang}
-                currency={currency}
-                rates={rates}
-              />
-            ))}
-          </div>
+          plans.length === 0 ? (
+            <LoadingProgressBar
+              lang={lang}
+              isDark={false}
+              messageEs="Cargando planes..."
+              messageEn="Loading plans..."
+            />
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 landscape:grid-cols-2 sm:landscape:grid-cols-3 lg:landscape:grid-cols-3 xl:landscape:grid-cols-4 gap-4 sm:gap-5 mb-16">
+              {filteredLocalPlans.map((plan) => (
+                <CountryCard
+                  key={plan.id}
+                  iso={plan.iso}
+                  countryName={getCountryName(plan.iso, lang, plan.country)}
+                  priceEur={plan.priceEur}
+                  lang={lang}
+                  currency={currency}
+                  rates={rates}
+                />
+              ))}
+            </div>
+          )
         )}
 
         {/* MODE 2: REGIONAL */}
         {mode === 'regional' && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-            {REGION_CARDS_DATA.map((reg) => (
-              <RegionCard
-                key={reg.iso}
-                regionData={reg}
-                lang={lang}
-                currency={currency}
-                rates={rates}
-              />
-            ))}
-          </div>
+          plans.length === 0 ? (
+            <LoadingProgressBar
+              lang={lang}
+              isDark={false}
+              messageEs="Cargando planes..."
+              messageEn="Loading plans..."
+            />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+              {REGION_CARDS_DATA.map((reg) => {
+                const dynamicPrice = regionMinPriceMap.get(reg.iso);
+                return (
+                  <RegionCard
+                    key={reg.iso}
+                    regionData={{ ...reg, priceEur: dynamicPrice }}
+                    lang={lang}
+                    currency={currency}
+                    rates={rates}
+                  />
+                );
+              })}
+            </div>
+          )
         )}
       </div>
 

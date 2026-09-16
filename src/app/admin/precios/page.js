@@ -23,6 +23,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { getExchangeRates } from '../../../lib/currency';
+import LoadingProgressBar from '../../../components/LoadingProgressBar';
 
 const REGION_LABELS = {
   'europe': { es: 'Europa (35+ Países)', en: 'Europe (35+ Countries)' },
@@ -368,7 +369,7 @@ export default function AdminPreciosPage() {
 
       // 3. Filtros rápidos
       if (quickFilter === 'floor') {
-        return p.isFloorApplied === true;
+        return p.isFloorApplied === true || p.isMinProfitApplied === true;
       }
       if (quickFilter === 'variation') {
         return Math.abs(p.variationPct || 0) >= 20;
@@ -960,11 +961,13 @@ export default function AdminPreciosPage() {
             }`}>
               {loading ? (
                 <tr>
-                  <td colSpan={9} className={`py-12 text-center font-bold ${isDark ? 'text-zinc-300' : 'text-zinc-600'}`}>
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="w-7 h-7 border-3 border-[#ffec00] border-t-transparent rounded-full animate-spin" />
-                      <span>{isEs ? 'Cargando planes comerciales de ME-SIM...' : 'Loading commercial plans from ME-SIM...'}</span>
-                    </div>
+                  <td colSpan={9} className="py-8">
+                    <LoadingProgressBar
+                      lang={lang}
+                      isDark={isDark}
+                      messageEs="Cargando planes..."
+                      messageEn="Loading plans..."
+                    />
                   </td>
                 </tr>
               ) : filteredPlans.length === 0 ? (
@@ -1093,6 +1096,15 @@ export default function AdminPreciosPage() {
                           }`}>
                             <Shield className="w-3 h-3" />
                             <span>Floor ({formatMoney(rules.floorPriceEur, selectedCurrency)})</span>
+                          </span>
+                        ) : p.isMinProfitApplied ? (
+                          <span className={`px-2 py-0.5 rounded text-[11px] font-black whitespace-nowrap border inline-flex items-center gap-1 ${
+                            isDark
+                              ? 'bg-blue-500/20 text-blue-300 border-blue-500/50'
+                              : 'bg-blue-100 text-blue-900 border-blue-300'
+                          }`}>
+                            <TrendingUp className="w-3 h-3" />
+                            <span>Margen Mín. (+{formatMoney(rules.minProfitNetEur || 1.50, selectedCurrency)})</span>
                           </span>
                         ) : (
                           <span className={`px-2 py-0.5 rounded text-[11px] font-black whitespace-nowrap border inline-flex items-center gap-1 ${

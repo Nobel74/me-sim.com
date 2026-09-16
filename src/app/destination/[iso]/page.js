@@ -9,6 +9,7 @@ import FixedPlanList from '../../../components/FixedPlanList';
 import SingleCalendar from '../../../components/SingleCalendar';
 import CompatibilityModal from '../../../components/CompatibilityModal';
 import SeoMeta from '../../../components/SeoMeta';
+import LoadingProgressBar from '../../../components/LoadingProgressBar';
 
 const DESTINATION_IMAGES = {
   es: 'https://images.unsplash.com/photo-1543783207-ec64e4d95325?q=80&w=1000&auto=format&fit=crop',
@@ -488,7 +489,14 @@ export default function DestinationPage() {
           </button>
         </div>
 
-        {activeTab === 'fixed' && (
+        {plans.length === 0 ? (
+          <LoadingProgressBar
+            lang={lang}
+            isDark={false}
+            messageEs="Cargando planes..."
+            messageEn="Loading plans..."
+          />
+        ) : activeTab === 'fixed' ? (
           <FixedPlanList
             fixedPlans={fixedPlans}
             selectedPlanId={selectedPlanId}
@@ -500,9 +508,7 @@ export default function DestinationPage() {
             handleAddToCartFixed={handleAddToCartFixed}
             onOpenCompatibility={() => setIsCompModalOpen(true)}
           />
-        )}
-
-        {activeTab === 'unlimited' && (
+        ) : (
           <div className="max-w-2xl mx-auto">
             <SingleCalendar
               lang={lang}

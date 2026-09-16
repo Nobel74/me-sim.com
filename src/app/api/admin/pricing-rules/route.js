@@ -60,7 +60,7 @@ export async function GET(request) {
 
         countryTiers.forEach((tier) => {
           const tierCostEur = parseFloat((baseCostEur * tier.mult).toFixed(2));
-          const tierCostUsd = parseFloat((tierCostEur / (liveRules.usdToEurRate || 0.926)).toFixed(2));
+          const tierCostUsd = tierCostEur / (liveRules.usdToEurRate || 0.926);
 
           const livePricing = computePlanPricing(tierCostUsd, effectiveRegion, liveRules);
           const draftPricing = computePlanPricing(tierCostUsd, effectiveRegion, draftRules);
@@ -81,7 +81,7 @@ export async function GET(request) {
             region: effectiveRegion,
             dataAmount: tier.dataAmount,
             days: tier.days,
-            costUsd: tierCostUsd,
+            costUsd: parseFloat(tierCostUsd.toFixed(2)),
             costEur: selectedPricing.costEur,
             costGbp: selectedPricing.costGbp,
             costAud: selectedPricing.costAud,
@@ -91,6 +91,7 @@ export async function GET(request) {
             pvpGbp: selectedPricing.pvpGbp,
             pvpAud: selectedPricing.pvpAud,
             isFloorApplied: selectedPricing.isFloorApplied,
+            isMinProfitApplied: selectedPricing.isMinProfitApplied,
             vat21: selectedPricing.vat21,
             baseImponible: selectedPricing.baseImponible,
             stripeFee: selectedPricing.stripeFee,
@@ -121,14 +122,27 @@ export async function GET(request) {
         { iso: 'global', nameEs: 'Global Multidestino (130+ Países)', nameEn: 'Global Multi-destination', region: 'global', baseEur: 9.90 },
       ];
 
+      const regionTiers = [
+        { dataAmount: '500 MB / Día', days: 1, mult: 0.60 },
+        { dataAmount: '1 GB Total', days: 7, mult: 1.00 },
+        { dataAmount: '3 GB Total', days: 15, mult: 1.80 },
+        { dataAmount: '5 GB Total', days: 30, mult: 2.50 },
+        { dataAmount: '10 GB Total', days: 30, mult: 3.80 },
+        { dataAmount: '15 GB Total', days: 30, mult: 4.80 },
+        { dataAmount: '20 GB Total', days: 30, mult: 5.80, isBestChoice: true },
+        { dataAmount: '30 GB Total', days: 30, mult: 7.50 },
+        { dataAmount: '50 GB Total', days: 30, mult: 10.00 },
+        { dataAmount: '100 GB Total', days: 30, mult: 15.00 },
+      ];
+
       regionMeta.forEach((r) => {
         const pIso = r.iso.toLowerCase();
         const effectiveRegion = r.region;
         const baseCostEur = r.baseEur || 5.90;
 
-        countryTiers.forEach((tier) => {
+        regionTiers.forEach((tier) => {
           const tierCostEur = parseFloat((baseCostEur * tier.mult).toFixed(2));
-          const tierCostUsd = parseFloat((tierCostEur / (liveRules.usdToEurRate || 0.926)).toFixed(2));
+          const tierCostUsd = tierCostEur / (liveRules.usdToEurRate || 0.926);
 
           const livePricing = computePlanPricing(tierCostUsd, effectiveRegion, liveRules);
           const draftPricing = computePlanPricing(tierCostUsd, effectiveRegion, draftRules);
@@ -149,7 +163,7 @@ export async function GET(request) {
             region: effectiveRegion,
             dataAmount: tier.dataAmount,
             days: tier.days,
-            costUsd: tierCostUsd,
+            costUsd: parseFloat(tierCostUsd.toFixed(2)),
             costEur: selectedPricing.costEur,
             costGbp: selectedPricing.costGbp,
             costAud: selectedPricing.costAud,
@@ -159,6 +173,7 @@ export async function GET(request) {
             pvpGbp: selectedPricing.pvpGbp,
             pvpAud: selectedPricing.pvpAud,
             isFloorApplied: selectedPricing.isFloorApplied,
+            isMinProfitApplied: selectedPricing.isMinProfitApplied,
             vat21: selectedPricing.vat21,
             baseImponible: selectedPricing.baseImponible,
             stripeFee: selectedPricing.stripeFee,

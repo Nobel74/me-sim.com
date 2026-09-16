@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getTranslation, ALL_WORLD_COUNTRIES, getRegionName, getCountryName } from '../../lib/i18n';
 import { formatCurrency, convertCurrency } from '../../lib/currency';
 import { matchesCountryQuery } from '../../lib/searchUtils';
 import CountryCard from '../../components/CountryCard';
+import LoadingProgressBar from '../../components/LoadingProgressBar';
 
 const HERO_RANDOM_BACKGROUNDS = [
   { url: 'https://images.unsplash.com/photo-1543783207-ec64e4d95325?q=80&w=1200&auto=format&fit=crop', nameEs: 'España & Marruecos', nameEn: 'Spain & Morocco' },
@@ -94,10 +95,27 @@ export default function AllDestinationsPage() {
     };
   }, []);
 
+  const countryMinPriceMap = useMemo(() => {
+    const map = new Map();
+    if (!plans || plans.length === 0) return map;
+    for (const p of plans) {
+      const iso = (p.iso || '').toLowerCase();
+      if (!iso) continue;
+      const price = typeof p.priceEur === 'number' ? p.priceEur : (typeof p.price === 'number' ? p.price : null);
+      if (price !== null && !isNaN(price)) {
+        const current = map.get(iso);
+        if (current === undefined || price < current) {
+          map.set(iso, price);
+        }
+      }
+    }
+    return map;
+  }, [plans]);
+
   const getMinPriceDisplay = () => {
-    if (!plans || plans.length === 0) return currency === 'EUR' ? '2.90 €' : '£2.89';
+    if (!plans || plans.length === 0) return currency === 'EUR' ? '4.26 €' : '£4.25';
     const minEur = Math.min(...plans.map((p) => p.priceEur || p.price || 999));
-    if (minEur === 999) return currency === 'EUR' ? '2.90 €' : '£2.89';
+    if (minEur === 999) return currency === 'EUR' ? '4.26 €' : '£4.25';
     const converted = convertCurrency(minEur, currency, rates);
     return formatCurrency(converted, currency);
   };
@@ -111,18 +129,13 @@ export default function AllDestinationsPage() {
     ? ALL_WORLD_COUNTRIES
         .filter((country) => matchesCountryQuery(country.iso, searchTerm, lang))
         .map((country) => {
-          const iso = country.iso;
-          const matchingPlans = plans.filter((p) => (p.iso || '').toLowerCase() === iso);
-          let safePrice = country.baseEur || 4.90;
-          if (matchingPlans.length > 0) {
-            const minPrice = Math.min(...matchingPlans.map((p) => p.priceEur));
-            if (isFinite(minPrice)) safePrice = minPrice;
-          }
+          const iso = (country.iso || '').toLowerCase();
+          const dynamicPrice = countryMinPriceMap.get(iso) ?? (iso === 'es' ? 4.26 : country.baseEur || 4.90);
 
           return {
             iso,
             countryName: getCountryName(iso, lang, country.nameEs),
-            minPriceEur: safePrice,
+            minPriceEur: dynamicPrice,
           };
         })
         .slice(0, 8)
@@ -384,7 +397,14 @@ export default function AllDestinationsPage() {
       </div>
 
       {/* 4-Column Responsive Grid consuming modular CountryCard */}
-      {filteredCountries.length === 0 ? (
+      {plans.length === 0 ? (
+        <LoadingProgressBar
+          lang={lang}
+          isDark={false}
+          messageEs="Cargando destinos..."
+          messageEn="Loading destinations..."
+        />
+      ) : filteredCountries.length === 0 ? (
         <div id="destinations-grid" className="scroll-mt-24 bg-white rounded-3xl border border-zinc-200 p-12 text-center">
           <p className="text-zinc-600 font-semibold text-xl mb-3">{t.noResults}</p>
           <button
@@ -399,17 +419,21 @@ export default function AllDestinationsPage() {
         </div>
       ) : (
         <div id="destinations-grid" className="scroll-mt-24 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 landscape:grid-cols-2 sm:landscape:grid-cols-3 lg:landscape:grid-cols-3 xl:landscape:grid-cols-4 gap-4 sm:gap-5 mb-16">
-          {filteredCountries.map((country) => (
-            <CountryCard
-              key={country.iso}
-              iso={country.iso}
-              countryName={lang === 'en' ? country.nameEn : country.nameEs}
-              priceEur={country.baseEur}
-              lang={lang}
-              currency={currency}
-              rates={rates}
-            />
-          ))}
+          {filteredCountries.map((country) => {
+            const iso = (country.iso || '').toLowerCase();
+            const dynamicPrice = countryMinPriceMap.get(iso) ?? (iso === 'es' ? 4.26 : country.baseEur);
+            return (
+              <CountryCard
+                key={country.iso}
+                iso={country.iso}
+                countryName={lang === 'en' ? country.nameEn : country.nameEs}
+                priceEur={dynamicPrice}
+                lang={lang}
+                currency={currency}
+                rates={rates}
+              />
+            );
+          })}
         </div>
       )}
     </div>

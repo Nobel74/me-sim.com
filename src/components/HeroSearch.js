@@ -81,7 +81,7 @@ export default function HeroSearch({ lang = 'es', currency = 'EUR', rates = {}, 
   const popularDestinations = PREFERRED_ISO_ORDER.map((iso) => {
     const matchingPlans = plans.filter((p) => (p.iso || '').toLowerCase() === iso);
     const minPrice = Math.min(...matchingPlans.map((p) => p.priceEur));
-    const safePrice = isFinite(minPrice) ? minPrice : 2.90;
+    const safePrice = isFinite(minPrice) ? minPrice : (iso === 'es' ? 4.26 : 4.90);
     return { iso, priceEur: safePrice };
   });
 
@@ -91,7 +91,7 @@ export default function HeroSearch({ lang = 'es', currency = 'EUR', rates = {}, 
         .map((country) => {
           const iso = country.iso;
           const matchingPlans = plans.filter((p) => (p.iso || '').toLowerCase() === iso);
-          let safePrice = country.baseEur || 4.90;
+          let safePrice = iso === 'es' ? 4.26 : (country.baseEur || 4.90);
           if (matchingPlans.length > 0) {
             const minPrice = Math.min(...matchingPlans.map((p) => p.priceEur));
             if (isFinite(minPrice)) safePrice = minPrice;

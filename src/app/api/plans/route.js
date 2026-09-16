@@ -164,6 +164,7 @@ export async function GET(request) {
         priceGbp: pricing.pvpGbp,
         priceAud: pricing.pvpAud,
         isFloorApplied: pricing.isFloorApplied,
+        isMinProfitApplied: pricing.isMinProfitApplied,
         markupMultiplier: pricing.multiplier,
       };
     });

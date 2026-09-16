@@ -516,7 +516,8 @@ export function computePlanPricing(costUsd, regionKey, customRules = null) {
   const floorPrice = parseFloat(rules.floorPriceEur) || 2.90;
   const pvpFinal = Math.max(floorPrice, pvpBase, requiredPvpForProfit);
 
-  const isFloorApplied = pvpFinal > pvpBase;
+  const isFloorApplied = Math.abs(pvpFinal - floorPrice) < 0.001;
+  const isMinProfitApplied = Math.abs(pvpFinal - requiredPvpForProfit) < 0.001 && pvpFinal > pvpBase && !isFloorApplied;
 
   // Desglose fiscal y comisiones
   const baseImponible = parseFloat((pvpFinal / 1.21).toFixed(2));
@@ -545,6 +546,7 @@ export function computePlanPricing(costUsd, regionKey, customRules = null) {
     pvpGbp,
     pvpAud,
     isFloorApplied,
+    isMinProfitApplied,
     vat21,
     baseImponible,
     stripeFee,

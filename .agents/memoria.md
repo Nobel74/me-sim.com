@@ -1,11 +1,25 @@
 # 📝 Memoria del Proyecto y Bitácora de Sesiones - ME-SIM.COM
 
-## 📅 Última Actualización: 16 de Septiembre de 2026 - 08:45 CEST
+## 📅 Última Actualización: 16 de Septiembre de 2026 - 13:00 CEST
 
 ---
 
-### 📌 Resumen de la Sesión Actual
-En esta sesión se desarrolló e implementó de extremo a extremo el **Módulo de Gestión Dinámica de Precios y Márgenes por Región** (`/admin/precios`), junto con su auditoría matemática, sincronización comercial con el catálogo público (`/destination/[iso]`), selector global multi-divisa dinámico, refactorización visual alineada al 100% con el **Panel de Finanzas** (`/admin/finanzas`) y unificación de cabeceras liberadas y nomenclatura de menú.
+### 📌 Resumen de la Sesión Actual: Sincronización de Precios Regionales (Europa 5.78 €), Cero Mocks y Barra de Carga Dinámica
+En esta sesión se abordaron y resolvieron de forma integral las peticiones del usuario:
+1. **Unificación y Sincronización de Precios Regionales (Europa 5.78 €):**
+   - Se diagnosticó la discrepancia en Europa: en la ficha de producto (`/destination/europe`) el precio legítimo es **5.78 €** (calculado con `regionTiers` mult 0.60, margen Europa 1.85× y redondeo .x8). En `/admin/precios` mostraba 5.72 € porque iteraba sobre los tiers de países en vez de los 10 tiers de regiones.
+   - Se corrigió [`/api/admin/pricing-rules/route.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/api/admin/pricing-rules/route.js) implementando `regionTiers`, garantizando que en el panel de administración Europa refleje exactamente **5.78 €**.
+2. **Cumplimiento Estricto de Cero Mocks en Tarjetas de Regiones:**
+   - Se eliminaron todos los precios hardcodeados de `REGION_CARDS_DATA` en [`src/app/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/page.js) y [`src/app/home-preview/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/home-preview/page.js).
+   - Se implementó `regionMinPriceMap` para leer los precios de las regiones directamente y en tiempo real de la API `/api/plans`, mostrando en la Home **`desde 5.78 €`** para Europa y el mínimo dinámico real para cada región.
+3. **Componente de Barra de Carga con Porcentaje y Bilingüe (`LoadingProgressBar.js`):**
+   - Creado en [`src/components/LoadingProgressBar.js`](file:///c:/Users/Paco/Documents/me-sim/src/components/LoadingProgressBar.js) con acento amarillo corporativo `#ffec00`.
+   - Cumple con la directiva visual de frontend: **borde gris oscuro en modo claro y borde gris claro en modo oscuro**.
+   - Muestra contador numérico fluido de `0%` a `100%` y texto superior bilingüe (`"Cargando planes..."` / `"Loading plans..."`).
+   - Integrado en: Home (`/` y `/home-preview`), Catálogo de Destinos (`/destinations`), Ficha de Producto (`/destination/[iso]`) y Panel de Precios (`/admin/precios`).
+4. **Verificación de Compilación para Vercel y Control de Calidad (QA):**
+   - Se ejecutó `npm run build` con Next.js 14.2.35 completando exitosamente (`✓ Compiled successfully`, `✓ Generating static pages (45/45)` con 0 errores).
+   - Suite de pruebas de integración [`scratch/test-qa-regions-and-loader.ps1`](file:///c:/Users/Paco/Documents/me-sim/scratch/test-qa-regions-and-loader.ps1) superada al 100% (0 fallos).
 
 #### Objetivos Clave Completados:
 1. **Auditoría Financiera y Normativa:** Detección de la bajada de tarifas de StrongeSIM y creación del documento maestro normativo [`docs/DIRECTIVAS_PRECIOS_Y_MARGENES.md`](file:///c:/Users/Paco/Documents/me-sim/docs/DIRECTIVAS_PRECIOS_Y_MARGENES.md).

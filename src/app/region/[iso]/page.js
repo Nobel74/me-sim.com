@@ -159,7 +159,15 @@ export default function RegionPage() {
   }
 
   // Find cheapest price in this region
-  const minPriceEur = regionCountries.reduce((min, c) => Math.min(min, c.baseEur || 4.90), 4.90);
+  let minPriceEur = regionCountries.reduce((min, c) => Math.min(min, c.iso === 'es' ? 4.26 : (c.baseEur || 4.90)), 4.90);
+  if (plans && plans.length > 0) {
+    const regionIsos = new Set(regionCountries.map((c) => c.iso.toLowerCase()));
+    const matchingPlans = plans.filter((p) => regionIsos.has((p.iso || '').toLowerCase()));
+    if (matchingPlans.length > 0) {
+      const minPlan = Math.min(...matchingPlans.map((p) => p.priceEur || p.price || 999));
+      if (minPlan !== 999 && isFinite(minPlan)) minPriceEur = minPlan;
+    }
+  }
   const displayMinPrice = convertCurrency(minPriceEur, currency, rates);
 
   return (
@@ -251,8 +259,12 @@ export default function RegionPage() {
       {/* Grid of Individual Country Cards in this Region */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 landscape:grid-cols-2 sm:landscape:grid-cols-3 lg:landscape:grid-cols-3 xl:landscape:grid-cols-4 gap-4 sm:gap-5 mb-16">
         {regionCountries.map((c) => {
-          const matchingPlan = plans.find((p) => (p.iso || '').toLowerCase() === c.iso);
-          const safePrice = matchingPlan ? matchingPlan.priceEur : (c.baseEur || 4.90);
+          const countryPlans = plans.filter((p) => (p.iso || '').toLowerCase() === c.iso.toLowerCase());
+          let safePrice = c.iso === 'es' ? 4.26 : (c.baseEur || 4.90);
+          if (countryPlans.length > 0) {
+            const minPlanPrice = Math.min(...countryPlans.map((p) => p.priceEur || p.price || 999));
+            if (minPlanPrice !== 999 && isFinite(minPlanPrice)) safePrice = minPlanPrice;
+          }
 
           return (
             <CountryCard
