@@ -17,6 +17,10 @@ En esta sesión se desarrolló e implementó de extremo a extremo el **Módulo d
 7. **Unificación de Navegación y Cabecera Liberada:**
    - En [`src/app/admin/AdminLayoutClient.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/admin/AdminLayoutClient.js), simplificación del elemento del menú a **"Precios"** (`Pricing` en EN) en todas las resoluciones (escritorio `xl`, tablet y cajón móvil).
    - En [`src/app/admin/precios/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/admin/precios/page.js), liberación de la cabecera eliminando la card contenedora envolvente para igualar el patrón exacto de diseño de Finanzas y Clientes (título + selector multi-moneda a ras de lienzo, con barra de acciones/toolbar independiente debajo).
+8. **Blindaje Serverless en Vercel (Persistencia en WooCommerce & Memoria Viva):**
+   - Resolución del error 500 al guardar borrador en producción causado por el sistema de archivos de solo lectura de Vercel (`EROFS: read-only file system`).
+   - Implementación de persistencia multi-capa en [`src/lib/pricingRules.js`](file:///c:/Users/Paco/Documents/me-sim/src/lib/pricingRules.js): sincronización persistente con WooCommerce MySQL (`customers/45` en `mesim_pricing_rules_draft`, `mesim_pricing_rules` y `mesim_pricing_rules_backup`), fallback de disco a `/tmp` y memoria viva para respuestas a velocidad de microsegundo.
+   - Normalización universal de comas decimales (`val.replace(',', '.')`) en inputs de la UI y funciones de validación.
 
 ---
 

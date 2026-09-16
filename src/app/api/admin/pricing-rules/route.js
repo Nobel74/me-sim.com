@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { getAdminSessionFromRequest } from '../../../../lib/adminAuth';
 import {
   getPricingRules,
+  getPricingRulesAsync,
   saveDraftPricingRules,
   publishDraftToLive,
   rollbackToBackup,
@@ -27,8 +28,8 @@ export async function GET(request) {
   const mode = searchParams.get('mode') || 'draft';
   const includeSample = searchParams.get('includeSample') === 'true';
 
-  const liveRules = getPricingRules('live');
-  const draftRules = getPricingRules('draft');
+  const liveRules = await getPricingRulesAsync('live');
+  const draftRules = await getPricingRulesAsync('draft');
   const currentRules = mode === 'live' ? liveRules : draftRules;
 
   let samplePlans = [];
@@ -196,7 +197,7 @@ export async function POST(request) {
     const action = body.action || 'save_draft';
 
     if (action === 'rollback') {
-      const rollbackResult = rollbackToBackup(session.email || 'admin');
+      const rollbackResult = await rollbackToBackup(session.email || 'admin');
       if (rollbackResult.success) {
         try {
           revalidatePath('/api/plans');
@@ -211,22 +212,23 @@ export async function POST(request) {
     }
 
     if (action === 'reset_draft') {
-      const live = getPricingRules('live');
-      writeAtomicJson(DRAFT_RULES_FILE, {
+      const live = await getPricingRulesAsync('live');
+      const resetPayload = {
         ...live,
         updatedAt: new Date().toISOString(),
         updatedBy: `${session.email}_reset`,
-      });
+      };
+      writeAtomicJson(DRAFT_RULES_FILE, resetPayload);
       return NextResponse.json({
         success: true,
         message: 'Borrador restablecido a partir de la configuración En Vivo.',
-        rules: live,
+        rules: resetPayload,
       });
     }
 
     // Por defecto: guardar borrador
     const rulesToSave = body.rules || body;
-    const saveResult = saveDraftPricingRules(rulesToSave, session.email || 'admin');
+    const saveResult = await saveDraftPricingRules(rulesToSave, session.email || 'admin');
     if (saveResult.success) {
       return NextResponse.json({
         success: true,
@@ -237,6 +239,7 @@ export async function POST(request) {
 
     return NextResponse.json({ success: false, message: saveResult.error }, { status: 400 });
   } catch (err) {
+    console.error('POST /api/admin/pricing-rules error:', err);
     return NextResponse.json({ success: false, message: 'Error procesando solicitud', error: err.message }, { status: 500 });
   }
 }
@@ -248,7 +251,7 @@ export async function PUT(request) {
   }
 
   try {
-    const publishResult = publishDraftToLive(session.email || 'admin');
+    const publishResult = await publishDraftToLive(session.email || 'admin');
     if (publishResult.success) {
       // Forzar invalidación de caché en toda la plataforma
       try {
@@ -264,6 +267,7 @@ export async function PUT(request) {
 
     return NextResponse.json({ success: false, message: publishResult.error }, { status: 400 });
   } catch (err) {
+    console.error('PUT /api/admin/pricing-rules error:', err);
     return NextResponse.json({ success: false, message: 'Error publicando reglas a producción', error: err.message }, { status: 500 });
   }
 }

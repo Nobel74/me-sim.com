@@ -39,51 +39,145 @@ export const CURRENCY_RATES = {
   EUR_TO_AUD: 1.645,
 };
 
+// Caché en memoria para entorno Serverless / Edge y alta velocidad
+let memoryLiveRules = null;
+let memoryDraftRules = null;
+let memoryBackupRules = null;
+
 /**
- * Asegura que la carpeta config/ exista
+ * Asegura que la carpeta config/ exista si el disco lo permite
  */
 function ensureConfigDir() {
-  if (!fs.existsSync(CONFIG_DIR)) {
-    fs.mkdirSync(CONFIG_DIR, { recursive: true });
+  try {
+    if (!fs.existsSync(CONFIG_DIR)) {
+      fs.mkdirSync(CONFIG_DIR, { recursive: true });
+    }
+  } catch (_) {
+    // Entorno de sólo lectura en Vercel
   }
 }
 
 /**
- * Escritura Atómica en Disco: escribe a un archivo temporal y renombra atómicamente.
- * Evita lecturas concurrentes de JSON incompleto o corrupto.
+ * Escritura Atómica y Segura:
+ * 1. Intenta escribir en filePath local.
+ * 2. Si el sistema de archivos es de sólo lectura (Vercel Serverless EROFS), recurre a /tmp.
+ * 3. En Windows, si renameSync falla con EPERM, realiza copia directa segura.
  */
 export function writeAtomicJson(filePath, data) {
-  ensureConfigDir();
   const serialized = JSON.stringify(data, null, 2);
-  const tempPath = `${filePath}.tmp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-  fs.writeFileSync(tempPath, serialized, 'utf-8');
-  fs.renameSync(tempPath, filePath);
+
+  // 1. Intento en directorio de configuración local
+  try {
+    ensureConfigDir();
+    const tempPath = `${filePath}.tmp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    fs.writeFileSync(tempPath, serialized, 'utf-8');
+    try {
+      fs.renameSync(tempPath, filePath);
+    } catch (renameErr) {
+      fs.copyFileSync(tempPath, filePath);
+      try { fs.unlinkSync(tempPath); } catch (_) {}
+    }
+    return true;
+  } catch (localErr) {
+    // 2. Fallback a /tmp en entornos Serverless (AWS Lambda / Vercel)
+    try {
+      const fileName = path.basename(filePath);
+      const tmpPath = path.join('/tmp', fileName);
+      fs.writeFileSync(tmpPath, serialized, 'utf-8');
+      return true;
+    } catch (tmpErr) {
+      console.warn('writeAtomicJson: Escritura omitida (entorno seguro en memoria):', tmpErr.message);
+      return false;
+    }
+  }
 }
 
 /**
- * Sanitización y validación estricta de rangos financieros
+ * Sincronización con WooCommerce (base de datos persistente en la nube de ME-SIM)
+ */
+async function syncPricingToWooCommerce(metaKey, data) {
+  try {
+    const rawWcUrl = process.env.WOOCOMMERCE_API_URL || process.env.NEXT_PUBLIC_WC_API_URL || 'https://api.me-sim.com';
+    const wcUrl = rawWcUrl.split('/wp-json')[0].replace(/\/$/, '');
+    const ck = process.env.WOOCOMMERCE_CONSUMER_KEY || process.env.WC_CONSUMER_KEY || 'ck_ebbe1fdf83a8fa6be4659946bc71a9b1a227854b';
+    const cs = process.env.WOOCOMMERCE_CONSUMER_SECRET || process.env.WC_CONSUMER_SECRET || 'cs_b5b62eb3636ce242e1ab7e8db77365660ef5e190';
+
+    if (ck && cs) {
+      const authHeader = 'Basic ' + Buffer.from(`${ck}:${cs}`).toString('base64');
+      await fetch(`${wcUrl}/wp-json/wc/v3/customers/45`, {
+        method: 'PUT',
+        headers: {
+          Authorization: authHeader,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          meta_data: [{ key: metaKey, value: JSON.stringify(data) }],
+        }),
+      });
+    }
+  } catch (err) {
+    console.warn(`syncPricingToWooCommerce (${metaKey}) failed:`, err.message);
+  }
+}
+
+async function fetchPricingFromWooCommerce(metaKey) {
+  try {
+    const rawWcUrl = process.env.WOOCOMMERCE_API_URL || process.env.NEXT_PUBLIC_WC_API_URL || 'https://api.me-sim.com';
+    const wcUrl = rawWcUrl.split('/wp-json')[0].replace(/\/$/, '');
+    const ck = process.env.WOOCOMMERCE_CONSUMER_KEY || process.env.WC_CONSUMER_KEY || 'ck_ebbe1fdf83a8fa6be4659946bc71a9b1a227854b';
+    const cs = process.env.WOOCOMMERCE_CONSUMER_SECRET || process.env.WC_CONSUMER_SECRET || 'cs_b5b62eb3636ce242e1ab7e8db77365660ef5e190';
+
+    if (ck && cs) {
+      const authHeader = 'Basic ' + Buffer.from(`${ck}:${cs}`).toString('base64');
+      const res = await fetch(`${wcUrl}/wp-json/wc/v3/customers/45`, {
+        headers: { Authorization: authHeader },
+        cache: 'no-store',
+      });
+      if (res.ok) {
+        const customer = await res.json();
+        const meta = (customer.meta_data || []).find((m) => m.key === metaKey);
+        if (meta && meta.value) {
+          const parsed = typeof meta.value === 'string' ? JSON.parse(meta.value) : meta.value;
+          return parsed;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn(`fetchPricingFromWooCommerce (${metaKey}) failed:`, err.message);
+  }
+  return null;
+}
+
+/**
+ * Sanitización y validación estricta de rangos financieros (tolerante a comas decimales)
  */
 export function validatePricingRules(rules) {
   if (!rules || typeof rules !== 'object') {
     return { valid: false, error: 'La estructura de reglas de precios no es válida.' };
   }
 
-  const rate = parseFloat(rules.usdToEurRate);
+  const parseSafeFloat = (v) => {
+    if (v === null || v === undefined) return NaN;
+    const str = String(v).trim().replace(',', '.');
+    return parseFloat(str);
+  };
+
+  const rate = parseSafeFloat(rules.usdToEurRate);
   if (isNaN(rate) || rate < 0.70 || rate > 1.30) {
     return { valid: false, error: `usdToEurRate (${rules.usdToEurRate}) debe situarse entre 0.70 y 1.30.` };
   }
 
-  const floor = parseFloat(rules.floorPriceEur);
+  const floor = parseSafeFloat(rules.floorPriceEur);
   if (isNaN(floor) || floor < 2.50 || floor > 10.00) {
     return { valid: false, error: `floorPriceEur (${rules.floorPriceEur}) debe situarse entre 2.50 y 10.00 €.` };
   }
 
-  const minProfit = parseFloat(rules.minProfitNetEur);
+  const minProfit = parseSafeFloat(rules.minProfitNetEur);
   if (isNaN(minProfit) || minProfit < 0.50 || minProfit > 10.00) {
     return { valid: false, error: `minProfitNetEur (${rules.minProfitNetEur}) debe situarse entre 0.50 y 10.00 €.` };
   }
 
-  const fallbackMarkup = parseFloat(rules.defaultFallbackMarkup);
+  const fallbackMarkup = parseSafeFloat(rules.defaultFallbackMarkup);
   if (isNaN(fallbackMarkup) || fallbackMarkup < 1.00 || fallbackMarkup > 5.00) {
     return { valid: false, error: `defaultFallbackMarkup (${rules.defaultFallbackMarkup}) debe situarse entre 1.00 y 5.00.` };
   }
@@ -93,7 +187,7 @@ export function validatePricingRules(rules) {
   }
 
   for (const [regionKey, val] of Object.entries(rules.regionMarkups)) {
-    const markupNum = parseFloat(val);
+    const markupNum = parseSafeFloat(val);
     if (isNaN(markupNum) || markupNum < 1.00 || markupNum > 5.00) {
       return { valid: false, error: `El multiplicador para la región '${regionKey}' (${val}) debe situarse entre 1.00 y 5.00.` };
     }
@@ -114,71 +208,134 @@ export function logPricingAudit(adminId, action, details) {
       action,
       details,
     };
-    fs.appendFileSync(AUDIT_LOG_FILE, JSON.stringify(entry) + '\n', 'utf-8');
+    try {
+      fs.appendFileSync(AUDIT_LOG_FILE, JSON.stringify(entry) + '\n', 'utf-8');
+    } catch (_) {
+      try {
+        const tmpAudit = path.join('/tmp', 'pricing-audit.log');
+        fs.appendFileSync(tmpAudit, JSON.stringify(entry) + '\n', 'utf-8');
+      } catch (__) {}
+    }
   } catch (err) {
     console.error('Error al registrar auditoría de precios:', err);
   }
 }
 
 /**
- * Obtiene las reglas de precios (live o draft).
- * Si el archivo no existe, lo inicializa de forma segura con DEFAULT_PRICING_RULES.
+ * Obtiene las reglas de precios de forma síncrona (live o draft).
+ * Consulta primero la memoria viva, luego /tmp, luego disco local y por último defaults.
  */
 export function getPricingRules(mode = 'live') {
-  ensureConfigDir();
-  const targetFile = mode === 'draft' ? DRAFT_RULES_FILE : LIVE_RULES_FILE;
+  if (mode === 'draft' && memoryDraftRules) return memoryDraftRules;
+  if (mode === 'live' && memoryLiveRules) return memoryLiveRules;
 
+  const targetFile = mode === 'draft' ? DRAFT_RULES_FILE : LIVE_RULES_FILE;
+  const tmpFile = path.join('/tmp', path.basename(targetFile));
+
+  // 1. Probar en /tmp (Serverless)
+  try {
+    if (fs.existsSync(tmpFile)) {
+      const content = fs.readFileSync(tmpFile, 'utf-8');
+      const parsed = JSON.parse(content);
+      const result = {
+        ...DEFAULT_PRICING_RULES,
+        ...parsed,
+        regionMarkups: { ...DEFAULT_PRICING_RULES.regionMarkups, ...(parsed.regionMarkups || {}) },
+      };
+      if (mode === 'draft') memoryDraftRules = result;
+      else memoryLiveRules = result;
+      return result;
+    }
+  } catch (_) {}
+
+  // 2. Probar en config/ local
   try {
     if (fs.existsSync(targetFile)) {
       const content = fs.readFileSync(targetFile, 'utf-8');
       const parsed = JSON.parse(content);
-      return {
+      const result = {
         ...DEFAULT_PRICING_RULES,
         ...parsed,
-        regionMarkups: {
-          ...DEFAULT_PRICING_RULES.regionMarkups,
-          ...(parsed.regionMarkups || {}),
-        },
+        regionMarkups: { ...DEFAULT_PRICING_RULES.regionMarkups, ...(parsed.regionMarkups || {}) },
       };
+      if (mode === 'draft') memoryDraftRules = result;
+      else memoryLiveRules = result;
+      return result;
     }
-  } catch (err) {
-    console.error(`Error leyendo ${targetFile}:`, err.message);
-  }
+  } catch (_) {}
 
-  // Inicializar si no existe
-  try {
-    writeAtomicJson(targetFile, DEFAULT_PRICING_RULES);
-  } catch (e) {
-    console.warn(`No se pudo inicializar ${targetFile}:`, e.message);
-  }
-
-  return DEFAULT_PRICING_RULES;
+  // 3. Fallback a valores por defecto
+  const fallback = { ...DEFAULT_PRICING_RULES };
+  if (mode === 'draft') memoryDraftRules = fallback;
+  else memoryLiveRules = fallback;
+  return fallback;
 }
 
 /**
- * Guarda reglas en borrador tras validar rangos
+ * Obtiene las reglas sincronizadas con WooCommerce Cloud
  */
-export function saveDraftPricingRules(draftRules, adminId = 'admin') {
+export async function getPricingRulesAsync(mode = 'live') {
+  const current = getPricingRules(mode);
+  const metaKey = mode === 'draft' ? 'mesim_pricing_rules_draft' : 'mesim_pricing_rules';
+
+  try {
+    const cloudRules = await fetchPricingFromWooCommerce(metaKey);
+    if (cloudRules && cloudRules.regionMarkups) {
+      const merged = {
+        ...DEFAULT_PRICING_RULES,
+        ...cloudRules,
+        regionMarkups: {
+          ...DEFAULT_PRICING_RULES.regionMarkups,
+          ...(cloudRules.regionMarkups || {}),
+        },
+      };
+      if (mode === 'draft') memoryDraftRules = merged;
+      else memoryLiveRules = merged;
+      writeAtomicJson(mode === 'draft' ? DRAFT_RULES_FILE : LIVE_RULES_FILE, merged);
+      return merged;
+    }
+  } catch (err) {
+    console.warn(`getPricingRulesAsync (${mode}) fallback to memory:`, err.message);
+  }
+
+  return current;
+}
+
+/**
+ * Guarda reglas en borrador tras validar rangos y persiste en memoria, disco y WooCommerce
+ */
+export async function saveDraftPricingRules(draftRules, adminId = 'admin') {
   const validation = validatePricingRules(draftRules);
   if (!validation.valid) {
     return { success: false, error: validation.error };
   }
 
+  const parseSafeFloat = (v) => parseFloat(String(v ?? '').trim().replace(',', '.'));
+
   const sanitized = {
-    floorPriceEur: parseFloat(Number(draftRules.floorPriceEur).toFixed(2)),
-    minProfitNetEur: parseFloat(Number(draftRules.minProfitNetEur).toFixed(2)),
-    usdToEurRate: parseFloat(Number(draftRules.usdToEurRate).toFixed(4)),
-    defaultFallbackMarkup: parseFloat(Number(draftRules.defaultFallbackMarkup).toFixed(2)),
+    floorPriceEur: parseFloat(parseSafeFloat(draftRules.floorPriceEur).toFixed(2)),
+    minProfitNetEur: parseFloat(parseSafeFloat(draftRules.minProfitNetEur).toFixed(2)),
+    usdToEurRate: parseFloat(parseSafeFloat(draftRules.usdToEurRate).toFixed(4)),
+    defaultFallbackMarkup: parseFloat(parseSafeFloat(draftRules.defaultFallbackMarkup).toFixed(2)),
     regionMarkups: {},
     updatedAt: new Date().toISOString(),
     updatedBy: adminId,
   };
 
   for (const [k, v] of Object.entries(draftRules.regionMarkups || {})) {
-    sanitized.regionMarkups[k] = parseFloat(Number(v).toFixed(2));
+    sanitized.regionMarkups[k] = parseFloat(parseSafeFloat(v).toFixed(2));
   }
 
+  // 1. Guardar en memoria viva
+  memoryDraftRules = sanitized;
+
+  // 2. Guardar en disco / tmp
   writeAtomicJson(DRAFT_RULES_FILE, sanitized);
+
+  // 3. Persistir en WooCommerce
+  await syncPricingToWooCommerce('mesim_pricing_rules_draft', sanitized);
+
+  // 4. Log de auditoría
   logPricingAudit(adminId, 'SAVE_DRAFT', { keysUpdated: Object.keys(sanitized.regionMarkups).length });
 
   return { success: true, rules: sanitized };
@@ -187,36 +344,37 @@ export function saveDraftPricingRules(draftRules, adminId = 'admin') {
 /**
  * Publica el borrador a producción:
  * 1. Valida borrador.
- * 2. Guarda backup de las reglas vivas actuales.
- * 3. Escribe atómicamente a config/pricing-rules.json.
+ * 2. Guarda backup.
+ * 3. Escribe a producción (memoria, disco/tmp y WooCommerce).
  * 4. Registra auditoría.
  */
-export function publishDraftToLive(adminId = 'admin') {
+export async function publishDraftToLive(adminId = 'admin') {
   const draftRules = getPricingRules('draft');
   const validation = validatePricingRules(draftRules);
   if (!validation.valid) {
     return { success: false, error: `El borrador contiene errores: ${validation.error}` };
   }
 
-  // 1. Crear copia de seguridad de las reglas vivas actuales
+  // 1. Crear backup de la configuración en vivo actual
   const currentLive = getPricingRules('live');
-  try {
-    writeAtomicJson(BACKUP_RULES_FILE, {
-      ...currentLive,
-      backupCreatedAt: new Date().toISOString(),
-      backupCreatedBy: adminId,
-    });
-  } catch (err) {
-    console.error('Error creando backup de precios:', err);
-  }
+  const backupPayload = {
+    ...currentLive,
+    backupCreatedAt: new Date().toISOString(),
+    backupCreatedBy: adminId,
+  };
+  memoryBackupRules = backupPayload;
+  writeAtomicJson(BACKUP_RULES_FILE, backupPayload);
+  await syncPricingToWooCommerce('mesim_pricing_rules_backup', backupPayload);
 
-  // 2. Escribir atómicamente a producción
+  // 2. Publicar a vivo
   const livePayload = {
     ...draftRules,
     publishedAt: new Date().toISOString(),
     publishedBy: adminId,
   };
+  memoryLiveRules = livePayload;
   writeAtomicJson(LIVE_RULES_FILE, livePayload);
+  await syncPricingToWooCommerce('mesim_pricing_rules', livePayload);
 
   // 3. Registrar auditoría
   logPricingAudit(adminId, 'PUBLISH_LIVE', {
@@ -229,45 +387,50 @@ export function publishDraftToLive(adminId = 'admin') {
 }
 
 /**
- * Restaura la versión anterior desde config/pricing-rules.backup.json
+ * Restaura la versión anterior desde backup
  */
-export function rollbackToBackup(adminId = 'admin') {
-  if (!fs.existsSync(BACKUP_RULES_FILE)) {
+export async function rollbackToBackup(adminId = 'admin') {
+  let backupData = memoryBackupRules;
+  if (!backupData && fs.existsSync(BACKUP_RULES_FILE)) {
+    try {
+      backupData = JSON.parse(fs.readFileSync(BACKUP_RULES_FILE, 'utf-8'));
+    } catch (_) {}
+  }
+  const tmpBackup = path.join('/tmp', path.basename(BACKUP_RULES_FILE));
+  if (!backupData && fs.existsSync(tmpBackup)) {
+    try {
+      backupData = JSON.parse(fs.readFileSync(tmpBackup, 'utf-8'));
+    } catch (_) {}
+  }
+  if (!backupData) {
+    backupData = await fetchPricingFromWooCommerce('mesim_pricing_rules_backup');
+  }
+
+  if (!backupData) {
     return { success: false, error: 'No existe ninguna copia de seguridad previa para realizar Rollback.' };
   }
 
-  try {
-    const backupContent = fs.readFileSync(BACKUP_RULES_FILE, 'utf-8');
-    const backupData = JSON.parse(backupContent);
+  memoryLiveRules = backupData;
+  memoryDraftRules = backupData;
+  writeAtomicJson(LIVE_RULES_FILE, backupData);
+  writeAtomicJson(DRAFT_RULES_FILE, backupData);
+  await syncPricingToWooCommerce('mesim_pricing_rules', backupData);
+  await syncPricingToWooCommerce('mesim_pricing_rules_draft', backupData);
 
-    const validation = validatePricingRules(backupData);
-    if (!validation.valid) {
-      return { success: false, error: 'El archivo de backup está corrupto o no supera validaciones.' };
-    }
+  logPricingAudit(adminId, 'ROLLBACK_TO_BACKUP', { restoredFrom: backupData.backupCreatedAt });
 
-    const restoredPayload = {
-      ...backupData,
-      restoredAt: new Date().toISOString(),
-      restoredBy: adminId,
-    };
-
-    writeAtomicJson(LIVE_RULES_FILE, restoredPayload);
-    // Sincronizar también el borrador con la versión restaurada
-    writeAtomicJson(DRAFT_RULES_FILE, restoredPayload);
-
-    logPricingAudit(adminId, 'ROLLBACK_TO_BACKUP', { restoredFrom: backupData.backupCreatedAt });
-
-    return { success: true, rules: restoredPayload };
-  } catch (err) {
-    return { success: false, error: `Fallo al procesar rollback: ${err.message}` };
-  }
+  return { success: true, rules: backupData };
 }
 
 /**
- * Verifica si existe copia de respaldo disponible
+ * Comprueba si hay backup disponible
  */
 export function hasBackupAvailable() {
-  return fs.existsSync(BACKUP_RULES_FILE);
+  if (memoryBackupRules) return true;
+  if (fs.existsSync(BACKUP_RULES_FILE)) return true;
+  const tmpBackup = path.join('/tmp', path.basename(BACKUP_RULES_FILE));
+  if (fs.existsSync(tmpBackup)) return true;
+  return false;
 }
 
 /**

@@ -135,9 +135,10 @@ export default function AdminPreciosPage() {
     fetchRulesAndPlans(mode);
   }, [mode]);
 
-  // Manejador de cambio en inputs numéricos
+  // Manejador de cambio en inputs numéricos (soporta coma y punto decimal)
   const handleMarkupChange = (key, val) => {
-    const num = parseFloat(val);
+    const cleanStr = String(val ?? '').replace(',', '.');
+    const num = parseFloat(cleanStr);
     setRules((prev) => ({
       ...prev,
       regionMarkups: {
@@ -148,7 +149,8 @@ export default function AdminPreciosPage() {
   };
 
   const handleGlobalParamChange = (field, val) => {
-    const num = parseFloat(val);
+    const cleanStr = String(val ?? '').replace(',', '.');
+    const num = parseFloat(cleanStr);
     setRules((prev) => ({
       ...prev,
       [field]: isNaN(num) ? val : num,
@@ -174,7 +176,8 @@ export default function AdminPreciosPage() {
         });
         fetchRulesAndPlans(mode);
       } else {
-        setFeedback({ type: 'error', message: data.message || data.error });
+        const errorMsg = data.error ? `${data.message || 'Error'}: ${data.error}` : (data.message || data.error || 'Error al guardar');
+        setFeedback({ type: 'error', message: errorMsg });
       }
     } catch (err) {
       setFeedback({ type: 'error', message: err.message });
@@ -201,6 +204,9 @@ export default function AdminPreciosPage() {
           message: lang === 'es' ? 'Borrador sincronizado con producción.' : 'Draft synchronized with live production.',
         });
         fetchRulesAndPlans(mode);
+      } else {
+        const errorMsg = data.error ? `${data.message || 'Error'}: ${data.error}` : (data.message || data.error || 'Error al restablecer');
+        setFeedback({ type: 'error', message: errorMsg });
       }
     } catch (err) {
       setFeedback({ type: 'error', message: err.message });
@@ -241,7 +247,8 @@ export default function AdminPreciosPage() {
         });
         fetchRulesAndPlans(mode);
       } else {
-        setFeedback({ type: 'error', message: data.message || data.error });
+        const errorMsg = data.error ? `${data.message || 'Error'}: ${data.error}` : (data.message || data.error || 'Error al publicar');
+        setFeedback({ type: 'error', message: errorMsg });
       }
     } catch (err) {
       setFeedback({ type: 'error', message: err.message });
@@ -272,11 +279,14 @@ export default function AdminPreciosPage() {
         setLiveRules(data.rules);
         setFeedback({
           type: 'success',
-          message: lang === 'es' ? 'Rollback ejecutado con éxito. Tarifas anteriores restauradas.' : 'Rollback successful. Previous pricing restored.',
+          message: lang === 'es'
+            ? '¡Rollback completado con éxito! Se han restaurado las tarifas anteriores en producción.'
+            : 'Rollback completed successfully! Previous production rates restored.',
         });
         fetchRulesAndPlans(mode);
       } else {
-        setFeedback({ type: 'error', message: data.message || data.error });
+        const errorMsg = data.error ? `${data.message || 'Error'}: ${data.error}` : (data.message || data.error || 'Error al revertir');
+        setFeedback({ type: 'error', message: errorMsg });
       }
     } catch (err) {
       setFeedback({ type: 'error', message: err.message });
