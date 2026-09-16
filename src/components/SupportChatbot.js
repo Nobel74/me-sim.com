@@ -29,7 +29,7 @@ const CHAT_DATABASE = {
         ]
       },
       unlimited_fup: {
-        text: "⚡ **Información sobre Planes con Datos Ilimitados y Política de Uso Justo (FUP):**\\n\\n• **Cobertura y Datos Continuos:** Conéctate con datos de alta velocidad en redes locales 4G/LTE/5G. No cortamos tu conexión; siempre tendrás acceso garantizado.\\n\\n• **Política de Uso Justo (FUP):** Los planes ilimitados incluyen **2 GB al día** a máxima velocidad. Si los superas, la velocidad se ajusta temporalmente a **1 Mbps**, permitiendo seguir enviando mensajes, usando WhatsApp, mapas y navegación básica. Se restablece cada 24 horas.\\n\\n• **Ideal para viajeros:** Diseñado para navegación diaria, redes sociales, streaming moderado y videollamadas. No recomendado para descargas masivas o sustitución de fibra doméstica.\\n\\n• **Paga solo los días exactos:** Elige los días que realmente dura tu viaje sin pagar semanas de más.\\n\\n¿Tienes alguna otra duda sobre nuestros planes ilimitados?",
+        text: "⚡ **Información sobre Planes con Datos Ilimitados y Política de Uso Justo (FUP):**\n\n• **Cobertura y Datos Continuos:** Conéctate con datos de alta velocidad en redes locales 4G/LTE/5G. No cortamos tu conexión; siempre tendrás acceso garantizado.\n\n• **Política de Uso Justo (FUP):** Los planes ilimitados incluyen **2 GB al día** a máxima velocidad. Si los superas, la velocidad se ajusta temporalmente a **1 Mbps**, permitiendo seguir enviando mensajes, usando WhatsApp, mapas y navegación básica. Se restablece cada 24 horas.\n\n• **Ideal para viajeros:** Diseñado para navegación diaria, redes sociales, streaming moderado y videollamadas. No recomendado para descargas masivas o sustitución de fibra doméstica.\n\n• **Paga solo los días exactos:** Elige los días que realmente dura tu viaje sin pagar semanas de más.\n\n¿Tienes alguna otra duda sobre nuestros planes ilimitados?",
         options: [
           { text: "Entendido, gracias", next: "solved_success" },
           { text: "Comprobar compatibilidad", next: "compatibility" },
@@ -238,7 +238,7 @@ const CHAT_DATABASE = {
         ]
       },
       unlimited_fup: {
-        text: "⚡ **Unlimited Data Plans & Fair Usage Policy (FUP) Information:**\\n\\n• **Continuous Coverage & High-Speed Data:** Connect seamlessly on local 4G/LTE/5G partner networks. We never cut your connection off completely.\\n\\n• **Fair Usage Policy (FUP):** Unlimited plans include **2 GB per day** at high speed. If reached, speed adjusts to **1 Mbps** for continued messaging, maps, and essential browsing, resetting every 24 hours.\\n\\n• **Designed for Travelers:** Perfect for daily navigation, social media, moderate streaming, and video calls. Not intended for heavy file downloading or replacing home broadband.\\n\\n• **Pay only for exact days:** Choose the precise duration of your trip without paying for unused days.\\n\\nDid this clarify your questions regarding unlimited plans?",
+        text: "⚡ **Unlimited Data Plans & Fair Usage Policy (FUP) Information:**\n\n• **Continuous Coverage & High-Speed Data:** Connect seamlessly on local 4G/LTE/5G partner networks. We never cut your connection off completely.\n\n• **Fair Usage Policy (FUP):** Unlimited plans include **2 GB per day** at high speed. If reached, speed adjusts to **1 Mbps** for continued messaging, maps, and essential browsing, resetting every 24 hours.\n\n• **Designed for Travelers:** Perfect for daily navigation, social media, moderate streaming, and video calls. Not intended for heavy file downloading or replacing home broadband.\n\n• **Pay only for exact days:** Choose the precise duration of your trip without paying for unused days.\n\nDid this clarify your questions regarding unlimited plans?",
         options: [
           { text: "All clear, thank you", next: "solved_success" },
           { text: "Check compatibility", next: "compatibility" },
@@ -418,6 +418,183 @@ const CHAT_DATABASE = {
   }
 };
 
+// Renderizador y formateador visual para respuestas del bot con alta legibilidad
+function BotMessageContent({ text }) {
+  if (!text) return null;
+
+  // 1. Normalizar saltos de línea escapados
+  const normalized = text.replace(/\\n/g, '\n').trim();
+
+  // 2. Función para parsear negritas (**texto**), cursivas (*texto*) y correos/enlaces
+  const renderInline = (str) => {
+    if (!str) return null;
+    const regex = /(\*\*[^*]+\*\*|\*[^*]+\*|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
+    const parts = [];
+    let lastIdx = 0;
+    let match;
+
+    while ((match = regex.exec(str)) !== null) {
+      if (match.index > lastIdx) {
+        parts.push(str.slice(lastIdx, match.index));
+      }
+      const token = match[0];
+      if (token.startsWith('**') && token.endsWith('**')) {
+        parts.push(
+          <strong key={match.index} className="font-bold text-zinc-950">
+            {token.slice(2, -2)}
+          </strong>
+        );
+      } else if (token.startsWith('*') && token.endsWith('*')) {
+        parts.push(
+          <em key={match.index} className="italic text-zinc-600 font-medium">
+            {token.slice(1, -1)}
+          </em>
+        );
+      } else if (token.includes('@')) {
+        parts.push(
+          <a
+            key={match.index}
+            href={`mailto:${token}`}
+            className="text-black font-semibold underline hover:text-[#ffec00] transition-colors"
+          >
+            {token}
+          </a>
+        );
+      }
+      lastIdx = regex.lastIndex;
+    }
+    if (lastIdx < str.length) {
+      parts.push(str.slice(lastIdx));
+    }
+    return parts.length > 0 ? parts : str;
+  };
+
+  // 3. Dividir en bloques separados por doble salto de línea
+  const blocks = normalized.split(/\n{2,}/);
+
+  return (
+    <div className="space-y-3 font-sans">
+      {blocks.map((block, bIdx) => {
+        const trimmedBlock = block.trim();
+        if (!trimmedBlock) return null;
+
+        // Caso A: Título / Cabecera destacada con emoji (⚡ o 💡)
+        if (trimmedBlock.startsWith('⚡') || trimmedBlock.startsWith('💡')) {
+          return (
+            <div
+              key={bIdx}
+              className="bg-amber-50/90 border border-amber-200/90 rounded-xl px-3.5 py-2.5 text-zinc-900 shadow-3xs"
+            >
+              <div className="text-xs sm:text-sm font-semibold leading-snug">
+                {renderInline(trimmedBlock)}
+              </div>
+            </div>
+          );
+        }
+
+        // Caso B: Nota o advertencia destacada (*Nota:* o *Note:* o *IMPORTANTE:*)
+        if (
+          trimmedBlock.startsWith('*Nota:') ||
+          trimmedBlock.startsWith('*Note:') ||
+          trimmedBlock.startsWith('*IMPORTANTE:') ||
+          trimmedBlock.startsWith('*IMPORTANT:')
+        ) {
+          return (
+            <div
+              key={bIdx}
+              className="bg-zinc-100/90 border-l-[3px] border-[#ffec00] rounded-r-xl px-3 py-2 text-xs sm:text-sm text-zinc-700 leading-relaxed"
+            >
+              {renderInline(trimmedBlock)}
+            </div>
+          );
+        }
+
+        const lines = trimmedBlock.split('\n').map((l) => l.trim()).filter(Boolean);
+
+        // Caso C: Lista de viñetas (líneas con • o - o *)
+        const isBulletList = lines.length > 0 && lines.every((l) => /^[•\-\*]\s+/.test(l));
+        if (isBulletList) {
+          return (
+            <ul key={bIdx} className="space-y-2.5 py-0.5">
+              {lines.map((line, lIdx) => {
+                const clean = line.replace(/^[•\-\*]\s+/, '');
+                return (
+                  <li key={lIdx} className="flex items-start gap-2.5 text-xs sm:text-sm leading-relaxed">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#ffec00] border border-black/30 mt-1.5 flex-shrink-0" />
+                    <span className="text-zinc-800 flex-1">{renderInline(clean)}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          );
+        }
+
+        // Caso D: Lista numerada (1. , 2. , etc.) o pasos guiados con sub-viñetas
+        const hasNumberedItems = lines.some((l) => /^\d+\.\s+/.test(l));
+        if (hasNumberedItems) {
+          return (
+            <div key={bIdx} className="space-y-2.5 py-0.5">
+              {lines.map((line, lIdx) => {
+                const stepMatch = line.match(/^(\d+)\.\s*(.*)/s);
+                if (stepMatch) {
+                  const [, num, content] = stepMatch;
+                  return (
+                    <div key={lIdx} className="flex items-start gap-2.5 text-xs sm:text-sm pt-1">
+                      <span className="w-5 h-5 rounded-full bg-black text-[#ffec00] text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5 shadow-3xs">
+                        {num}
+                      </span>
+                      <span className="text-zinc-800 font-medium leading-snug flex-1">
+                        {renderInline(content)}
+                      </span>
+                    </div>
+                  );
+                }
+
+                // Sub-viñeta dentro del paso numerado
+                const isSubBullet = /^[•\-\*]\s+/.test(line);
+                if (isSubBullet) {
+                  const cleanSub = line.replace(/^[•\-\*]\s+/, '');
+                  return (
+                    <div key={lIdx} className="flex items-start gap-2 pl-7 text-xs sm:text-sm text-zinc-700">
+                      <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 mt-1.5 flex-shrink-0" />
+                      <span className="leading-relaxed flex-1">{renderInline(cleanSub)}</span>
+                    </div>
+                  );
+                }
+
+                return (
+                  <p key={lIdx} className="text-xs sm:text-sm text-zinc-800 leading-relaxed pl-1">
+                    {renderInline(line)}
+                  </p>
+                );
+              })}
+            </div>
+          );
+        }
+
+        // Caso E: Párrafo normal o bloque con saltos de línea simples
+        if (lines.length > 1) {
+          return (
+            <div key={bIdx} className="space-y-1.5">
+              {lines.map((line, lIdx) => (
+                <p key={lIdx} className="text-xs sm:text-sm text-zinc-800 leading-relaxed">
+                  {renderInline(line)}
+                </p>
+              ))}
+            </div>
+          );
+        }
+
+        return (
+          <p key={bIdx} className="text-xs sm:text-sm text-zinc-800 leading-relaxed">
+            {renderInline(trimmedBlock)}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function SupportChatbot() {
   const [lang, setLang] = useState('es');
   const [isOpen, setIsOpen] = useState(false);
@@ -579,7 +756,7 @@ export default function SupportChatbot() {
 
       {/* Ventana de Conversación del Asistente */}
       {isOpen && (
-        <div className="fixed bottom-20 right-4 sm:right-6 w-[calc(100vw-32px)] sm:w-96 max-h-[500px] h-[500px] bg-white rounded-3xl border border-zinc-200 shadow-2xl flex flex-col z-50 overflow-hidden animate-scale-in font-sans">
+        <div className="fixed bottom-20 right-4 sm:right-6 w-[calc(100vw-32px)] sm:w-[410px] max-h-[540px] h-[540px] bg-white rounded-3xl border border-zinc-200 shadow-2xl flex flex-col z-50 overflow-hidden animate-scale-in font-sans">
           
           {/* Header del Chatbot */}
           <div className="bg-black text-white px-5 py-4 flex items-center justify-between border-b border-zinc-800">
@@ -614,13 +791,17 @@ export default function SupportChatbot() {
               <div key={msg.id} className="space-y-2">
                 <div className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div
-                    className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-3xs ${
+                    className={`rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-3xs ${
                       msg.sender === 'user'
-                        ? 'bg-black text-white rounded-br-none font-medium'
-                        : 'bg-white text-zinc-800 border border-zinc-200/90 rounded-bl-none font-sans whitespace-pre-line'
+                        ? 'max-w-[85%] bg-black text-white rounded-br-none font-medium'
+                        : 'max-w-[94%] sm:max-w-[90%] bg-white text-zinc-800 border border-zinc-200/90 rounded-bl-none font-sans'
                     }`}
                   >
-                    {msg.text}
+                    {msg.sender === 'bot' ? (
+                      <BotMessageContent text={msg.text} />
+                    ) : (
+                      msg.text
+                    )}
                   </div>
                 </div>
 

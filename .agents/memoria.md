@@ -1,12 +1,21 @@
 # 📝 Memoria del Proyecto y Bitácora de Sesiones - ME-SIM.COM
 
-## 📅 Última Actualización: 16 de Septiembre de 2026 - 13:50 CEST
+## 📅 Última Actualización: 16 de Septiembre de 2026 - 13:58 CEST
 
 ---
 
-### 📌 Resumen de la Sesión Actual: Unificación Tipográfica Legal (1.125rem) y T&C Bilingüe
+### 📌 Resumen de la Sesión Actual: Formateo Visual Premium del Chatbot, Unificación Tipográfica Legal y T&C Bilingüe
 En esta sesión se desarrollaron e integraron los requerimientos solicitados por el usuario:
-1. **Tipografía Unificada en Todas las Páginas de Información Legal (`font-size: 1.125rem;`):**
+1. **Formateo y Renderizado Visual de Respuestas del Chatbot (`SupportChatbot.js`):**
+   - En [`src/components/SupportChatbot.js`](file:///c:/Users/Paco/Documents/me-sim/src/components/SupportChatbot.js), se implementó el componente dedicado `BotMessageContent`:
+     - Normalización de saltos de línea (resolución de `\n\n` y eliminación de strings escapados `\\n`).
+     - Banners/cabeceras destacadas para avisos con iconos temáticos (⚡, 💡) en tarjetas con acento y fondo cálido.
+     - Listas con viñetas estructuradas con puntos de acento amarillo corporativo (`#ffec00`) y títulos en negrita destacados.
+     - Pasos numerados secuenciales con insignias circulares negras y amarillas.
+     - Destacados para notas y avisos (`*Nota:*`, `*IMPORTANTE:*`) con borde lateral amarillo.
+     - Formateo enriquecido de negritas (`**texto**`), cursivas y enlaces de correo electrónico directos (`info@me-sim.com`).
+     - Ampliación de dimensiones del contenedor flotante a `sm:w-[410px] max-h-[540px]` y burbujas de mensaje al 90-94% para mayor desahogo de lectura y navegación fluida en móvil y escritorio.
+2. **Tipografía Unificada en Todas las Páginas de Información Legal (`font-size: 1.125rem;`):**
    - En [`src/app/globals.css`](file:///c:/Users/Paco/Documents/me-sim/src/app/globals.css), se estableció formalmente la regla `font-size: 1.125rem;` en `.wp-content p`, `.legal-content p`, `.wp-content li` y `.legal-content li`.
    - Se estandarizó la clase contenedora a `text-[1.125rem] leading-relaxed` en las 8 páginas de información legal (ES y EN):
      1. [`src/app/condiciones-de-servicio/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/condiciones-de-servicio/page.js)
