@@ -10,6 +10,7 @@ import SingleCalendar from '../../../components/SingleCalendar';
 import CompatibilityModal from '../../../components/CompatibilityModal';
 import SeoMeta from '../../../components/SeoMeta';
 import LoadingProgressBar from '../../../components/LoadingProgressBar';
+import UnlimitedPlanInfo from '../../../components/UnlimitedPlanInfo';
 
 const DESTINATION_IMAGES = {
   es: 'https://images.unsplash.com/photo-1543783207-ec64e4d95325?q=80&w=1000&auto=format&fit=crop',
@@ -817,6 +818,9 @@ export default function DestinationPage() {
           </div>
         </div>
       </div>
+
+      {/* Unlimited Plans & Fair Use Policy Section */}
+      <UnlimitedPlanInfo countryName={countryName} lang={lang} />
 
       {/* Why ME-SIM Section */}
       <div className="bg-white rounded-3xl border border-zinc-200 p-4 sm:p-10 shadow-xl space-y-6 sm:space-y-8 text-center">

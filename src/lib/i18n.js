@@ -436,6 +436,16 @@ export const dictionary = {
     bytesUsed: "consumidos de",
     qrTitle: "Código QR de Instalación",
     installationNote: "Instala tu perfil eSIM escaneando este código desde Ajustes > Datos Móviles > Añadir plan de datos",
+    unlimited_spain_info: {
+      section1_title: "eSIM Ilimitada para España: qué es y qué esperar",
+      section1_text: "Una eSIM ilimitada para España te mantiene conectado durante todo tu viaje sin depender de un paquete de datos fijo que pueda agotarse. En lugar de comprar, por ejemplo, 10 GB y ver cómo se consumen, obtienes una cuota de alta velocidad que se renueva cada día, para que puedas usar mapas, mensajería, redes sociales, correo electrónico y llamadas por datos desde el momento en que aterrizas en España hasta el día de regreso a casa.",
+      section2_title: "Cómo funciona la cuota diaria (política de uso justo)",
+      section2_text: "Como en cualquier plan de viaje \"ilimitado\" de buena reputación, el nuestro funciona bajo una política de uso justo para que las redes locales sigan siendo rápidas para todos. Cada día recibes hasta 2 GB a máxima velocidad 4G/5G. Después de eso, tus datos siguen funcionando a una velocidad reducida (alrededor de 1 Mbps) durante el resto del día, suficiente para chats, mapas, correo electrónico, música y vídeo en definición estándar, y la velocidad máxima se restablece automáticamente en el reinicio diario. Nunca te quedas sin conexión y nunca se te cobra ningún importe extra.",
+      section3_title: "Qué esperar durante tu viaje",
+      section3_text: "Para el uso diario de viajes, navegación, aplicaciones de transporte, WhatsApp e iMessage, publicaciones en redes sociales, navegación web, tarjetas de embarque y videollamadas, la cuota diaria a máxima velocidad es más que suficiente para la mayoría de los viajeros. Si planeas transmitir en 4K o descargar archivos muy grandes, podrías alcanzar el límite diario de alta velocidad antes; cuando esto sucede, el vídeo simplemente continúa a una resolución más baja en lugar de detenerse.",
+      section4_title: "Tú eliges el número de días",
+      section4_text: "Eliges las fechas de tu viaje y pagas por día, por lo que un viaje más largo solo añade más días, sin tarifas por exceso ni sorpresas. Tu plan comienza a descontar el tiempo desde su activación, por lo que el tiempo que se indica a continuación importa."
+    },
   },
   en: {
     topBanner: "ME-SIM | Global Connectivity in 198+ Countries",
@@ -485,6 +495,16 @@ export const dictionary = {
     bytesUsed: "used of",
     qrTitle: "Installation QR Code",
     installationNote: "Install your eSIM profile by scanning this code from Settings > Cellular > Add Cellular Plan",
+    unlimited_spain_info: {
+      section1_title: "Unlimited Spain eSIM: what it is and what to expect",
+      section1_text: "An unlimited Spain eSIMkeeps you online for your whole trip without a single fixed data bucket to run down. Instead of buying, say, 10 GB and watching it vanish, you get a generous high-speed allowance that refreshes every day, so you can use maps, messaging, social media, email and calls over data from the moment you land in Spain until the day you fly home.",
+      section2_title: "How the daily allowance works (fair-use policy)",
+      section2_text: "Like every reputable “unlimited” travel plan, ours runs on a fair-use policy so the local networks stay fast for everyone. Each day you get up to 2 GB at full 4G/5G speed. After that, your data keeps working at a reduced speed (around 1 Mbps) for the rest of the day, still fine for chat, maps, email, music and standard-definition video, and full speed returns automatically at the daily reset. You are never cut off, and you are never charged extra.",
+      section3_title: "What to expect on your trip",
+      section3_text: "For everyday travel, navigation, ride-hailing, WhatsApp and iMessage, social posts, browsing, boarding passes and video calls, the full-speed allowance is comfortably enough for most travellers. If you plan to stream in 4K or download very large files, you may reach the day’s high-speed limit sooner; when you do, video simply continues at a lower resolution rather than stopping.",
+      section4_title: "You choose the number of days",
+      section4_text: "Pick your travel dates and you pay per day, so a longer trip just adds more days, with no overage fees and no surprises. Your plan then counts down from activation, which is why the timing below matters."
+    },
   },
 };
 
@@ -562,6 +582,28 @@ export const faqData = {
           {
             q: "¿Me devuelven el dinero si mi eSIM no funciona?",
             a: "Sí. Si tu eSIM realmente no se conecta y nuestro soporte 24/7 no puede solucionarlo, te devolvemos tu dinero. Lo justo es justo."
+          }
+        ]
+      },
+      {
+        id: "unlimited-fup",
+        name: "Planes Ilimitados & FUP",
+        items: [
+          {
+            q: "eSIM Ilimitada: qué es y qué esperar",
+            a: "Una eSIM ilimitada te mantiene conectado durante todo tu viaje sin depender de un paquete de datos fijo que pueda agotarse. En lugar de comprar, por ejemplo, 10 GB y ver cómo se consumen, obtienes una cuota de alta velocidad que se renueva cada día, para que puedas usar mapas, mensajería, redes sociales, correo electrónico y llamadas por datos desde el momento en que aterrizas hasta el día de regreso a casa."
+          },
+          {
+            q: "¿Cómo funciona la cuota diaria (política de uso justo / FUP)?",
+            a: "Como en cualquier plan de viaje \"ilimitado\" de buena reputación, el nuestro funciona bajo una política de uso justo para que las redes locales sigan siendo rápidas para todos. Cada día recibes hasta 2 GB a máxima velocidad 4G/5G. Después de eso, tus datos siguen funcionando a una velocidad reducida (alrededor de 1 Mbps) durante el resto del día, suficiente para chats, mapas, correo electrónico, música y vídeo en definición estándar, y la velocidad máxima se restablece automáticamente en el reinicio diario. Nunca te quedas sin conexión y nunca se te cobra ningún importe extra."
+          },
+          {
+            q: "¿Qué esperar durante tu viaje con un plan ilimitado?",
+            a: "Para el uso diario de viajes, navegación, aplicaciones de transporte, WhatsApp e iMessage, publicaciones en redes sociales, navegación web, tarjetas de embarque y videollamadas, la cuota diaria a máxima velocidad es más que suficiente para la mayoría de los viajeros. Si planeas transmitir en 4K o descargar archivos muy grandes, podrías alcanzar el límite diario de alta velocidad antes; cuando esto sucede, el vídeo simplemente continúa a una resolución más baja en lugar de detenerse."
+          },
+          {
+            q: "¿Cómo elijo el número de días de mi plan ilimitado?",
+            a: "Eliges las fechas de tu viaje y pagas por día, por lo que un viaje más largo solo añade más días, sin tarifas por exceso ni sorpresas. Tu plan comienza a descontar el tiempo desde su activación."
           }
         ]
       },
@@ -699,6 +741,28 @@ export const faqData = {
         ]
       },
       {
+        id: "unlimited-fup",
+        name: "Unlimited Plans & FUP",
+        items: [
+          {
+            q: "Unlimited eSIM: what it is and what to expect",
+            a: "An unlimited eSIM keeps you online for your whole trip without a single fixed data bucket to run down. Instead of buying, say, 10 GB and watching it vanish, you get a generous high-speed allowance that refreshes every day, so you can use maps, messaging, social media, email and calls over data from the moment you land until the day you fly home."
+          },
+          {
+            q: "How the daily allowance works (fair-use policy / FUP)",
+            a: "Like every reputable “unlimited” travel plan, ours runs on a fair-use policy so the local networks stay fast for everyone. Each day you get up to 2 GB at full 4G/5G speed. After that, your data keeps working at a reduced speed (around 1 Mbps) for the rest of the day, still fine for chat, maps, email, music and standard-definition video, and full speed returns automatically at the daily reset. You are never cut off, and you are never charged extra."
+          },
+          {
+            q: "What to expect on your trip with an unlimited plan",
+            a: "For everyday travel, navigation, ride-hailing, WhatsApp and iMessage, social posts, browsing, boarding passes and video calls, the full-speed allowance is comfortably enough for most travellers. If you plan to stream in 4K or download very large files, you may reach the day’s high-speed limit sooner; when you do, video simply continues at a lower resolution rather than stopping."
+          },
+          {
+            q: "How do you choose the number of days for an unlimited plan?",
+            a: "Pick your travel dates and you pay per day, so a longer trip just adds more days, with no overage fees and no surprises. Your plan then counts down from activation."
+          }
+        ]
+      },
+      {
         id: "devices",
         name: "Compatible Devices",
         isSpecialList: true,
@@ -762,6 +826,31 @@ export function getTranslation(lang = 'es') {
 
 export function getFaqData(lang = 'es') {
   return faqData[lang] || faqData.es;
+}
+
+export function getUnlimitedInfo(countryName = 'España', lang = 'es') {
+  const isEs = lang === 'es';
+  const targetCountry = countryName || (isEs ? 'España' : 'Spain');
+  const baseData = dictionary[isEs ? 'es' : 'en']?.unlimited_spain_info;
+  if (!baseData) return null;
+
+  if (isEs) {
+    const isSpain = targetCountry.toLowerCase().includes('españa') || targetCountry.toLowerCase() === 'es';
+    if (isSpain) return baseData;
+    return {
+      ...baseData,
+      section1_title: `eSIM Ilimitada para ${targetCountry}: qué es y qué esperar`,
+      section1_text: `Una eSIM ilimitada para ${targetCountry} te mantiene conectado durante todo tu viaje sin depender de un paquete de datos fijo que pueda agotarse. En lugar de comprar, por ejemplo, 10 GB y ver cómo se consumen, obtienes una cuota de alta velocidad que se renueva cada día, para que puedas usar mapas, mensajería, redes sociales, correo electrónico y llamadas por datos desde el momento en que aterrizas en ${targetCountry} hasta el día de regreso a casa.`,
+    };
+  } else {
+    const isSpain = targetCountry.toLowerCase().includes('spain') || targetCountry.toLowerCase() === 'es';
+    if (isSpain) return baseData;
+    return {
+      ...baseData,
+      section1_title: `Unlimited ${targetCountry} eSIM: what it is and what to expect`,
+      section1_text: `An unlimited ${targetCountry} eSIM keeps you online for your whole trip without a single fixed data bucket to run down. Instead of buying, say, 10 GB and watching it vanish, you get a generous high-speed allowance that refreshes every day, so you can use maps, messaging, social media, email and calls over data from the moment you land in ${targetCountry} until the day you fly home.`,
+    };
+  }
 }
 
 export function getRegionName(regionKey = 'europe', lang = 'es') {

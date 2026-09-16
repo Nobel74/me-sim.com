@@ -748,7 +748,7 @@ export default function AdminDashboardPage() {
               </div>
               <div className={`mt-3 pt-3 border-t flex items-center justify-between text-xs ${isDark ? 'border-zinc-800 text-emerald-400' : 'border-zinc-100 text-emerald-600 font-semibold'}`}>
                 <span>+ Top Up Active</span>
-                <span className="text-[11px] text-zinc-400">StrongeSIM v1/v2</span>
+                <span className="text-[11px] text-zinc-400">ME-SIM.COM Core</span>
               </div>
             </div>
 
@@ -881,7 +881,7 @@ export default function AdminDashboardPage() {
 
               <div>
                 <div className="flex justify-between text-xs font-semibold mb-1.5">
-                  <span className={isDark ? 'text-zinc-300' : 'text-zinc-700'}>{isEn ? 'eSIM Wholesale Provider Cost' : 'Costo Mayorista de eSIM (StrongeSIM)'}</span>
+                  <span className={isDark ? 'text-zinc-300' : 'text-zinc-700'}>{isEn ? 'eSIM Wholesale Provider Cost (ME-SIM.COM)' : 'Costo Mayorista de eSIM (ME-SIM.COM)'}</span>
                   <span className="text-yellow-500 font-bold">{wholesalePercent}%</span>
                 </div>
                 <div className={`w-full h-4 rounded-full overflow-hidden p-0.5 ${isDark ? 'bg-zinc-800' : 'bg-zinc-200'}`}>

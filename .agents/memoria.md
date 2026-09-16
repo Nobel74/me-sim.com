@@ -1,25 +1,29 @@
 # 📝 Memoria del Proyecto y Bitácora de Sesiones - ME-SIM.COM
 
-## 📅 Última Actualización: 16 de Septiembre de 2026 - 13:00 CEST
+## 📅 Última Actualización: 16 de Septiembre de 2026 - 13:25 CEST
 
 ---
 
-### 📌 Resumen de la Sesión Actual: Sincronización de Precios Regionales (Europa 5.78 €), Cero Mocks y Barra de Carga Dinámica
-En esta sesión se abordaron y resolvieron de forma integral las peticiones del usuario:
-1. **Unificación y Sincronización de Precios Regionales (Europa 5.78 €):**
-   - Se diagnosticó la discrepancia en Europa: en la ficha de producto (`/destination/europe`) el precio legítimo es **5.78 €** (calculado con `regionTiers` mult 0.60, margen Europa 1.85× y redondeo .x8). En `/admin/precios` mostraba 5.72 € porque iteraba sobre los tiers de países en vez de los 10 tiers de regiones.
-   - Se corrigió [`/api/admin/pricing-rules/route.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/api/admin/pricing-rules/route.js) implementando `regionTiers`, garantizando que en el panel de administración Europa refleje exactamente **5.78 €**.
-2. **Cumplimiento Estricto de Cero Mocks en Tarjetas de Regiones:**
-   - Se eliminaron todos los precios hardcodeados de `REGION_CARDS_DATA` en [`src/app/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/page.js) y [`src/app/home-preview/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/home-preview/page.js).
-   - Se implementó `regionMinPriceMap` para leer los precios de las regiones directamente y en tiempo real de la API `/api/plans`, mostrando en la Home **`desde 5.78 €`** para Europa y el mínimo dinámico real para cada región.
-3. **Componente de Barra de Carga con Porcentaje y Bilingüe (`LoadingProgressBar.js`):**
-   - Creado en [`src/components/LoadingProgressBar.js`](file:///c:/Users/Paco/Documents/me-sim/src/components/LoadingProgressBar.js) con acento amarillo corporativo `#ffec00`.
-   - Cumple con la directiva visual de frontend: **borde gris oscuro en modo claro y borde gris claro en modo oscuro**.
-   - Muestra contador numérico fluido de `0%` a `100%` y texto superior bilingüe (`"Cargando planes..."` / `"Loading plans..."`).
-   - Integrado en: Home (`/` y `/home-preview`), Catálogo de Destinos (`/destinations`), Ficha de Producto (`/destination/[iso]`) y Panel de Precios (`/admin/precios`).
-4. **Verificación de Compilación para Vercel y Control de Calidad (QA):**
-   - Se ejecutó `npm run build` con Next.js 14.2.35 completando exitosamente (`✓ Compiled successfully`, `✓ Generating static pages (45/45)` con 0 errores).
-   - Suite de pruebas de integración [`scratch/test-qa-regions-and-loader.ps1`](file:///c:/Users/Paco/Documents/me-sim/scratch/test-qa-regions-and-loader.ps1) superada al 100% (0 fallos).
+### 📌 Resumen de la Sesión Actual: Componente Informativo de Planes Ilimitados (FUP), i18n Literal y Política de Sustitución de Proveedor por ME-SIM.COM
+En esta sesión se desarrollaron e integraron los requerimientos del nuevo componente de Planes Ilimitados y la Política de Uso Justo (FUP), garantizando el cumplimiento de la directiva de marca y QA:
+1. **Diccionarios Literales de Internacionalización (`locales/es.json` y `locales/en.json`):**
+   - Se crearon los archivos maestros oficiales con la estructura exacta `unlimited_spain_info` (`section1_title` hasta `section4_text`) en castellano e inglés literal.
+   - En [`src/lib/i18n.js`](file:///c:/Users/Paco/Documents/me-sim/src/lib/i18n.js) se añadieron las claves y se implementó la función auxiliar `getUnlimitedInfo(countryName, lang)` que reemplaza dinámicamente el nombre del destino (ej. Francia, Italia, Japón) en los títulos manteniendo el texto literal intacto para España.
+   - Se añadió la categoría de FAQ `unlimited-fup` en `faqData.es` y `faqData.en`.
+2. **Componente Visual Mobile-First (`src/components/UnlimitedPlanInfo.jsx`):**
+   - Estilo acorde al frontend de ME-SIM: paleta oscura/blanca, acento corporativo amarillo `#ffec00`, insignia de FUP, badge de cero cortes de servicio e iconografía plana SVG sin esqueumorfismo.
+   - 4 bloques de información: introducción, cuota diaria (2 GB/día a alta velocidad + 1 Mbps continuo), expectativas de viaje y selección de días exactos.
+3. **Integración en Ficha de Producto:**
+   - En [`src/app/destination/[iso]/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/destination/[iso]/page.js), insertado exactamente entre la sección *"Cómo instalar tu eSIM para [nombre del país]"* y *"Por qué elegir una eSIM de ME-SIM para [nombre del país]"*. Se eliminó la instancia duplicada que aparecía debajo del calendario de fechas para evitar redundancias visuales y aprovechar la presentación a ancho completo.
+4. **Integración en Centro de Soporte y Chatbot Inteligente:**
+   - En [`src/lib/supportData.js`](file:///c:/Users/Paco/Documents/me-sim/src/lib/supportData.js), creación del artículo `planes-ilimitados-politica-uso-justo-fup` con los textos literales.
+   - En [`src/app/soporte/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/soporte/page.js), inclusión del componente informativo destacado.
+   - En [`src/components/SupportChatbot.js`](file:///c:/Users/Paco/Documents/me-sim/src/components/SupportChatbot.js), adición del paso guiado `unlimited_fup` en el menú principal y disparadores por palabras clave ("ilimitado", "fup", "uso justo", "unlimited", "fair use", "2gb", "1mbps").
+5. **Directiva Obligatoria de Marca: Sustitución de 'StrongeSIM' por 'ME-SIM.COM':**
+   - Se auditó todo el repositorio y se sustituyeron todas las menciones visibles en UI y respuestas de error públicas: en [`src/app/admin/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/admin/page.js), [`src/app/admin/orders/[id]/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/admin/orders/[id]/page.js) y [`src/app/api/orders/route.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/api/orders/route.js).
+6. **Validación y Calidad (QA):**
+   - Ejecución del script automatizado [`scratch/test-qa-unlimited-fup.ps1`](file:///c:/Users/Paco/Documents/me-sim/scratch/test-qa-unlimited-fup.ps1) con 100% de tests aprobados (PASS).
+   - Verificación de compilación limpia de Next.js (`npm run build`): 45/45 páginas estáticas generadas con éxito y 0 errores.
 
 #### Objetivos Clave Completados:
 1. **Auditoría Financiera y Normativa:** Detección de la bajada de tarifas de StrongeSIM y creación del documento maestro normativo [`docs/DIRECTIVAS_PRECIOS_Y_MARGENES.md`](file:///c:/Users/Paco/Documents/me-sim/docs/DIRECTIVAS_PRECIOS_Y_MARGENES.md).

@@ -739,7 +739,7 @@ export default function DashboardPage() {
                     : rawTitle.replace(/Day/g, 'Día').replace(/Unlimited/g, 'Ilimitados').replace(/\s*1\s*(Days|Días)$/i, '').replace(/Days/g, 'Días');
                 }
 
-                // Telemetry from StrongeSIM
+                // Telemetry from ME-SIM.COM Provider
                 const usage = esimUsage[order.esimTranNo] || {};
                 const parsedVolume = parseDataVolume(order.dataAmount || cleanedAmount);
 

@@ -18,6 +18,7 @@ const CHAT_DATABASE = {
         text: "Para guiarte paso a paso, dime qué problema estás experimentando:",
         options: [
           { text: "No tengo conexión a Internet", next: "no_data" },
+          { text: "Planes Ilimitados (FUP)", next: "unlimited_fup" },
           { text: "APN y Selección manual de Carrier", next: "how_carrier_manual" },
           { text: "Conexión lenta o sin cobertura", next: "slow_connection" },
           { text: "Instalación y código QR", next: "installation" },
@@ -25,6 +26,14 @@ const CHAT_DATABASE = {
           { text: "WhatsApp / Mantener mi número", next: "whatsapp_info" },
           { text: "Métodos de pago / Facturas", next: "payments_info" },
           { text: "Ver mis eSIMs / Consumo", next: "my_account" }
+        ]
+      },
+      unlimited_fup: {
+        text: "⚡ **Información sobre Planes con Datos Ilimitados y Política de Uso Justo (FUP):**\\n\\n• **Cobertura y Datos Continuos:** Conéctate con datos de alta velocidad en redes locales 4G/LTE/5G. No cortamos tu conexión; siempre tendrás acceso garantizado.\\n\\n• **Política de Uso Justo (FUP):** Los planes ilimitados incluyen **2 GB al día** a máxima velocidad. Si los superas, la velocidad se ajusta temporalmente a **1 Mbps**, permitiendo seguir enviando mensajes, usando WhatsApp, mapas y navegación básica. Se restablece cada 24 horas.\\n\\n• **Ideal para viajeros:** Diseñado para navegación diaria, redes sociales, streaming moderado y videollamadas. No recomendado para descargas masivas o sustitución de fibra doméstica.\\n\\n• **Paga solo los días exactos:** Elige los días que realmente dura tu viaje sin pagar semanas de más.\\n\\n¿Tienes alguna otra duda sobre nuestros planes ilimitados?",
+        options: [
+          { text: "Entendido, gracias", next: "solved_success" },
+          { text: "Comprobar compatibilidad", next: "compatibility" },
+          { text: "Volver al inicio", next: "intro" }
         ]
       },
       whatsapp_info: {
@@ -192,6 +201,7 @@ const CHAT_DATABASE = {
     
     // Emparejamiento por palabras clave
     keywords: [
+      { keys: ["ilimitado", "ilimitados", "fup", "uso justo", "politica", "sin limite", "2gb", "1mbps"], dest: "unlimited_fup" },
       { keys: ["apn", "carrier", "operador", "operadores", "red manual", "manual", "seleccion manual", "carrier manual", "redes", "antena"], dest: "how_carrier_manual" },
       { keys: ["whatsapp", "mensajeria", "mensaje", "chats", "chat", "mantener numero", "numero habitual"], dest: "whatsapp_info" },
       { keys: ["pagar", "pago", "tarjeta", "stripe", "visa", "mastercard", "factura", "facturar", "divisa", "euro", "dolar"], dest: "payments_info" },
@@ -217,6 +227,7 @@ const CHAT_DATABASE = {
         text: "To guide you step by step, what issue are you facing?",
         options: [
           { text: "No Internet Connection", next: "no_data" },
+          { text: "Unlimited Plans (FUP)", next: "unlimited_fup" },
           { text: "APN & Manual Carrier Selection", next: "how_carrier_manual" },
           { text: "Slow connection or bad coverage", next: "slow_connection" },
           { text: "Installation & QR Code", next: "installation" },
@@ -224,6 +235,14 @@ const CHAT_DATABASE = {
           { text: "WhatsApp / Keep my number", next: "whatsapp_info" },
           { text: "Payment methods / Invoices", next: "payments_info" },
           { text: "My Account & Data Usage", next: "my_account" }
+        ]
+      },
+      unlimited_fup: {
+        text: "⚡ **Unlimited Data Plans & Fair Usage Policy (FUP) Information:**\\n\\n• **Continuous Coverage & High-Speed Data:** Connect seamlessly on local 4G/LTE/5G partner networks. We never cut your connection off completely.\\n\\n• **Fair Usage Policy (FUP):** Unlimited plans include **2 GB per day** at high speed. If reached, speed adjusts to **1 Mbps** for continued messaging, maps, and essential browsing, resetting every 24 hours.\\n\\n• **Designed for Travelers:** Perfect for daily navigation, social media, moderate streaming, and video calls. Not intended for heavy file downloading or replacing home broadband.\\n\\n• **Pay only for exact days:** Choose the precise duration of your trip without paying for unused days.\\n\\nDid this clarify your questions regarding unlimited plans?",
+        options: [
+          { text: "All clear, thank you", next: "solved_success" },
+          { text: "Check compatibility", next: "compatibility" },
+          { text: "Back to menu", next: "intro" }
         ]
       },
       whatsapp_info: {
@@ -383,6 +402,7 @@ const CHAT_DATABASE = {
       }
     },
     keywords: [
+      { keys: ["unlimited", "fup", "fair use", "fair usage", "no limit", "throttle", "2gb", "1mbps"], dest: "unlimited_fup" },
       { keys: ["apn", "carrier", "operator", "carriers", "manual network", "manual carrier", "network selection", "cell tower"], dest: "how_carrier_manual" },
       { keys: ["whatsapp", "messaging", "message", "chats", "chat", "keep number", "home number"], dest: "whatsapp_info" },
       { keys: ["pay", "payment", "card", "stripe", "visa", "mastercard", "invoice", "currency", "euro", "dollar"], dest: "payments_info" },

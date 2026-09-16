@@ -253,6 +253,59 @@ export const SUPPORT_CATEGORIES = {
 
 export const SUPPORT_ARTICLES = [
   {
+    slug: 'planes-ilimitados-politica-uso-justo-fup',
+    title: {
+      es: 'Planes con Datos Ilimitados y Política de Uso Justo (FUP)',
+      en: 'Unlimited Data Plans and Fair Usage Policy (FUP)'
+    },
+    desc: {
+      es: 'Conoce cómo funcionan los planes de datos ilimitados, la política FUP y la velocidad reducida a 1 Mbps sin cortes.',
+      en: 'Learn how unlimited data plans work, the Fair Usage Policy (FUP), and speed regulation at 1 Mbps with zero cutoffs.'
+    },
+    content: {
+      es: `
+        <h2>Planes con Datos Ilimitados</h2>
+        <p>Los planes con datos ilimitados permiten que te conectes a internet en España y otros destinos a través de las redes locales asociadas de alta velocidad (4G/LTE/5G) sin preocuparte por el recuento estricto de megabytes.</p>
+
+        <h2>Política de Uso Justo (FUP) y Velocidad Reducida</h2>
+        <p>Para garantizar una calidad de red estable para todos los usuarios, los planes ilimitados incluyen <strong>2 GB al día de datos a máxima velocidad</strong>. Una vez consumido ese volumen diario, la velocidad se ajusta temporalmente a <strong>1 Mbps</strong>.</p>
+        <p>A esta velocidad puedes continuar utilizando con total normalidad:</p>
+        <ul>
+          <li>Mensajería instantánea (WhatsApp, Telegram, iMessage).</li>
+          <li>Mapas, navegación GPS (Google Maps, Apple Maps) y localización.</li>
+          <li>Navegación web informativa y correos electrónicos.</li>
+        </ul>
+        <p><strong>Cero cortes de conexión:</strong> Tu servicio nunca se corta ni te quedarás desconectado en tu viaje. El límite de alta velocidad se restablece automáticamente cada 24 horas.</p>
+
+        <h2>¿Para qué tipo de uso están diseñados?</h2>
+        <p>Los planes ilimitados están pensados para el uso habitual durante un viaje (consultas, redes sociales, mapas y videollamadas ocasionales). No están concebidos para descargas masivas continuadas, juegos en la nube de alto consumo ni para sustituir una conexión de fibra óptica doméstica.</p>
+
+        <h2>Paga Solo los Días Exactos</h2>
+        <p>Con ME-SIM.COM puedes elegir el número exacto de días que dura tu estancia (desde 1 día en adelante), pagando un precio fijo diario sin tener que pagar semanas o meses de más.</p>
+      `,
+      en: `
+        <h2>Unlimited Data Plans</h2>
+        <p>Unlimited data plans allow you to connect to high-speed partner cellular networks (4G/LTE/5G) in Spain and other destinations without strictly counting megabytes.</p>
+
+        <h2>Fair Usage Policy (FUP) & Reduced Speed</h2>
+        <p>To ensure consistent network quality for all users, unlimited plans include <strong>2 GB per day at high speed</strong>. Once this daily allowance is reached, the speed adjusts to <strong>1 Mbps</strong> for the remainder of the 24-hour cycle.</p>
+        <p>At 1 Mbps you can comfortably continue using:</p>
+        <ul>
+          <li>Instant messaging (WhatsApp, Telegram, iMessage).</li>
+          <li>GPS Maps navigation (Google Maps, Apple Maps) and ride-hailing apps.</li>
+          <li>General web browsing and emails.</li>
+        </ul>
+        <p><strong>Zero connection cutoffs:</strong> We never cut your connection off entirely. The high-speed daily quota resets automatically every 24 hours.</p>
+
+        <h2>What Are They Designed For?</h2>
+        <p>Unlimited plans are designed for normal travel usage (social media, maps, trip lookups, and occasional video calls). They are not intended for continuous massive file downloads, cloud gaming, or replacing home fixed broadband.</p>
+
+        <h2>Pay Only for the Exact Days</h2>
+        <p>With ME-SIM.COM you can select the exact duration of your trip (from 1 day upwards), paying upfront with flat daily pricing without committing to extra weeks or months.</p>
+      `
+    }
+  },
+  {
     slug: 'no-internet-after-landing',
     title: { es: '¿Sin internet al aterrizar en tu destino?', en: 'No internet connection after landing?' },
     desc: { es: 'Guía rápida para solucionar la falta de conexión al llegar a tu país de viaje', en: 'Quick fix guide for connectivity issues upon landing' },

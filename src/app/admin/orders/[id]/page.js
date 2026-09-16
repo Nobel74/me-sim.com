@@ -476,7 +476,7 @@ export default function AdminOrderDetailPage() {
             </div>
           </div>
 
-          {/* eSIM Live Telemetry Card (StrongeSIM) */}
+          {/* eSIM Live Telemetry Card (ME-SIM.COM) */}
           <div className={`p-6 rounded-3xl border shadow-xl space-y-4 ${isDark ? 'bg-[#111622] border-zinc-800' : 'bg-white border-zinc-200 shadow-md'}`}>
             <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3.5 ${isDark ? 'border-zinc-700/30' : 'border-zinc-200'}`}>
               <div className="flex items-center gap-2.5 flex-wrap">
@@ -501,7 +501,7 @@ export default function AdminOrderDetailPage() {
                     })()}
                   </div>
                   <span className={`text-[11px] font-medium ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
-                    StrongeSIM v1/v2 Direct Integration
+                    ME-SIM.COM Direct Integration
                   </span>
                 </div>
               </div>
@@ -805,7 +805,7 @@ export default function AdminOrderDetailPage() {
 
         {/* Sidebar Column (1/3 width on desktop) */}
         <div className="space-y-6">
-          {/* Official StrongeSIM QR Code Card */}
+          {/* Official ME-SIM.COM QR Code Card */}
           <div className={`p-6 rounded-3xl border shadow-xl text-center space-y-4 ${isDark ? 'bg-[#111622] border-zinc-800' : 'bg-white border-zinc-200 shadow-md'}`}>
             <div className="flex items-center justify-center gap-2">
               <h3 className={`text-base font-black uppercase tracking-wider ${isDark ? 'text-white' : 'text-zinc-950'}`}>
@@ -823,7 +823,7 @@ export default function AdminOrderDetailPage() {
               {order.qrCodeUrl ? (
                 <img
                   src={order.qrCodeUrl}
-                  alt="eSIM QR Code StrongeSIM"
+                  alt="eSIM QR Code ME-SIM.COM"
                   className="w-full h-full object-contain rounded-lg"
                 />
               ) : (
@@ -844,7 +844,7 @@ export default function AdminOrderDetailPage() {
 
             <div className={`flex items-center justify-center gap-1.5 text-[11px] font-bold ${isDark ? 'text-emerald-400' : 'text-emerald-800'}`}>
               <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-              <span>{isEn ? 'Official GSMA RSP QR Profile' : 'Código QR Oficial de Operador (StrongeSIM)'}</span>
+              <span>{isEn ? 'Official GSMA RSP QR Profile' : 'Código QR Oficial de Operador (ME-SIM.COM)'}</span>
             </div>
 
             {order.qrCodeUrl && (
@@ -956,7 +956,7 @@ export default function AdminOrderDetailPage() {
                   {order.wholesaleCostUsd && (
                     <div className="flex justify-between">
                       <span className={`font-medium ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
-                        {isEn ? 'Wholesale Cost (Operator):' : 'Coste Mayorista (StrongeSIM):'}
+                        {isEn ? 'Wholesale Cost (Operator):' : 'Coste Mayorista (ME-SIM.COM):'}
                       </span>
                       <span className={`font-mono font-bold ${isDark ? 'text-amber-400' : 'text-amber-900'}`}>
                         ${parseFloat(order.wholesaleCostUsd).toFixed(2)} USD

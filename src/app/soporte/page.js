@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { SUPPORT_CATEGORIES, SUPPORT_ARTICLES } from '../../lib/supportData';
 import CompatibilityModal from '../../components/CompatibilityModal';
+import UnlimitedPlanInfo from '../../components/UnlimitedPlanInfo';
 
 export default function SupportMainPage() {
   const [lang, setLang] = useState('es');
@@ -194,6 +195,9 @@ export default function SupportMainPage() {
           </div>
         </div>
       </div>
+
+      {/* Unlimited Plans & Fair Use Policy Information Component */}
+      <UnlimitedPlanInfo lang={lang} countryName={lang === 'en' ? 'Spain' : 'España'} className="mb-14" />
 
       {/* Subsection: Frequently Asked Questions (Articles List) */}
       <div className="bg-white rounded-3xl border border-zinc-200 p-4 sm:p-10 shadow-xl">

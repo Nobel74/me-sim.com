@@ -79,7 +79,7 @@ export async function POST(request) {
         console.error(`No StrongeSIM package found for planId [${planId}], iso [${iso}]`);
         return NextResponse.json({
           success: false,
-          error: `No se encontró un paquete activo de StrongeSIM para el destino ${iso} (${planId}).`
+          error: `No se encontró un paquete activo de ME-SIM.COM para el destino ${iso} (${planId}).`
         }, { status: 400 });
       }
 
@@ -184,15 +184,15 @@ export async function POST(request) {
         console.error(`StrongeSIM API order creation rejected [HTTP ${response.status}]:`, errorBody);
         return NextResponse.json({
           success: false,
-          error: `StrongeSIM API Error (${response.status}): ${errorBody}`,
-          message: `StrongeSIM rechaza el pedido: ${errorBody}`
+          error: `ME-SIM.COM Operator Error (${response.status}): ${errorBody}`,
+          message: `El operador rechaza el pedido: ${errorBody}`
         }, { status: 400 });
       }
     } catch (error) {
-      console.error('Error creating order at StrongeSIM:', error);
+      console.error('Error creating order at provider:', error);
       return NextResponse.json({
         success: false,
-        error: `Error de conexión con StrongeSIM API: ${error.message}`
+        error: `Error de conexión con el proveedor de red: ${error.message}`
       }, { status: 500 });
     }
 
