@@ -1,12 +1,16 @@
 # 📝 Memoria del Proyecto y Bitácora de Sesiones - ME-SIM.COM
 
-## 📅 Última Actualización: 16 de Septiembre de 2026 - 13:58 CEST
+## 📅 Última Actualización: 16 de Septiembre de 2026 - 14:10 CEST
 
 ---
 
-### 📌 Resumen de la Sesión Actual: Formateo Visual Premium del Chatbot, Unificación Tipográfica Legal y T&C Bilingüe
+### 📌 Resumen de la Sesión Actual: Optimización de Rendimiento en Home (24 Países), Formateo Visual Chatbot y T&C Bilingüe
 En esta sesión se desarrollaron e integraron los requerimientos solicitados por el usuario:
-1. **Formateo y Renderizado Visual de Respuestas del Chatbot (`SupportChatbot.js`):**
+1. **Optimización de Carga y Rendimiento en Home (`src/app/page.js`):**
+   - Se limitó el renderizado inicial de tarjetas de países a **24 destinos populares** (`slice(0, 24)`), reduciendo el peso de la página y el número de nodos del DOM en más de un 85%.
+   - Los 24 países corresponden a los principales destinos turísticos y comerciales mundiales ordenados estratégicamente en cuadrículas perfectamente simétricas (6 filas × 4 columnas en escritorio, 8 filas × 3 columnas en pantallas medianas y 12 filas × 2 columnas en móviles/tablets).
+   - Se añadió un botón de llamada a la acción (CTA) al final de la cuadrícula: *"Explorar todos los 198+ destinos ➔"* / *"Explore all 198+ destinations ➔"* para conectar fluidamente con la vista completa de [`/destinations`](file:///c:/Users/Paco/Documents/me-sim/src/app/destinations/page.js), que mantiene el catálogo íntegro con búsqueda y filtros regionales.
+2. **Formateo y Renderizado Visual de Respuestas del Chatbot (`SupportChatbot.js`):**
    - En [`src/components/SupportChatbot.js`](file:///c:/Users/Paco/Documents/me-sim/src/components/SupportChatbot.js), se implementó el componente dedicado `BotMessageContent`:
      - Normalización de saltos de línea (resolución de `\n\n` y eliminación de strings escapados `\\n`).
      - Banners/cabeceras destacadas para avisos con iconos temáticos (⚡, 💡) en tarjetas con acento y fondo cálido.

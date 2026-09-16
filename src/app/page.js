@@ -293,7 +293,8 @@ export default function HomePage() {
     (plan) => !PREFERRED_ISO_ORDER.includes(plan.iso)
   );
 
-  const filteredLocalPlans = [...orderedLocalPlans, ...remainingLocalPlans];
+  // En la home limitamos a los 24 países más populares para máxima velocidad de carga
+  const filteredLocalPlans = [...orderedLocalPlans, ...remainingLocalPlans].slice(0, 24);
 
   return (
     <div className="container-naked">
@@ -432,18 +433,31 @@ export default function HomePage() {
             messageEn="Loading plans..."
           />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 landscape:grid-cols-2 sm:landscape:grid-cols-3 lg:landscape:grid-cols-3 xl:landscape:grid-cols-4 gap-4 sm:gap-5 mb-16">
-            {filteredLocalPlans.map((plan) => (
-              <CountryCard
-                key={plan.id}
-                iso={plan.iso}
-                countryName={getCountryName(plan.iso, lang, plan.country)}
-                priceEur={plan.priceEur}
-                lang={lang}
-                currency={currency}
-                rates={rates}
-              />
-            ))}
+          <div className="mb-16">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 landscape:grid-cols-2 sm:landscape:grid-cols-3 lg:landscape:grid-cols-3 xl:landscape:grid-cols-4 gap-4 sm:gap-5">
+              {filteredLocalPlans.map((plan) => (
+                <CountryCard
+                  key={plan.id}
+                  iso={plan.iso}
+                  countryName={getCountryName(plan.iso, lang, plan.country)}
+                  priceEur={plan.priceEur}
+                  lang={lang}
+                  currency={currency}
+                  rates={rates}
+                />
+              ))}
+            </div>
+
+            {/* CTA para ver el catálogo completo de 198 destinos */}
+            <div className="text-center mt-10">
+              <Link
+                href="/destinations"
+                className="inline-flex items-center justify-center gap-2.5 bg-black hover:bg-zinc-900 text-white font-semibold font-condensed px-7 py-3.5 rounded-2xl transition-all shadow-md hover:shadow-lg text-sm sm:text-base border border-zinc-800 group"
+              >
+                <span>{lang === 'en' ? 'Explore all 198+ destinations' : 'Explorar todos los 198+ destinos'}</span>
+                <span className="text-[#ffec00] group-hover:translate-x-1 transition-transform">➔</span>
+              </Link>
+            </div>
           </div>
         )
       )}
