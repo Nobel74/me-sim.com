@@ -18,7 +18,7 @@ export default function PoliticaDeReembolsoPage() {
           Política de Reembolso
         </h1>
 
-        <div className="wp-content font-sans text-base sm:text-lg leading-relaxed">
+        <div className="wp-content font-sans text-[1.125rem] leading-relaxed">
           <p>En <strong>ME-SIM.COM</strong> estamos comprometidos con la satisfacción total de nuestros clientes y la calidad de nuestra conectividad móvil global. Esta política detalla los supuestos y procedimientos para solicitar la devolución o reembolso de su compra.</p>
           
           <h2>1. Garantía de Conexión y Casos Reembolsables</h2>

@@ -1,29 +1,52 @@
 # 📝 Memoria del Proyecto y Bitácora de Sesiones - ME-SIM.COM
 
-## 📅 Última Actualización: 16 de Septiembre de 2026 - 13:25 CEST
+## 📅 Última Actualización: 16 de Septiembre de 2026 - 13:50 CEST
 
 ---
 
-### 📌 Resumen de la Sesión Actual: Componente Informativo de Planes Ilimitados (FUP), i18n Literal y Política de Sustitución de Proveedor por ME-SIM.COM
-En esta sesión se desarrollaron e integraron los requerimientos del nuevo componente de Planes Ilimitados y la Política de Uso Justo (FUP), garantizando el cumplimiento de la directiva de marca y QA:
-1. **Diccionarios Literales de Internacionalización (`locales/es.json` y `locales/en.json`):**
+### 📌 Resumen de la Sesión Actual: Unificación Tipográfica Legal (1.125rem) y T&C Bilingüe
+En esta sesión se desarrollaron e integraron los requerimientos solicitados por el usuario:
+1. **Tipografía Unificada en Todas las Páginas de Información Legal (`font-size: 1.125rem;`):**
+   - En [`src/app/globals.css`](file:///c:/Users/Paco/Documents/me-sim/src/app/globals.css), se estableció formalmente la regla `font-size: 1.125rem;` en `.wp-content p`, `.legal-content p`, `.wp-content li` y `.legal-content li`.
+   - Se estandarizó la clase contenedora a `text-[1.125rem] leading-relaxed` en las 8 páginas de información legal (ES y EN):
+     1. [`src/app/condiciones-de-servicio/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/condiciones-de-servicio/page.js)
+     2. [`src/app/en/terms-and-conditions/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/en/terms-and-conditions/page.js)
+     3. [`src/app/politica-de-cookies/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/politica-de-cookies/page.js)
+     4. [`src/app/en/cookie-policy/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/en/cookie-policy/page.js)
+     5. [`src/app/politica-de-reembolso/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/politica-de-reembolso/page.js)
+     6. [`src/app/en/refund-policy/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/en/refund-policy/page.js)
+     7. [`src/app/pollitica-de-privacidad/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/pollitica-de-privacidad/page.js)
+     8. [`src/app/en/privacy-policy/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/en/privacy-policy/page.js)
+   - Verificado con subagente de navegador: todos los párrafos computan de forma homogénea a 18px (`1.125rem`) tanto en móvil como en escritorio.
+2. **Actualización Completa de Términos y Condiciones (EN / ES):**
+   - En [`src/app/en/terms-and-conditions/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/en/terms-and-conditions/page.js) y [`src/app/condiciones-de-servicio/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/condiciones-de-servicio/page.js):
+     - Sustitución rigurosa de toda referencia de proveedor por **ME-SIM.COM** y contacto `info@me-sim.com`.
+     - Definición de **Stripe** como pasarela transaccional exclusiva y segura (tarjetas Visa, Mastercard, American Express), eliminando cualquier mención a PayPal.
+     - Inclusión formal de **AUD** junto a EUR, USD y GBP en el punto 5 (Pedidos, precios y pagos).
+     - Adaptación a la arquitectura **Sin App**: se eliminaron referencias a aplicaciones nativas, estableciendo que la operativa, compra y recargas se gestionan 100% a través del área web del cliente.
+     - Integración de los 13 apartados legales completos con maquetación limpia y enlace directo a la Política de Reembolso.
+2. **Rediseño Responsive de Pestañas de FAQs (Sin Scroll Horizontal):**
+   - En [`src/components/FaqSection.js`](file:///c:/Users/Paco/Documents/me-sim/src/components/FaqSection.js), se eliminó la barra de desplazamiento horizontal desbordada.
+   - **En escritorio y tablet:** Los 6 botones se distribuyen de forma centrada y balanceada mediante *flex-wrap*, con microinteracciones fluidas y estado activo negro con acento amarillo `#ffec00`.
+   - **En móvil (smartphones):** Los 6 botones se organizan en una cuadrícula simétrica de 2 columnas (`grid-cols-2`), permitiendo pulsar cualquier categoría directamente con el pulgar sin desbordamientos.
+   - Cada categoría incorpora un icono vectorial SVG plano acorde a su temática (Conceptos, Instalación, Uso, Precios, FUP, Dispositivos).
+3. **Diccionarios Literales de Internacionalización (`locales/es.json` y `locales/en.json`):**
    - Se crearon los archivos maestros oficiales con la estructura exacta `unlimited_spain_info` (`section1_title` hasta `section4_text`) en castellano e inglés literal.
-   - En [`src/lib/i18n.js`](file:///c:/Users/Paco/Documents/me-sim/src/lib/i18n.js) se añadieron las claves y se implementó la función auxiliar `getUnlimitedInfo(countryName, lang)` que reemplaza dinámicamente el nombre del destino (ej. Francia, Italia, Japón) en los títulos manteniendo el texto literal intacto para España.
+   - En [`src/lib/i18n.js`](file:///c:/Users/Paco/Documents/me-sim/src/lib/i18n.js) se añadieron las claves y se implementó la función auxiliar `getUnlimitedInfo(countryName, lang)` que reemplaza dinámicamente el nombre del destino en los títulos manteniendo el texto literal intacto para España.
    - Se añadió la categoría de FAQ `unlimited-fup` en `faqData.es` y `faqData.en`.
-2. **Componente Visual Mobile-First (`src/components/UnlimitedPlanInfo.jsx`):**
+4. **Componente Visual Mobile-First (`src/components/UnlimitedPlanInfo.jsx`):**
    - Estilo acorde al frontend de ME-SIM: paleta oscura/blanca, acento corporativo amarillo `#ffec00`, insignia de FUP, badge de cero cortes de servicio e iconografía plana SVG sin esqueumorfismo.
    - 4 bloques de información: introducción, cuota diaria (2 GB/día a alta velocidad + 1 Mbps continuo), expectativas de viaje y selección de días exactos.
-3. **Integración en Ficha de Producto:**
-   - En [`src/app/destination/[iso]/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/destination/[iso]/page.js), insertado exactamente entre la sección *"Cómo instalar tu eSIM para [nombre del país]"* y *"Por qué elegir una eSIM de ME-SIM para [nombre del país]"*. Se eliminó la instancia duplicada que aparecía debajo del calendario de fechas para evitar redundancias visuales y aprovechar la presentación a ancho completo.
-4. **Integración en Centro de Soporte y Chatbot Inteligente:**
+5. **Integración en Ficha de Producto:**
+   - En [`src/app/destination/[iso]/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/destination/[iso]/page.js), insertado a ancho completo exactamente entre la sección *"Cómo instalar tu eSIM para [nombre del país]"* y *"Por qué elegir una eSIM de ME-SIM para [nombre del país]"*. Se eliminó la instancia duplicada que aparecía debajo del calendario de fechas para evitar redundancias visuales.
+6. **Integración en Centro de Soporte y Chatbot Inteligente:**
    - En [`src/lib/supportData.js`](file:///c:/Users/Paco/Documents/me-sim/src/lib/supportData.js), creación del artículo `planes-ilimitados-politica-uso-justo-fup` con los textos literales.
    - En [`src/app/soporte/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/soporte/page.js), inclusión del componente informativo destacado.
    - En [`src/components/SupportChatbot.js`](file:///c:/Users/Paco/Documents/me-sim/src/components/SupportChatbot.js), adición del paso guiado `unlimited_fup` en el menú principal y disparadores por palabras clave ("ilimitado", "fup", "uso justo", "unlimited", "fair use", "2gb", "1mbps").
-5. **Directiva Obligatoria de Marca: Sustitución de 'StrongeSIM' por 'ME-SIM.COM':**
+7. **Directiva Obligatoria de Marca: Sustitución de Proveedor por 'ME-SIM.COM':**
    - Se auditó todo el repositorio y se sustituyeron todas las menciones visibles en UI y respuestas de error públicas: en [`src/app/admin/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/admin/page.js), [`src/app/admin/orders/[id]/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/admin/orders/[id]/page.js) y [`src/app/api/orders/route.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/api/orders/route.js).
-6. **Validación y Calidad (QA):**
-   - Ejecución del script automatizado [`scratch/test-qa-unlimited-fup.ps1`](file:///c:/Users/Paco/Documents/me-sim/scratch/test-qa-unlimited-fup.ps1) con 100% de tests aprobados (PASS).
-   - Verificación de compilación limpia de Next.js (`npm run build`): 45/45 páginas estáticas generadas con éxito y 0 errores.
+8. **Validación y Calidad (QA):**
+   - Verificación automatizada con suite de pruebas y validación visual exhaustiva mediante subagente de navegador en ambas páginas legales (`/en/terms-and-conditions` y `/condiciones-de-servicio`), así como en la home en Desktop, Tablet y Mobile.
 
 #### Objetivos Clave Completados:
 1. **Auditoría Financiera y Normativa:** Detección de la bajada de tarifas de StrongeSIM y creación del documento maestro normativo [`docs/DIRECTIVAS_PRECIOS_Y_MARGENES.md`](file:///c:/Users/Paco/Documents/me-sim/docs/DIRECTIVAS_PRECIOS_Y_MARGENES.md).

@@ -18,7 +18,7 @@ export default function PolliticaDePrivacidadPage() {
           Política de Privacidad
         </h1>
 
-        <div className="wp-content font-sans text-base sm:text-lg leading-relaxed">
+        <div className="wp-content font-sans text-[1.125rem] leading-relaxed">
           <p>En <strong>ME-SIM.COM</strong> nos tomamos muy en serio la protección y privacidad de sus datos personales. Esta política de privacidad detalla cómo recopilamos, gestionamos y salvaguardamos su información cuando contrata nuestros servicios de eSIM internacional.</p>
           
           <h2>1. Información que Recopilamos</h2>

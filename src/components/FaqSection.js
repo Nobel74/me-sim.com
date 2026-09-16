@@ -31,6 +31,60 @@ export default function FaqSection() {
     setOpenQuestionIndex(openQuestionIndex === index ? null : index);
   };
 
+  const renderCategoryIcon = (catId, isActive) => {
+    const iconClass = `w-4 h-4 flex-shrink-0 transition-colors ${
+      isActive ? 'text-[#ffec00]' : 'text-zinc-500 group-hover:text-black'
+    }`;
+
+    switch (catId) {
+      case 'basics':
+        return (
+          <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="16" x2="12" y2="12" />
+            <line x1="12" y1="8" x2="12.01" y2="8" />
+          </svg>
+        );
+      case 'setup':
+        return (
+          <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+        );
+      case 'usage':
+        return (
+          <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="2" y1="12" x2="22" y2="12" />
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+          </svg>
+        );
+      case 'pricing':
+        return (
+          <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg>
+        );
+      case 'unlimited-fup':
+        return (
+          <svg className={iconClass} viewBox="0 0 24 24" fill="currentColor">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+          </svg>
+        );
+      case 'devices':
+        return (
+          <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+            <line x1="12" y1="18" x2="12.01" y2="18" />
+          </svg>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <section className="mt-16 mb-16 bg-white border border-zinc-200 rounded-3xl p-6 md:p-12 shadow-sm font-sans">
       {/* Header */}
@@ -51,21 +105,22 @@ export default function FaqSection() {
         </p>
       </div>
 
-      {/* Category Tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-3 mb-8 scrollbar-none justify-start md:justify-center">
+      {/* Category Tabs: Grid 2-col on mobile, centered flex-wrap on tablet and desktop. Zero horizontal scroll! */}
+      <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-stretch sm:items-center justify-center gap-2 sm:gap-2.5 max-w-4xl mx-auto mb-8">
         {data.categories.map((cat) => {
           const isActive = cat.id === activeCategory;
           return (
             <button
               key={cat.id}
               onClick={() => handleCategoryChange(cat.id)}
-              className={`px-4 py-2.5 rounded-2xl font-bold text-xs sm:text-sm whitespace-nowrap transition-all shadow-2xs ${
+              className={`group flex items-center justify-center gap-2 px-3 py-2.5 sm:px-4 sm:py-2.5 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm text-center transition-all duration-200 shadow-2xs ${
                 isActive
-                  ? 'bg-black text-[#ffec00] shadow-md'
-                  : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200 border border-zinc-200'
+                  ? 'bg-black text-[#ffec00] shadow-md ring-2 ring-black scale-[1.02]'
+                  : 'bg-zinc-100/90 text-zinc-700 hover:bg-zinc-200/90 hover:text-black border border-zinc-200/80 hover:border-zinc-300'
               }`}
             >
-              {cat.name}
+              {renderCategoryIcon(cat.id, isActive)}
+              <span className="leading-snug">{cat.name}</span>
             </button>
           );
         })}

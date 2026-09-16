@@ -18,7 +18,7 @@ export default function EnglishRefundPolicyPage() {
           Refund Policy
         </h1>
 
-        <div className="wp-content font-sans text-base sm:text-lg leading-relaxed">
+        <div className="wp-content font-sans text-[1.125rem] leading-relaxed">
           <p>At <strong>ME-SIM.COM</strong> we are committed to customer satisfaction and high-quality international mobile connectivity. This policy outlines conditions and procedures for requesting a return or refund for your purchase.</p>
           
           <h2>1. Connection Guarantee & Eligible Refund Cases</h2>

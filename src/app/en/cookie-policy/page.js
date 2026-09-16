@@ -18,7 +18,7 @@ export default function CookiePolicyPage() {
           Cookie Policy
         </h1>
 
-        <div className="wp-content font-sans text-base sm:text-lg leading-relaxed">
+        <div className="wp-content font-sans text-[1.125rem] leading-relaxed">
           <p>At <strong>ME-SIM.COM</strong> we are committed to transparency and compliance with data protection laws (including the European GDPR). Below we inform you about the use of cookies on our platform.</p>
           
           <h2>1. What are Cookies?</h2>

@@ -18,7 +18,7 @@ export default function PoliticaDeCookiesPage() {
           Política de Cookies
         </h1>
 
-        <div className="wp-content font-sans text-base sm:text-lg leading-relaxed">
+        <div className="wp-content font-sans text-[1.125rem] leading-relaxed">
           <p>En <strong>ME-SIM.COM</strong> estamos comprometidos con la transparencia y el cumplimiento de las normativas de protección de datos (incluidos el RGPD europeo y las directrices de la AEPD). A continuación te informamos sobre el uso de cookies en nuestra plataforma.</p>
           
           <h2>1. ¿Qué son las Cookies?</h2>
