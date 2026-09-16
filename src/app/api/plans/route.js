@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { strongesimFetch } from '../../../lib/strongesim';
 import { ALL_WORLD_COUNTRIES, COUNTRY_NAMES, REGION_NAMES } from '../../../lib/i18n';
+import { getPricingRules, computePlanPricing, mapIsoToRegion } from '../../../lib/pricingRules';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -40,6 +43,7 @@ export async function GET(request) {
             region: p.region || 'europe',
             dataAmount: pDataAmount || (pDays === 1 ? '1 GB / Día' : '1 GB Total'),
             days: pDays,
+            costUsd: parseFloat(p.price || 0),
             priceEur: parseFloat(p.price || p.priceEur || 0),
             is_region: p.is_region || false,
             isUnlimited: (p.name || '').toLowerCase().includes('unlimited') || (p.name || '').toLowerCase().includes('ilimitad'),
@@ -128,58 +132,39 @@ export async function GET(request) {
       baseEur: c.baseEur || 4.90,
     }));
 
-  // Dynamic regional markup calculations
+  // Dynamic regional markup calculations powered by active pricing rules
   const applyMarkup = (plansList) => {
-    const REGION_MARKUPS = {
-      'europe': 1.81,
-      'europe-morocco': 1.76,
-      'north-america': 1.66,
-      'aukus': 1.66,
-      'china-hk-macau': 1.62,
-      'east-asia': 1.60,
-      'southeast-asia': 1.60,
-      'middle-east': 1.61,
-      'asia': 1.54,
-      'australia-new-zealand': 1.54,
-      'africa': 1.41,
-      'south-america': 1.37,
-      'caribbean': 1.28,
-      'oceania': 1.48, // general oceania fallback
-    };
+    const liveRules = getPricingRules('live');
 
     return plansList.map((p) => {
-      let planRegion = (p.region || '').toLowerCase();
       const pIso = (p.iso || '').toLowerCase();
+      let effectiveRegion = mapIsoToRegion(pIso, p.is_region || false);
 
-      // Detect region by comparing keys
-      if (p.is_region && REGION_MARKUPS[pIso]) {
-        planRegion = pIso;
-      } else {
+      if (!effectiveRegion || effectiveRegion === pIso) {
         const matchingCountry = countryMeta.find((c) => c.iso === pIso);
         if (matchingCountry) {
-          planRegion = matchingCountry.region;
+          effectiveRegion = mapIsoToRegion(matchingCountry.region, false) || matchingCountry.region;
+        } else if (p.region) {
+          effectiveRegion = mapIsoToRegion(p.region, p.is_region || false);
         }
       }
 
-      // Special sub-region override rules
-      if (pIso === 'jp' || pIso === 'kr' || pIso === 'tw') {
-        planRegion = 'east-asia';
-      }
-      if (pIso === 'th' || pIso === 'vn' || pIso === 'sg' || pIso === 'id' || pIso === 'my') {
-        planRegion = 'southeast-asia';
-      }
-      if (pIso === 'au' || pIso === 'nz') {
-        planRegion = 'australia-new-zealand';
-      }
-
-      const multiplier = REGION_MARKUPS[planRegion] || 1.8928;
-      const rawPrice = parseFloat(p.priceEur || p.price || 0);
-      const markedUp = parseFloat((rawPrice * multiplier).toFixed(2));
+      // Si el coste viene de la API en vivo de StrongeSIM ($ USD)
+      const costUsd = p.costUsd !== undefined ? p.costUsd : (p.priceEur ? p.priceEur / (liveRules.usdToEurRate || 0.926) : 0);
+      const pricing = computePlanPricing(costUsd, effectiveRegion, liveRules);
 
       return {
         ...p,
-        priceEur: markedUp,
-        price: markedUp,
+        costUsd: pricing.rawCostUsd,
+        costEur: pricing.costEur,
+        costGbp: pricing.costGbp,
+        costAud: pricing.costAud,
+        priceEur: pricing.pvpFinal,
+        price: pricing.pvpFinal,
+        priceGbp: pricing.pvpGbp,
+        priceAud: pricing.pvpAud,
+        isFloorApplied: pricing.isFloorApplied,
+        markupMultiplier: pricing.multiplier,
       };
     });
   };

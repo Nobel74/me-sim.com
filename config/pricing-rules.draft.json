@@ -1,0 +1,24 @@
+{
+  "floorPriceEur": 2.9,
+  "minProfitNetEur": 1.5,
+  "usdToEurRate": 0.926,
+  "defaultFallbackMarkup": 1.6,
+  "regionMarkups": {
+    "europe": 1.85,
+    "asia": 1.68,
+    "middle-east": 1.61,
+    "north-america": 1.75,
+    "south-america": 1.65,
+    "caribbean": 1.65,
+    "africa": 1.6,
+    "oceania": 1.65,
+    "aukus": 1.7,
+    "china-hk-macau": 1.7,
+    "japan-korea-taiwan": 1.7,
+    "southeast-asia": 1.68,
+    "europe-morocco": 1.8,
+    "global": 1.6
+  },
+  "updatedAt": "2026-09-15T12:00:00.000Z",
+  "updatedBy": "system_init"
+}
