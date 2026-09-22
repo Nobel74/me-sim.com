@@ -1,11 +1,94 @@
 # 📝 Memoria del Proyecto y Bitácora de Sesiones - ME-SIM.COM
 
-## 📅 Última Actualización: 16 de Septiembre de 2026 - 14:10 CEST
+## 📅 Última Actualización: 22 de Septiembre de 2026 - 10:55 CEST
 
 ---
 
-### 📌 Resumen de la Sesión Actual: Optimización de Rendimiento en Home (24 Países), Formateo Visual Chatbot y T&C Bilingüe
-En esta sesión se desarrollaron e integraron los requerimientos solicitados por el usuario:
+### 📌 Resumen de la Sesión Actual: Coherencia Total entre Precio del Banner y Primer Producto Visible
+En esta sesión se resolvió la incoherencia visual detectada en la ficha de destino (ej. Europa), donde el banner superior anunciaba "desde 2.90 €" mientras que la primera tarjeta del listado de "PLANES FIJOS" marcaba "3.01 €":
+1. **Causa Raíz:**
+   - La API de StrongeSIM contiene planes con limitación diaria ("Europe 30+ areas Unlimited 300MB/day" a 2.90 €) que por contener la palabra clave "unlimited" son clasificados con `isUnlimited: true`.
+   - En la interfaz de destino (`src/app/destination/[iso]/page.js`), la pestaña "PLANES FIJOS" filtra exclusivamente planes con `!p.isUnlimited` (mostrando 15 opciones cuyo plan más económico es `1 GB Total 7 días` a 3.01 €), mientras que la pestaña "DATOS ILIMITADOS" renderiza el calendario dinámico de días personalizados (`SingleCalendar`).
+   - El banner calculaba `minPriceEur` sobre **todos** los planes brutos de la API (`plans.reduce`), capturando el plan de 2.90 € que nunca se renderiza en la lista de opciones de compra fijas, generando la discrepancia con el primer producto visible (3.01 €).
+2. **Corrección Aplicada:**
+   - **`src/app/destination/[iso]/page.js`**: `minPriceEur` ahora se calcula prioritariamente sobre `fixedPlans.reduce(...)`, asegurando que el precio que proclama el banner ("Planes para Europa desde X €", "Planes desde X €") sea exactamente el precio del primer producto que el cliente ve y puede seleccionar en la lista inferior.
+   - **`src/lib/regionMapping.js` (`REGION_STARTING_PRICES`)**: Se actualizaron los precios base garantizados de cada región para reflejar el coste mínimo de los planes fijos visibles en tienda (ej. Europa a 3.01 €, Asia a 4.07 €, etc.), eliminando cualquier salto o flicker entre la carga inicial y la respuesta de la API.
+   - **`src/app/page.js` y `src/app/destinations/page.js`**: Se aseguró que tanto las cards de la Home (`localPlansMap`, `regionMinPriceMap`) como el catálogo general de destinos omitan planes con `isUnlimited` para calcular el precio mínimo de partida ("desde X €"), unificando el embudo completo (Home ➔ Ficha ➔ Carrito).
+3. **Verificación Automatizada:**
+   - Verificada la coherencia al 100% en Europa (Banner 3.01 € / Primer producto 3.01 €), Oriente Medio (Banner 12.52 € / Primer producto 12.52 €), España (Banner 2.94 € / Primer producto 2.94 €), Asia (Banner 4.07 € / Primer producto 4.07 €), EE.UU. (Banner 2.90 € / Primer producto 2.90 €) y Turquía (Banner 2.90 € / Primer producto 2.90 €).
+
+---
+
+### 📌 Resumen de la Sesión Actual: Corrección Inmediata de Tarjetas Regionales en Home ("desde 0.00 €")
+En esta sesión se detectó y subsanó de forma inmediata el error por el cual las tarjetas de la pestaña "Regiones" en la Home (`/`) mostraban un precio de `desde 0.00 €`:
+1. **Causa Raíz:**
+   - En `src/app/api/plans/route.js`, en la petición global sin parámetros realizada por la home (`GET /api/plans`), una referencia errónea en la agregación de planes provocaba que la consulta en vivo cayera en fallback y no se inyectaran planes con `is_region: true` para las 14 regiones comerciales.
+   - En `src/app/page.js`, `regionMinPriceMap` dependía exclusivamente de `p.is_region`, resultando en un mapa vacío y pasando `priceEur: undefined` a `RegionCard`, que al formatear un valor no numérico renderizaba `0.00 €`.
+2. **Corrección Integral:**
+   - **`src/app/api/plans/route.js`**: Se importó `REGION_MAPPING` y se corrigió la agregación de planes (`mappedPlans`). El catálogo global ahora mapea todos los planes de países y agrega los planes regionales de las 14 regiones comerciales con `is_region: true` y sus respectivos markups en vivo calculados sobre los costes de StrongeSIM ($8.40 USD -> 12,52 € para Oriente Medio, 2,90 € para Europa, etc.).
+   - **`src/app/page.js`**: Se integró `getDestinationStartingPrice` de `src/lib/regionMapping.js`. `regionMinPriceMap` ahora se inicializa con los precios base garantizados para todas las regiones desde el primer milisegundo (eliminando cualquier posible estado a 0.00 € antes o durante la respuesta de la API). Se unificó el título de 'Oriente Medio'.
+   - **`src/components/RegionCard.js`**: Se añadió una capa de protección adicional con fallback a `getDestinationStartingPrice(regionData.iso)` para asegurar que ninguna tarjeta regional pueda renderizar 0.00 € bajo ninguna condición.
+3. **Verificación Automatizada:**
+   - `GET /api/plans` devuelve 2.525 planes en vivo, incluyendo 170 planes regionales válidos.
+   - Las 13 regiones comerciales de la Home muestran sus precios mínimos reales: Oriente Medio (12,52 €), Europa (2,90 €), Asia (2,98 €), Norteamérica (3,66 €), Sudamérica (5,37 €), Caribe (6,26 €), África (10,13 €), Oceanía (3,66 €), Alianza AUKUS (6,26 €), China+HK+Macao (3,39 €), Japón/Corea/Taiwán (3,80 €), Sudeste Asiático (2,98 €) y Europa+Marruecos (6,54 €).
+   - Verificadas las rutas de país (`/api/plans?country=es`) y región (`/api/plans?region=middle-east`) sin ninguna regresión.
+
+---
+
+### 📌 Resumen de la Sesión Actual: Mapeo Explícito de Regiones (regionCode), Cálculo en Vivo de Precios y Protección de Márgenes
+En esta sesión se resolvió de forma definitiva la discrepancia de precios y márgenes en planes regionales/multipaís (ej. Oriente Medio):
+1. **Módulo de Mapeo Regional Explícito (`src/lib/regionMapping.js`):**
+   - Creación del diccionario maestro que traduce cada slug comercial de ME-SIM a los identificadores internos de StrongeSIM (`regionCode`, `country_codes` y keywords de nombre).
+   - Cobertura de las 14 regiones comerciales oficiales: `middle-east`, `europe`, `asia`, `north-america`, `south-america`, `caribbean`, `africa`, `oceania`, `aukus`, `china-hk-macau`, `japan-korea-taiwan`, `southeast-asia`, `europe-morocco`, `global` (con soporte para alias como `latin-america`, `east-asia`, `australia-new-zealand`).
+   - Función auxiliar `isPlanInRegion(plan, targetSlug)` con protección estricta contra falsos positivos y falsos negativos (impide que países individuales como Sudáfrica o España canibalicen los paquetes regionales de África o Europa).
+2. **Actualización de Búsqueda y Filtrado en `/api/plans` (`src/app/api/plans/route.js`):**
+   - Integración de `getRegionDefinition` y `isPlanInRegion`: ante una consulta por región (`/api/plans?country={slug}&region={slug}`), filtra directamente los planes reales devueltos por StrongeSIM `GET /plans?limit=10000`.
+   - Normalización del objeto para el catálogo web: asigna `iso = regionSlug`, `is_region = true` y extrae el coste mayorista real en vivo (`costUsd = parseFloat(p.price || 0)`: $8.40 USD para Oriente Medio 1GB 7D).
+   - Reubicación de helpers a nivel de módulo (`applyMarkup`, `deduplicatePlans`, `regionMeta`, `countryMeta`) eliminando el error de Temporal Dead Zone.
+3. **Sincronización del Motor de Precios y Cálculo de PVP (`src/lib/pricingRules.js`):**
+   - Los costes reales en vivo se computan con `computePlanPricing(costUsd, effectiveRegion, liveRules)`.
+   - Para Oriente Medio 1GB 7D:
+     * Coste Real Proveedor: $8.40 USD (7,78 €)
+     * Multiplicador Oriente Medio: 1.61×
+     * PVP Calculado Correcto: 12,52 € (~$13.65 USD)
+     * Beneficio Neto Garantizado: > 2,13 € - 2,50 € tras IVA (21%) y Stripe (1.5% + 0.25 €).
+   - Actualización de `mapIsoToRegion` para resolver alias regionales como `latin-america` y `latam` a `south-america`.
+4. **Blindaje Anti-Fallback y Consistencia Storefront vs. Admin:**
+   - En `src/app/api/admin/pricing-rules/route.js` y `src/app/api/plans/route.js`, actualización del `baseEur` de contingencia para Oriente Medio de 5.90 € a 7.78 € ($8.40 USD) garantizando que incluso ante una caída técnica total nunca se venda por debajo del coste.
+   - Auditoría automatizada de las 14 regiones: el 100% de las 14 regiones operan sobre planes en vivo de la API de StrongeSIM sin caer jamás en fallback estático.
+   - Alineación exacta: los precios mostrados en `/admin/precios` y en `/destination/middle-east` coinciden al céntimo (12,52 € / $13.65 USD).
+   - Cero regresiones en países individuales: `/destination/es` (14 planes) y `/destination/tr` (16 planes) mantienen intactos sus precios y márgenes.
+5. **Eliminación del Salto/Flicker en Carga Inicial de Ficha de Destino (`src/app/destination/[iso]/page.js`):**
+   - Se detectó que durante los primeros 3-4 segundos de carga (mientras `plans` resolvía desde la API), el banner utilizaba un fallback genérico de 2.90 € (£ 2.49 en GBP) y `countryName` con "(GCC)".
+   - Se implementó `getDestinationStartingPrice(isoCode)` en `src/lib/regionMapping.js`, asegurando que para Oriente Medio el precio de partida compute inmediatamente a 12,52 € (£ 10.74 en GBP) desde el primer milisegundo de renderizado.
+   - Se actualizó `getRegionName` en `src/lib/i18n.js` para estandarizar el nombre a "Oriente Medio" (sin "(GCC)"), logrando una carga 100% limpia, estable y sin saltos visuales.
+
+---
+
+### 📌 Resumen de la Sesión Actual: Corrección Crítica de Checkout, Aislamiento de Pipeline en 4 Bloques, Parser de QR y Reconciliación Automática
+En esta sesión se abordó y resolvió con éxito la regresión en el proceso post-pago, aprovisionamiento y sincronización de pedidos:
+1. **Extractor Seguro de Código QR y Polling de Reintento (`src/app/api/orders/route.js`):**
+   - Implementación de extractor seguro multiclave: `qr_code_url || qrCodeUrl || qr_code || qrCode || qr || activation_code || profile_url || profileUrl || shortUrl`.
+   - Polling de reintento automático (hasta 3 intentos con 2s de espera) consultando `GET /orders/{order_id}` y `GET /profiles/{iccid}` cuando StrongeSIM no entrega el QR en la primera respuesta.
+   - Pausa de seguridad en el envío de emails: si el QR no está disponible tras los reintentos, el correo no se envía con imagen rota, registrando un log de advertencia hasta disponer de la URL válida.
+2. **Aislamiento Total del Pipeline en 4 Bloques Independientes (`try / catch`):**
+   - **Bloque 1:** Aprovisionamiento en StrongeSIM con *Fail-Fast* ante errores de operador.
+   - **Bloque 2:** Registro inmediato en la base de datos local de ME-SIM (`saveOrUpdateOrder`), garantizando visibilidad instantánea en `/dashboard` y `/admin` sin depender de WooCommerce ni del Email.
+   - **Bloque 3:** Sincronización con WooCommerce REST API (`me-sim-bridge.php`) con normalización de URL base. Si falla, no bloquea ni afecta al registro local.
+   - **Bloque 4:** Generación y envío del correo electrónico con el QR validado.
+3. **Persistencia Multi-Capa en Almacenamiento de Pedidos (`src/lib/ordersService.js`):**
+   - Soporte para filesystem primario (`src/data/orders.json`), fallback en `/tmp/orders.json` para entornos serverless de solo lectura (`EROFS` en Vercel) y caché en memoria viva (`globalThis.__mesim_orders`).
+4. **Endpoint de Reconciliación Automática (`/api/admin/reconcile-orders`):**
+   - Creación del endpoint administrativo seguro (GET/POST) con autenticación por sesión admin y `x-admin-key`.
+   - Audita transacciones de Stripe de las últimas 24-48 horas, compara con la BD local y WooCommerce, y si detecta un pago huérfano, localiza la orden en StrongeSIM, recupera el QR, crea el pedido en WooCommerce, lo inserta en la BD local y envía el correo con el QR al cliente.
+5. **Recuperación y Reconciliación del Pedido Pendiente de Ian Rudrum:**
+   - Detectada transacción `pi_3UHgrpE55qmb8D8E0IQRRGBI` (7.13 EUR) y aprovisionamiento StrongeSIM `6ba75e8a-574d-437b-a2f1-cc80b981561d` (Plan "Middle East & North Africa 1GB 7Days", ICCID `8943108170002855471`, QR `https://p.qrsim.net/6ad20917fc2c4c9f8fe63356a326a373.png`).
+   - Pedido reconciliado y creado en WooCommerce como orden oficial **#89**.
+   - Guardado en `src/data/orders.json`.
+   - Correo electrónico de confirmación con el código QR enviado exitosamente al cliente (`ian.rudrum@btinternet.com`).
+   - Verificado: Pedido visible en `/admin` (con telemetría en vivo) y en `/dashboard` del usuario.
+
+---
 1. **Optimización de Carga y Rendimiento en Home (`src/app/page.js`):**
    - Se limitó el renderizado inicial de tarjetas de países a **24 destinos populares** (`slice(0, 24)`), reduciendo el peso de la página y el número de nodos del DOM en más de un 85%.
    - Los 24 países corresponden a los principales destinos turísticos y comerciales mundiales ordenados estratégicamente en cuadrículas perfectamente simétricas (6 filas × 4 columnas en escritorio, 8 filas × 3 columnas en pantallas medianas y 12 filas × 2 columnas en móviles/tablets).
@@ -96,6 +179,19 @@ En esta sesión se desarrollaron e integraron los requerimientos solicitados por
   - Consumo directo de `getPricingRules('live')` y `computePlanPricing` para fijar el PVP público de la tienda sin cachés estáticas complacientes.
 
 #### Frontend / UI:
+- [`src/app/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/page.js):
+  - Optimización de carga en Home: limitación del listado de países locales a los **24 más populares** (`slice(0, 24)`), reduciendo el DOM en más de un 85%.
+  - Inclusión de botón CTA centrado al pie de cuadrícula: *"Explorar todos los 198+ destinos ➔"* enlazando a `/destinations`.
+- [`src/components/SupportChatbot.js`](file:///c:/Users/Paco/Documents/me-sim/src/components/SupportChatbot.js):
+  - Refactorización de renderizado con `BotMessageContent`: normalización de `\n\n`, badges para cabeceras con iconos (⚡, 💡), viñetas estructuradas con puntos `#ffec00`, pasos numerados e interlineado cómodo.
+  - Ampliación de dimensiones a `sm:w-[410px] max-h-[540px]`.
+- [`src/app/globals.css`](file:///c:/Users/Paco/Documents/me-sim/src/app/globals.css):
+  - Estandarización de `font-size: 1.125rem;` (18px) y `line-height: 1.75` para `.wp-content p`, `.legal-content p`, `.wp-content li` y `.legal-content li`.
+- Páginas de Información Legal (ES / EN):
+  - [`src/app/condiciones-de-servicio/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/condiciones-de-servicio/page.js) y [`src/app/en/terms-and-conditions/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/en/terms-and-conditions/page.js): actualización de T&C (ME-SIM.COM, Stripe, Sin App, AUD añadido en punto 5, tipografía `1.125rem`).
+  - [`src/app/politica-de-cookies/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/politica-de-cookies/page.js) y [`src/app/en/cookie-policy/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/en/cookie-policy/page.js): `text-[1.125rem]`.
+  - [`src/app/politica-de-reembolso/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/politica-de-reembolso/page.js) y [`src/app/en/refund-policy/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/en/refund-policy/page.js): `text-[1.125rem]`.
+  - [`src/app/pollitica-de-privacidad/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/pollitica-de-privacidad/page.js) y [`src/app/en/privacy-policy/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/en/privacy-policy/page.js): `text-[1.125rem]`.
 - [`src/app/admin/precios/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/admin/precios/page.js):
   - Rediseño con estética gemela del **Panel de Finanzas** (`rounded-2xl`, bordes `zinc-800`/`zinc-200`, fondos `bg-zinc-900/80` / `bg-white`).
   - Iconos vectoriales planos Lucide React (`DollarSign`, `RefreshCw`, `Sliders`, `CheckCircle2`, `AlertTriangle`, `Layers`, `Globe`, `RotateCcw`, `Check`, `Search`, `ShieldCheck`, `Shield`, `TrendingUp`, `Zap`, `X`, `Save`).

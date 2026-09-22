@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server';
-import { strongesimFetch, resolveStrongeSimPlanId } from '../../../lib/strongesim';
-import { addDiagnosticLog } from '../../../lib/logger';
-import { checkOrderProvisioned, markOrderProvisioned } from '../../../lib/idempotency';
-import { saveOrUpdateOrder, getLocalOrders } from '../../../lib/ordersService';
-import { resolveCustomerLanguage } from '../../../lib/i18n';
+import { NextResponse } from 'next/server.js';
+import { strongesimFetch, resolveStrongeSimPlanId } from '../../../lib/strongesim.js';
+import { addDiagnosticLog } from '../../../lib/logger.js';
+import { checkOrderProvisioned, markOrderProvisioned } from '../../../lib/idempotency.js';
+import { saveOrUpdateOrder, getLocalOrders } from '../../../lib/ordersService.js';
+import { resolveCustomerLanguage } from '../../../lib/i18n.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -60,12 +60,58 @@ export async function POST(request) {
     markOrderProvisioned(dedupeKey, { status: 'in-flight', email: customerEmail });
 
     // =========================================================================
-    // 1. Resolver el plan numérico real de StrongeSIM y aprovisionar la eSIM
+    // EXTRACTORES SEGUROS MULTICLAVE
+    // =========================================================================
+    const extractQrFromData = (data) => {
+      if (!data) return '';
+      if (typeof data === 'string' && data.startsWith('http')) return data;
+      return (
+        data.qr_code_url ||
+        data.qrCodeUrl ||
+        data.qr_code ||
+        data.qrCode ||
+        data.qr ||
+        data.profile_url ||
+        data.profileUrl ||
+        data.shortUrl ||
+        data.short_url ||
+        ''
+      );
+    };
+
+    const extractLpaFromData = (data) => {
+      if (!data) return '';
+      return (
+        data.activation_code ||
+        data.activationCode ||
+        data.lpaString ||
+        data.lpa_string ||
+        data.lpa ||
+        data.ac ||
+        ''
+      );
+    };
+
+    const extractIccidFromData = (data) => {
+      if (!data) return '';
+      return (
+        data.iccid ||
+        data.esimTranNo ||
+        data.esim_tran_no ||
+        data.sim_no ||
+        data.simNo ||
+        ''
+      );
+    };
+
+    // =========================================================================
+    // BLOQUE 1: APROVISIONAMIENTO EN STRONGESIM
     // =========================================================================
     let esimData = null;
     let finalIccid = null;
     let finalQrCodeUrl = null;
     let finalLpa = null;
+    let strongesimOrderId = null;
 
     try {
       const realStrongeSimPlanId = await resolveStrongeSimPlanId({
@@ -83,7 +129,7 @@ export async function POST(request) {
         }, { status: 400 });
       }
 
-      console.log(`Resolved plan [${planId}] -> StrongeSIM real numeric package ID: [${realStrongeSimPlanId}]`);
+      console.log(`[BLOQUE 1] Resolved plan [${planId}] -> StrongeSIM real numeric package ID: [${realStrongeSimPlanId}]`);
       addDiagnosticLog('STRONGESIM', 'RESOLVE_PLAN_ID_START', { originalPlanId: planId, iso, dataAmount, days });
 
       const response = await strongesimFetch('/orders', {
@@ -117,46 +163,54 @@ export async function POST(request) {
         const nested = esimData.data || esimData;
         const ord = nested.order || nested;
         const targetId = ord.id || ord.orderId || ord.transactionId || nested.id || nested.orderId || nested.transactionId;
+        strongesimOrderId = targetId || null;
 
-        let realIccid = ord.iccid || ord.esimTranNo || nested.iccid || nested.esimTranNo;
-        let qrCodeUrl = ord.qr_code_url || ord.qrCodeUrl || nested.qr_code_url || nested.qrCodeUrl;
-        let lpaString = ord.activation_code || ord.lpaString || ord.lpa || nested.lpaString || nested.lpa || nested.activation_code;
+        let realIccid = extractIccidFromData(ord) || extractIccidFromData(nested);
+        let qrCodeUrl = extractQrFromData(ord) || extractQrFromData(nested);
+        let lpaString = extractLpaFromData(ord) || extractLpaFromData(nested);
 
         const profilesArr = nested.profiles || ord.profiles;
         if (Array.isArray(profilesArr) && profilesArr.length > 0) {
           const firstProf = profilesArr[0];
-          if (firstProf.iccid) realIccid = firstProf.iccid;
-          if (firstProf.qr_code_url || firstProf.qrCodeUrl) qrCodeUrl = firstProf.qr_code_url || firstProf.qrCodeUrl;
-          if (firstProf.activation_code || firstProf.ac) lpaString = firstProf.activation_code || firstProf.ac;
+          if (!realIccid) realIccid = extractIccidFromData(firstProf);
+          if (!qrCodeUrl) qrCodeUrl = extractQrFromData(firstProf);
+          if (!lpaString) lpaString = extractLpaFromData(firstProf);
         }
 
-        // Si el perfil necesita ser recuperado vía GET /orders/{targetId}
+        // Si el QR o perfil no viene completo en la primera respuesta, realizar POLLING DE REINTENTO (hasta 3 intentos con 2s)
         if (targetId && (!qrCodeUrl || !lpaString || !realIccid || !/^\d+$/.test(realIccid))) {
-          try {
-            const profileRes = await strongesimFetch(`/orders/${targetId}`, { cache: 'no-store' });
-            if (profileRes.ok) {
-              const profileData = await profileRes.json();
-              const pNested = profileData.data || profileData;
-              const pOrd = pNested.order || pNested;
-              const pProfiles = pNested.profiles || (pNested.data && pNested.data.profiles);
-              const firstProfile = Array.isArray(pProfiles) ? pProfiles[0] : pOrd;
+          for (let attempt = 1; attempt <= 3; attempt++) {
+            console.log(`[BLOQUE 1] Polling StrongeSIM GET /orders/${targetId} (intento ${attempt}/3)...`);
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+            try {
+              const profileRes = await strongesimFetch(`/orders/${targetId}`, { cache: 'no-store' });
+              if (profileRes.ok) {
+                const profileData = await profileRes.json();
+                const pNested = profileData.data || profileData;
+                const pOrd = pNested.order || pNested;
+                const pProfiles = pNested.profiles || (pNested.data && pNested.data.profiles);
+                const firstProfile = Array.isArray(pProfiles) ? pProfiles[0] : pOrd;
 
-              if (pOrd?.iccid) realIccid = pOrd.iccid;
-              if (pOrd?.qr_code_url) qrCodeUrl = pOrd.qr_code_url;
-              if (pOrd?.activation_code) lpaString = pOrd.activation_code;
+                const foundQr = extractQrFromData(pOrd) || extractQrFromData(firstProfile) || extractQrFromData(pNested);
+                const foundLpa = extractLpaFromData(pOrd) || extractLpaFromData(firstProfile) || extractLpaFromData(pNested);
+                const foundIccid = extractIccidFromData(pOrd) || extractIccidFromData(firstProfile) || extractIccidFromData(pNested);
 
-              if (firstProfile) {
-                if (firstProfile.iccid) realIccid = firstProfile.iccid;
-                if (firstProfile.qr_code_url || firstProfile.qrCodeUrl) qrCodeUrl = firstProfile.qr_code_url || firstProfile.qrCodeUrl;
-                if (firstProfile.activation_code || firstProfile.ac) lpaString = firstProfile.activation_code || firstProfile.ac;
+                if (foundQr) qrCodeUrl = foundQr;
+                if (foundLpa) lpaString = foundLpa;
+                if (foundIccid) realIccid = foundIccid;
+
+                if (qrCodeUrl && lpaString && realIccid) {
+                  console.log(`[BLOQUE 1] StrongeSIM QR resuelto con éxito en polling intento ${attempt}`);
+                  break;
+                }
               }
+            } catch (pErr) {
+              console.warn(`[BLOQUE 1] Error en polling intento ${attempt}:`, pErr.message);
             }
-          } catch (pErr) {
-            console.warn('Could not fetch expanded profile from StrongeSIM:', pErr.message);
           }
         }
 
-        // Si tenemos realIccid y todavía falta el QR directo de CDN de StrongeSIM, consultar /profiles/{realIccid}
+        // Si tenemos realIccid y todavía falta el QR directo de CDN, consultar /profiles/{realIccid}
         if (realIccid && /^\d+$/.test(realIccid) && (!qrCodeUrl || !lpaString)) {
           try {
             const profRes = await strongesimFetch(`/profiles/${realIccid}`, { cache: 'no-store' });
@@ -164,12 +218,14 @@ export async function POST(request) {
               const profData = await profRes.json();
               const p = Array.isArray(profData.data?.profiles) ? profData.data.profiles[0] : (profData.data?.profile || profData.data);
               if (p) {
-                if (p.qrCodeUrl || p.qr_code_url || p.shortUrl) qrCodeUrl = p.qrCodeUrl || p.qr_code_url || p.shortUrl;
-                if (p.ac || p.activation_code) lpaString = p.ac || p.activation_code;
+                const foundQr = extractQrFromData(p);
+                const foundLpa = extractLpaFromData(p);
+                if (foundQr) qrCodeUrl = foundQr;
+                if (foundLpa) lpaString = foundLpa;
               }
             }
           } catch (eProf) {
-            console.warn('Could not fetch direct profile from StrongeSIM:', eProf.message);
+            console.warn('[BLOQUE 1] Could not fetch direct profile from StrongeSIM:', eProf.message);
           }
         }
 
@@ -177,7 +233,7 @@ export async function POST(request) {
         finalLpa = lpaString || '';
         finalQrCodeUrl = qrCodeUrl || '';
 
-        console.log(`StrongeSIM real eSIM purchased successfully. Real ICCID: ${finalIccid}, QR: ${finalQrCodeUrl}`);
+        console.log(`[BLOQUE 1] StrongeSIM real eSIM purchased successfully. Real ICCID: ${finalIccid}, QR: ${finalQrCodeUrl ? 'OK' : 'MISSING'}`);
       } else {
         const errorBody = await response.text();
         addDiagnosticLog('STRONGESIM', 'ORDER_REJECTED', { status: response.status, errorBody });
@@ -189,35 +245,99 @@ export async function POST(request) {
         }, { status: 400 });
       }
     } catch (error) {
-      console.error('Error creating order at provider:', error);
+      console.error('[BLOQUE 1] Error creating order at provider:', error);
       return NextResponse.json({
         success: false,
         error: `Error de conexión con el proveedor de red: ${error.message}`
       }, { status: 500 });
     }
 
-    // Fallback if eSIM data is somehow missing
+    // Fallback de seguridad si falta ICCID
     if (!finalIccid) {
       finalIccid = '89852' + Math.floor(1000000000 + Math.random() * 9000000000);
       finalLpa = `LPA:1$rsp.strongesim.com$${finalIccid}`;
       finalQrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(finalLpa)}`;
     }
 
+    // Identificador de pedido inicial para ME-SIM
+    let effectiveOrderId = 'ORD-' + Math.floor(100000 + Math.random() * 900000);
+
     // =========================================================================
-    // 2. Crear pedido en WooCommerce CON metadatos de eSIM ya asignados
+    // BLOQUE 2: REGISTRO EN LA BASE DE DATOS LOCAL ME-SIM (ADMIN & CLIENTE)
+    // Se ejecuta OBLIGATORIAMENTE antes de WooCommerce y Email.
     // =========================================================================
-    let wcOrderId = 'ORD-' + Math.floor(100000 + Math.random() * 900000);
     try {
-      const wcUrl = process.env.WOOCOMMERCE_API_URL || 'https://api.me-sim.com';
+      const localSaved = saveOrUpdateOrder({
+        orderId: effectiveOrderId,
+        customerName: customerName || 'Cliente ME-SIM',
+        customerEmail: customerEmail,
+        lang: customerLang,
+        title: title || `eSIM Plan (${planId})`,
+        plan: title || `eSIM Plan (${planId})`,
+        amount: parseFloat(price || 0),
+        priceEur: parseFloat(price || 0),
+        currency: (currency || 'EUR').toUpperCase(),
+        status: 'Completed',
+        date: new Date().toISOString().split('T')[0],
+        createdAt: new Date().toISOString(),
+        paymentMethod: 'Stripe',
+        paymentIntentId: paymentIntentId || '',
+        esimTranNo: finalIccid,
+        realIccid: finalIccid,
+        strongesimOrderId: strongesimOrderId || '',
+        qrCodeUrl: finalQrCodeUrl,
+        lpaString: finalLpa,
+        country: country || 'España',
+        iso: (iso || 'es').toLowerCase(),
+        dataAmount: dataAmount || '1 GB',
+        days: parseInt(days || 30, 10),
+        planId: planId || '',
+        coupon: couponCode || '',
+        couponPercent: parseFloat(couponPercent || 0),
+        originalAmount: parseFloat(originalPrice || price || 0),
+        discountAmount: parseFloat(discountAmount || 0),
+        billing: {
+          firstName: (customerName || '').split(' ')[0] || '',
+          lastName: (customerName || '').split(' ').slice(1).join(' ') || '',
+        },
+      });
+
+      // Registrar inmediatamente en la caché de idempotencia
+      markOrderProvisioned(dedupeKey, { iccid: finalIccid, orderId: effectiveOrderId, qrCodeUrl: finalQrCodeUrl, email: customerEmail });
+      markOrderProvisioned(effectiveOrderId, { iccid: finalIccid, orderId: effectiveOrderId, qrCodeUrl: finalQrCodeUrl, email: customerEmail });
+      if (customerEmail && planId) {
+        markOrderProvisioned(`${customerEmail}_${planId}`, { iccid: finalIccid, orderId: effectiveOrderId, qrCodeUrl: finalQrCodeUrl });
+      }
+
+      console.log(`[BLOQUE 2] Pedido registrado con éxito en BD local ME-SIM [ID: ${effectiveOrderId}]. Visible en Admin y Dashboard.`);
+      addDiagnosticLog('LOCAL_ORDER_SAVED', 'SUCCESS', { orderId: effectiveOrderId, email: customerEmail });
+    } catch (localSaveErr) {
+      console.error('[BLOQUE 2] Excepción registrando pedido en BD local:', localSaveErr);
+    }
+
+    // =========================================================================
+    // BLOQUE 3: SINCRONIZACIÓN CON WOOCOMMERCE REST API (me-sim-bridge.php)
+    // Aislamiento total: Si falla, NO detiene el flujo ni borra la orden local.
+    // =========================================================================
+    try {
+      const rawWcUrl = process.env.WOOCOMMERCE_API_URL || process.env.NEXT_PUBLIC_WC_API_URL || 'https://api.me-sim.com';
+      let wcUrl = rawWcUrl;
+      if (wcUrl.includes('/wp-json')) {
+        wcUrl = wcUrl.split('/wp-json')[0];
+      }
+      if (wcUrl.endsWith('/')) {
+        wcUrl = wcUrl.slice(0, -1);
+      }
+
       const ck = process.env.WOOCOMMERCE_CONSUMER_KEY || process.env.WC_CONSUMER_KEY;
       const cs = process.env.WOOCOMMERCE_CONSUMER_SECRET || process.env.WC_CONSUMER_SECRET;
-      
+
       if (ck && cs) {
         const names = (customerName || 'Traveler').split(' ');
         const firstName = names[0] || 'Traveler';
         const lastName = names.slice(1).join(' ') || '';
 
-        // Buscar cliente existente por email
+        // 1. Buscar cliente existente por email
         let customerId = 0;
         let isNewCustomer = false;
         let generatedPassword = '';
@@ -235,10 +355,10 @@ export async function POST(request) {
             }
           }
         } catch (searchErr) {
-          console.error('Error searching WooCommerce customer:', searchErr);
+          console.warn('[BLOQUE 3] Error buscando cliente en WooCommerce:', searchErr.message);
         }
 
-        // Si no existe, crear cliente
+        // 2. Si no existe, crear cliente
         if (customerId === 0) {
           isNewCustomer = true;
           generatedPassword = 'MS-' + Math.floor(100000 + Math.random() * 900000).toString();
@@ -260,14 +380,14 @@ export async function POST(request) {
             if (createCustRes.ok) {
               const customerData = await createCustRes.json();
               customerId = customerData.id;
-              console.log(`Created new WooCommerce customer #${customerId} for ${customerEmail}`);
+              console.log(`[BLOQUE 3] Creado nuevo cliente WooCommerce #${customerId} para ${customerEmail}`);
             }
           } catch (createErr) {
-            console.error('Error creating WooCommerce customer:', createErr);
+            console.warn('[BLOQUE 3] Error creando cliente en WooCommerce:', createErr.message);
           }
         }
 
-        // Crear la orden con TODOS los metadatos de la eSIM incluidos desde el primer instante
+        // 3. Crear orden en WooCommerce con todos los metadatos de eSIM
         const wcRes = await fetch(`${wcUrl}/wp-json/wc/v3/orders`, {
           method: 'POST',
           headers: {
@@ -281,7 +401,7 @@ export async function POST(request) {
             status: 'completed',
             transaction_id: paymentIntentId || '',
             customer_id: customerId,
-            currency: currency || 'EUR',
+            currency: (currency || 'EUR').toUpperCase(),
             coupon_lines: couponCode ? [{ code: couponCode }] : [],
             billing: {
               first_name: firstName,
@@ -292,7 +412,7 @@ export async function POST(request) {
               {
                 name: title || `eSIM Plan (${planId})`,
                 quantity: 1,
-                sku: planId,
+                sku: String(planId || 'esim-plan'),
                 price: String(price || '0.00'),
                 subtotal: String(price || '0.00'),
                 total: String(price || '0.00'),
@@ -301,9 +421,8 @@ export async function POST(request) {
                   { key: '_plan_id', value: String(planId) },
                   { key: 'sku', value: String(planId) },
                   { key: '_sku', value: String(planId) },
-                  { key: 'plan_code', value: String(planId) },
                   { key: 'iso', value: String(iso || 'es') },
-                  { key: 'data_amount', value: String(dataAmount || '10 GB') },
+                  { key: 'data_amount', value: String(dataAmount || '1 GB') },
                   { key: 'days', value: String(days || 30) },
                 ],
               }
@@ -317,12 +436,13 @@ export async function POST(request) {
               { key: '_discount_amount', value: String(discountAmount || '0.00') },
               { key: '_esim_iso', value: iso || 'es' },
               { key: '_esim_country', value: country || 'España' },
-              { key: '_esim_data_amount', value: dataAmount || '10 GB' },
+              { key: '_esim_data_amount', value: dataAmount || '1 GB' },
               { key: '_esim_days', value: String(days || 30) },
               { key: '_esim_iccid', value: finalIccid },
               { key: '_esim_transaction_no', value: finalIccid },
               { key: '_esim_qr_code', value: finalQrCodeUrl },
               { key: '_esim_activation_code', value: finalLpa },
+              { key: '_strongesim_order_id', value: strongesimOrderId || '' },
               { key: '_esim_provisioned', value: 'yes' },
               { key: '_order_lang', value: customerLang },
               { key: '_customer_lang', value: customerLang },
@@ -335,10 +455,50 @@ export async function POST(request) {
         if (wcRes.ok) {
           const wcData = await wcRes.json();
           if (wcData && wcData.id) {
-            wcOrderId = String(wcData.id);
-            console.log(`WooCommerce order created successfully: #${wcOrderId}`);
+            const numericWcOrderId = String(wcData.id);
+            console.log(`[BLOQUE 3] Pedido WooCommerce creado exitosamente: #${numericWcOrderId}`);
 
-            // Enviar credenciales a nuevos usuarios
+            // Actualizar el pedido en la BD local con el ID numérico oficial de WooCommerce
+            saveOrUpdateOrder({
+              orderId: numericWcOrderId,
+              previousOrderId: effectiveOrderId,
+              paymentIntentId: paymentIntentId || '',
+              customerName: customerName || 'Cliente ME-SIM',
+              customerEmail: customerEmail,
+              lang: customerLang,
+              title: title || `eSIM Plan (${planId})`,
+              plan: title || `eSIM Plan (${planId})`,
+              amount: parseFloat(price || 0),
+              priceEur: parseFloat(price || 0),
+              currency: (currency || 'EUR').toUpperCase(),
+              status: 'Completed',
+              date: new Date().toISOString().split('T')[0],
+              createdAt: new Date().toISOString(),
+              paymentMethod: 'Stripe',
+              esimTranNo: finalIccid,
+              realIccid: finalIccid,
+              strongesimOrderId: strongesimOrderId || '',
+              qrCodeUrl: finalQrCodeUrl,
+              lpaString: finalLpa,
+              country: country || 'España',
+              iso: (iso || 'es').toLowerCase(),
+              dataAmount: dataAmount || '1 GB',
+              days: parseInt(days || 30, 10),
+              coupon: couponCode || '',
+              couponPercent: parseFloat(couponPercent || 0),
+              originalAmount: parseFloat(originalPrice || price || 0),
+              discountAmount: parseFloat(discountAmount || 0),
+              billing: {
+                firstName: firstName,
+                lastName: lastName,
+              },
+            });
+
+            // Actualizar effectiveOrderId para la respuesta y el email
+            effectiveOrderId = numericWcOrderId;
+            markOrderProvisioned(numericWcOrderId, { iccid: finalIccid, orderId: numericWcOrderId, qrCodeUrl: finalQrCodeUrl, email: customerEmail });
+
+            // Enviar credenciales a nuevos usuarios si aplica
             if (isNewCustomer && generatedPassword) {
               try {
                 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://me-sim.com';
@@ -352,106 +512,68 @@ export async function POST(request) {
                     lang: customerLang,
                   }),
                 });
-                console.log(`Welcome credentials email sent to ${customerEmail}`);
+                console.log(`[BLOQUE 3] Credenciales de bienvenida enviadas a ${customerEmail}`);
               } catch (mailErr) {
-                console.error('Error sending welcome email to new customer:', mailErr);
+                console.warn('[BLOQUE 3] Error enviando email de bienvenida:', mailErr.message);
               }
             }
           }
         } else {
           const errText = await wcRes.text();
-          console.error(`WooCommerce order creation failed: ${wcRes.status} - ${errText}`);
+          console.warn(`[BLOQUE 3] WooCommerce order creation status ${wcRes.status}: ${errText}`);
         }
       }
     } catch (wcErr) {
-      console.error('Error connecting to WooCommerce REST API:', wcErr);
-    }
-
-    // Guardar orden localmente para disponibilidad inmediata
-    try {
-      saveOrUpdateOrder({
-        orderId: wcOrderId,
-        customerName: customerName,
-        customerEmail: customerEmail,
-        lang: customerLang,
-        title: title || `eSIM Plan (${planId})`,
-        plan: title || `eSIM Plan (${planId})`,
-        amount: parseFloat(price || 0),
-        priceEur: parseFloat(price || 0),
-        currency: currency || 'EUR',
-        status: 'Completed',
-        date: new Date().toISOString().split('T')[0],
-        createdAt: new Date().toISOString(),
-        paymentMethod: 'Stripe',
-        esimTranNo: finalIccid,
-        realIccid: finalIccid,
-        qrCodeUrl: finalQrCodeUrl,
-        lpaString: finalLpa,
-        country: country || 'España',
-        coupon: couponCode || '',
-        couponPercent: parseFloat(couponPercent || 0),
-        originalAmount: parseFloat(originalPrice || price || 0),
-        discountAmount: parseFloat(discountAmount || 0),
-        billing: {
-          firstName: (customerName || '').split(' ')[0] || '',
-          lastName: (customerName || '').split(' ').slice(1).join(' ') || '',
-        },
-      });
-    } catch (localSaveErr) {
-      console.warn('Could not save local order in POST /api/orders:', localSaveErr.message);
+      console.warn('[BLOQUE 3] Error conectando con WooCommerce REST API (Aislado, pedido local seguro):', wcErr.message);
     }
 
     // =========================================================================
-    // 3. Registrar orden en caché de idempotencia para neutralizar el Webhook
-    // =========================================================================
-    markOrderProvisioned(dedupeKey, { iccid: finalIccid, orderId: wcOrderId, qrCodeUrl: finalQrCodeUrl, email: customerEmail });
-    if (wcOrderId && !wcOrderId.startsWith('ORD-')) {
-      markOrderProvisioned(wcOrderId, { iccid: finalIccid, orderId: wcOrderId, qrCodeUrl: finalQrCodeUrl, email: customerEmail });
-    }
-    if (customerEmail && planId) {
-      markOrderProvisioned(`${customerEmail}_${planId}`, { iccid: finalIccid, orderId: wcOrderId, qrCodeUrl: finalQrCodeUrl });
-    }
-
-    // =========================================================================
-    // 4. Enviar email con QR al cliente
+    // BLOQUE 4: GENERACIÓN Y ENVÍO DEL CORREO ELECTRÓNICO CON EL QR
+    // Aislamiento total: Valida QR antes de enviar para evitar imágenes rotas.
     // =========================================================================
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://me-sim.com';
-      await fetch(`${baseUrl}/api/email/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: customerEmail,
-          type: 'order_confirmation',
-          orderData: {
-            title: title || `eSIM Plan (${planId})`,
-            orderId: wcOrderId,
-            esimTranNo: finalIccid,
-            qrCodeUrl: finalQrCodeUrl,
-            lpaCode: finalLpa,
-            totalPrice: `${price} ${currency || 'EUR'}`,
-            amount: parseFloat(price || 0),
-            price: parseFloat(price || 0),
-            currency: (currency || 'EUR').toUpperCase(),
-            coupon: couponCode || '',
-            couponCode: couponCode || '',
-            couponPercent: parseFloat(couponPercent || 0),
-            originalAmount: parseFloat(originalPrice || price || 0),
-            originalPrice: parseFloat(originalPrice || price || 0),
-            discountAmount: parseFloat(discountAmount || 0),
-            customerName: customerName,
-          },
-          lang: customerLang,
-        }),
-      });
-      console.log(`Order confirmation email sent to ${customerEmail} (lang: ${customerLang})`);
+      if (!finalQrCodeUrl || !finalQrCodeUrl.startsWith('http')) {
+        console.warn(`[BLOQUE 4] AVISO: El código QR no está disponible aún para el pedido #${effectiveOrderId} (${customerEmail}). Pausando envío de correo para evitar imagen rota.`);
+        addDiagnosticLog('EMAIL_PAUSED', 'MISSING_QR', { orderId: effectiveOrderId, email: customerEmail });
+      } else {
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://me-sim.com';
+        await fetch(`${baseUrl}/api/email/send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: customerEmail,
+            type: 'order_confirmation',
+            orderData: {
+              title: title || `eSIM Plan (${planId})`,
+              orderId: effectiveOrderId,
+              esimTranNo: finalIccid,
+              qrCodeUrl: finalQrCodeUrl,
+              lpaCode: finalLpa,
+              totalPrice: `${price} ${(currency || 'EUR').toUpperCase()}`,
+              amount: parseFloat(price || 0),
+              price: parseFloat(price || 0),
+              currency: (currency || 'EUR').toUpperCase(),
+              coupon: couponCode || '',
+              couponCode: couponCode || '',
+              couponPercent: parseFloat(couponPercent || 0),
+              originalAmount: parseFloat(originalPrice || price || 0),
+              originalPrice: parseFloat(originalPrice || price || 0),
+              discountAmount: parseFloat(discountAmount || 0),
+              customerName: customerName,
+            },
+            lang: customerLang,
+          }),
+        });
+        console.log(`[BLOQUE 4] Correo de confirmación de pedido con QR enviado a ${customerEmail} (lang: ${customerLang})`);
+        addDiagnosticLog('EMAIL_SENT', 'ORDER_CONFIRMATION', { orderId: effectiveOrderId, email: customerEmail });
+      }
     } catch (mailErr) {
-      console.error('Error sending order confirmation email:', mailErr);
+      console.warn('[BLOQUE 4] Error enviando correo de confirmación (Aislado, pedido confirmado en BD):', mailErr.message);
     }
 
     return NextResponse.json({
       success: true,
-      order_id: wcOrderId,
+      order_id: effectiveOrderId,
       esimTranNo: finalIccid,
       qr_code_url: finalQrCodeUrl,
       status: esimData?.status || 'COMPLETED',
@@ -465,16 +587,21 @@ export async function POST(request) {
 
 export async function GET(request) {
   try {
-    const sessionCookie = request.cookies.get('mesim_session');
+    let sessionCookieVal = request.cookies?.get?.('mesim_session')?.value;
+    if (!sessionCookieVal) {
+      const cookieHeader = request.headers?.get?.('cookie') || '';
+      const match = cookieHeader.match(/(?:^|;\s*)mesim_session=([^;]+)/);
+      if (match) sessionCookieVal = decodeURIComponent(match[1]);
+    }
 
-    if (!sessionCookie || !sessionCookie.value) {
+    if (!sessionCookieVal) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    const sessionData = JSON.parse(Buffer.from(sessionCookie.value, 'base64').toString('utf-8'));
+    const sessionData = JSON.parse(Buffer.from(sessionCookieVal, 'base64').toString('utf-8'));
     const email = sessionData.email;
 
     if (!email) {

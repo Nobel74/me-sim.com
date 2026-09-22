@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
-import { revalidatePath } from 'next/cache';
-import { getAdminSessionFromRequest } from '../../../../lib/adminAuth';
+import { NextResponse } from 'next/server.js';
+import { revalidatePath } from 'next/cache.js';
+import { getAdminSessionFromRequest } from '../../../../lib/adminAuth.js';
 import {
   getPricingRules,
   getPricingRulesAsync,
@@ -12,9 +12,9 @@ import {
   DRAFT_RULES_FILE,
   computePlanPricing,
   mapIsoToRegion,
-} from '../../../../lib/pricingRules';
-import { ALL_WORLD_COUNTRIES } from '../../../../lib/i18n';
-import { strongesimFetch } from '../../../../lib/strongesim';
+} from '../../../../lib/pricingRules.js';
+import { ALL_WORLD_COUNTRIES } from '../../../../lib/i18n.js';
+import { strongesimFetch } from '../../../../lib/strongesim.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -112,7 +112,7 @@ export async function GET(request) {
         { iso: 'south-america', nameEs: 'América del Sur (14 Países)', nameEn: 'South America Multi-destination', region: 'south-america', baseEur: 6.90 },
         { iso: 'caribbean', nameEs: 'Caribe Multidestino (16 Islas)', nameEn: 'Caribbean Multi-destination', region: 'caribbean', baseEur: 6.90 },
         { iso: 'africa', nameEs: 'África Multidestino (26 Países)', nameEn: 'Africa Multi-destination', region: 'africa', baseEur: 7.90 },
-        { iso: 'middle-east', nameEs: 'Oriente Medio (12 Países)', nameEn: 'Middle East Multi-destination', region: 'middle-east', baseEur: 5.90 },
+        { iso: 'middle-east', nameEs: 'Oriente Medio (12 Países)', nameEn: 'Middle East Multi-destination', region: 'middle-east', baseEur: 7.78 },
         { iso: 'oceania', nameEs: 'Oceanía Multidestino (8 Países)', nameEn: 'Oceania Multi-destination', region: 'oceania', baseEur: 6.90 },
         { iso: 'aukus', nameEs: 'Alianza AUKUS (AU, UK, US)', nameEn: 'AUKUS Alliance', region: 'aukus', baseEur: 4.90 },
         { iso: 'china-hk-macau', nameEs: 'China + Hong Kong + Macao', nameEn: 'China + HK + Macau', region: 'china-hk-macau', baseEur: 4.90 },

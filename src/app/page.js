@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { getTranslation, getCountryName } from '../lib/i18n';
 import { formatCurrency, convertCurrency } from '../lib/currency';
+import { getDestinationStartingPrice } from '../lib/regionMapping';
 import HeroSearch from '../components/HeroSearch';
 import CountryCard from '../components/CountryCard';
 import RegionCard from '../components/RegionCard';
@@ -43,8 +44,8 @@ const REGION_CARDS_DATA = [
   },
   {
     iso: 'middle-east',
-    nameEs: 'Oriente Medio (GCC)',
-    nameEn: 'Gulf (GCC)',
+    nameEs: 'Oriente Medio',
+    nameEn: 'Middle East',
     descEs: 'Todos los estados del Golfo en una eSIM',
     descEn: 'All Gulf states, one eSIM',
     badgeEs: '12 países',
@@ -259,7 +260,7 @@ export default function HomePage() {
 
   const localPlansMap = new Map();
   plans.forEach((plan) => {
-    if (plan.iso && !plan.is_region) {
+    if (plan.iso && !plan.is_region && !plan.isUnlimited) {
       const existing = localPlansMap.get(plan.iso);
       if (!existing || (plan.priceEur || plan.price) < (existing.priceEur || existing.price)) {
         localPlansMap.set(plan.iso, plan);
@@ -269,12 +270,15 @@ export default function HomePage() {
 
   const regionMinPriceMap = useMemo(() => {
     const map = new Map();
+    for (const reg of REGION_CARDS_DATA) {
+      map.set(reg.iso, getDestinationStartingPrice(reg.iso));
+    }
     if (!plans || plans.length === 0) return map;
     for (const p of plans) {
-      if (p.is_region) {
+      if (p.is_region && !p.isUnlimited) {
         const iso = (p.iso || '').toLowerCase();
         const price = typeof p.priceEur === 'number' ? p.priceEur : (typeof p.price === 'number' ? p.price : null);
-        if (price !== null && !isNaN(price)) {
+        if (price !== null && !isNaN(price) && price > 0) {
           const current = map.get(iso);
           if (current === undefined || price < current) {
             map.set(iso, price);
@@ -474,7 +478,7 @@ export default function HomePage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
             {REGION_CARDS_DATA.map((reg) => {
-              const dynamicPrice = regionMinPriceMap.get(reg.iso);
+              const dynamicPrice = regionMinPriceMap.get(reg.iso) || getDestinationStartingPrice(reg.iso);
               return (
                 <RegionCard
                   key={reg.iso}

@@ -3,12 +3,16 @@
 import { useRouter } from 'next/navigation';
 import { getTranslation } from '../lib/i18n';
 import { convertCurrency, formatCurrency } from '../lib/currency';
+import { getDestinationStartingPrice } from '../lib/regionMapping';
 
 export default function RegionCard({ regionData, lang = 'es', currency = 'EUR', rates = {} }) {
   const router = useRouter();
   const t = getTranslation(lang);
 
-  const displayPrice = convertCurrency(regionData.priceEur, currency, rates);
+  const basePrice = typeof regionData.priceEur === 'number' && regionData.priceEur > 0
+    ? regionData.priceEur
+    : getDestinationStartingPrice(regionData.iso);
+  const displayPrice = convertCurrency(basePrice, currency, rates);
   const title = lang === 'en' ? regionData.nameEn : regionData.nameEs;
   const desc = lang === 'en' ? regionData.descEn : regionData.descEs;
   const badge = lang === 'en' ? regionData.badgeEn : regionData.badgeEs;

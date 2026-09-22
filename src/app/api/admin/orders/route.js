@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
-import { getAdminSessionFromRequest } from '../../../../lib/adminAuth';
-import { fetchEsimProfileTelemetry, fetchStrongeSimBalance } from '../../../../lib/strongesim';
-import { getLocalOrders } from '../../../../lib/ordersService';
-import { extractTotalMbFromOrder, resolveUniversalTelemetry, getOrderTelemetryWithCache } from '../../../../lib/universalTelemetry';
+import { NextResponse } from 'next/server.js';
+import { getAdminSessionFromRequest } from '../../../../lib/adminAuth.js';
+import { fetchEsimProfileTelemetry, fetchStrongeSimBalance } from '../../../../lib/strongesim.js';
+import { getLocalOrders } from '../../../../lib/ordersService.js';
+import { extractTotalMbFromOrder, resolveUniversalTelemetry, getOrderTelemetryWithCache } from '../../../../lib/universalTelemetry.js';
 
 export const dynamic = 'force-dynamic';
 

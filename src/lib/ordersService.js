@@ -4,44 +4,72 @@ import { fetchEsimProfileTelemetry } from './strongesim.js';
 import { resolveUniversalTelemetry } from './universalTelemetry.js';
 
 const ORDERS_FILE = path.join(process.cwd(), 'src', 'data', 'orders.json');
+const TMP_ORDERS_FILE = '/tmp/orders.json';
 
 /**
  * Carga la lista persistente de pedidos desde src/data/orders.json
- * Comprueba múltiples rutas candidatas para garantizar compatibilidad total con local, Next.js y Vercel.
+ * Comprueba múltiples rutas candidatas y memoria viva para garantizar compatibilidad total con local, Next.js y Vercel serverless.
  */
 export function getLocalOrders() {
   const candidatePaths = [
     ORDERS_FILE,
     path.resolve(process.cwd(), 'src/data/orders.json'),
+    TMP_ORDERS_FILE,
   ];
 
+  const map = new Map();
+
+  // 1. Cargar desde disco (fichero base y fallback /tmp)
   for (const p of candidatePaths) {
     try {
       if (p && fs.existsSync(p)) {
         const data = fs.readFileSync(p, 'utf-8');
         const parsed = JSON.parse(data);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+        if (Array.isArray(parsed)) {
+          for (const item of parsed) {
+            if (item && item.orderId) {
+              map.set(String(item.orderId).toLowerCase(), item);
+            }
+          }
         }
       }
     } catch (err) {
-      console.warn(`Error reading orders from ${p}:`, err.message);
+      // Ignore reading errors on secondary paths
     }
   }
 
-  return [];
+  // 2. Fusionar con memoria viva global si existe
+  if (typeof globalThis !== 'undefined' && Array.isArray(globalThis.__mesim_orders)) {
+    for (const item of globalThis.__mesim_orders) {
+      if (item && item.orderId) {
+        const key = String(item.orderId).toLowerCase();
+        const existing = map.get(key);
+        map.set(key, { ...(existing || {}), ...item });
+      }
+    }
+  }
+
+  const result = Array.from(map.values());
+  return result;
 }
 
 /**
  * Guarda o actualiza un pedido en el almacenamiento persistente de pedidos
+ * con soporte multi-capa (disco local, fallback /tmp para Vercel EROFS y memoria en vivo).
  */
 export function saveOrUpdateOrder(orderData) {
   if (!orderData || !orderData.orderId) return null;
   try {
     const orders = getLocalOrders();
-    const existingIndex = orders.findIndex(
-      (o) => String(o.orderId).toLowerCase() === String(orderData.orderId).toLowerCase()
-    );
+    const orderIdStr = String(orderData.orderId).toLowerCase();
+    const intentIdStr = orderData.paymentIntentId ? String(orderData.paymentIntentId).toLowerCase() : null;
+
+    // Buscar si ya existe por orderId o por paymentIntentId (para vincular transacciones ORD-temp con ID numérico WC)
+    const existingIndex = orders.findIndex((o) => {
+      const matchId = String(o.orderId).toLowerCase() === orderIdStr;
+      const matchIntent = intentIdStr && o.paymentIntentId && String(o.paymentIntentId).toLowerCase() === intentIdStr;
+      return matchId || matchIntent;
+    });
 
     const updated = {
       ...(existingIndex >= 0 ? orders[existingIndex] : {}),
@@ -55,14 +83,36 @@ export function saveOrUpdateOrder(orderData) {
       orders.unshift(updated);
     }
 
-    const dir = path.dirname(ORDERS_FILE);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
+    // Actualizar memoria viva global
+    if (typeof globalThis !== 'undefined') {
+      globalThis.__mesim_orders = orders;
     }
-    fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 2), 'utf-8');
+
+    // 1. Intentar escribir en el almacenamiento primario
+    let writtenToPrimary = false;
+    try {
+      const dir = path.dirname(ORDERS_FILE);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 2), 'utf-8');
+      writtenToPrimary = true;
+    } catch (primaryErr) {
+      console.warn('Could not write to primary orders file (likely read-only serverless filesystem):', primaryErr.message);
+    }
+
+    // 2. Fallback o réplica en /tmp si falla el primario o en entornos serverless
+    if (!writtenToPrimary) {
+      try {
+        fs.writeFileSync(TMP_ORDERS_FILE, JSON.stringify(orders, null, 2), 'utf-8');
+      } catch (tmpErr) {
+        console.warn('Could not write orders to /tmp fallback:', tmpErr.message);
+      }
+    }
+
     return updated;
   } catch (err) {
-    console.error('Error saving order to orders.json:', err);
+    console.error('Error in saveOrUpdateOrder:', err);
     return null;
   }
 }

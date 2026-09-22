@@ -11,6 +11,7 @@ import CompatibilityModal from '../../../components/CompatibilityModal';
 import SeoMeta from '../../../components/SeoMeta';
 import LoadingProgressBar from '../../../components/LoadingProgressBar';
 import UnlimitedPlanInfo from '../../../components/UnlimitedPlanInfo';
+import { getDestinationStartingPrice } from '../../../lib/regionMapping';
 
 const DESTINATION_IMAGES = {
   es: 'https://images.unsplash.com/photo-1543783207-ec64e4d95325?q=80&w=1000&auto=format&fit=crop',
@@ -212,7 +213,12 @@ export default function DestinationPage() {
 
   const fixedPlans = plans.filter((p) => !p.isUnlimited);
   const countryName = getCountryName(isoCode, lang, plans[0]?.country || getRegionName(isoCode, lang));
-  const minPriceEur = plans.reduce((min, p) => (p.priceEur < min ? p.priceEur : min), plans[0]?.priceEur || 2.90);
+  const defaultStartingPrice = getDestinationStartingPrice(isoCode);
+  const minPriceEur = fixedPlans.length > 0
+    ? fixedPlans.reduce((min, p) => (p.priceEur < min ? p.priceEur : min), fixedPlans[0].priceEur)
+    : (plans.length > 0
+        ? plans.reduce((min, p) => (p.priceEur < min ? p.priceEur : min), plans[0].priceEur)
+        : defaultStartingPrice);
   const selectedPlan = plans.find((p) => p.id === selectedPlanId) || fixedPlans[0];
 
   const handleAddToCartFixed = () => {

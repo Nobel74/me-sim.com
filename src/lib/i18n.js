@@ -858,7 +858,7 @@ export function getRegionName(regionKey = 'europe', lang = 'es') {
     all: { es: 'Todos', en: 'All' },
     europe: { es: 'Europa', en: 'Europe' },
     asia: { es: 'Asia', en: 'Asia' },
-    'middle-east': { es: 'Oriente Medio (GCC)', en: 'Middle East (GCC)' },
+    'middle-east': { es: 'Oriente Medio', en: 'Middle East' },
     'north-america': { es: 'Norteamérica', en: 'North America' },
     'south-america': { es: 'Sudamérica', en: 'South America' },
     caribbean: { es: 'Caribe', en: 'Caribbean' },

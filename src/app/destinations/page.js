@@ -99,6 +99,7 @@ export default function AllDestinationsPage() {
     const map = new Map();
     if (!plans || plans.length === 0) return map;
     for (const p of plans) {
+      if (p.isUnlimited) continue;
       const iso = (p.iso || '').toLowerCase();
       if (!iso) continue;
       const price = typeof p.priceEur === 'number' ? p.priceEur : (typeof p.price === 'number' ? p.price : null);

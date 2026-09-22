@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { ALL_WORLD_COUNTRIES } from './i18n';
+import { ALL_WORLD_COUNTRIES } from './i18n.js';
 
 export const CONFIG_DIR = path.join(process.cwd(), 'config');
 export const LIVE_RULES_FILE = path.join(CONFIG_DIR, 'pricing-rules.json');
@@ -470,6 +470,9 @@ export function mapIsoToRegion(iso = '', isRegion = false, fallbackRegion = null
   }
   if (['us', 'ca', 'mx'].includes(cleanIso)) {
     return 'north-america';
+  }
+  if (['latin-america', 'latam'].includes(cleanIso)) {
+    return 'south-america';
   }
 
   // 3. Si se proporciona una región previa válida

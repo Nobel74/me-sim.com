@@ -1,5 +1,6 @@
 import { addDiagnosticLog } from './logger.js';
 import { ALL_WORLD_COUNTRIES } from './i18n.js';
+import { isPlanInRegion } from './regionMapping.js';
 
 let lastAuthError = '';
 
@@ -231,6 +232,9 @@ export async function resolveStrongeSimPlanId({ sku, iso = 'es', dataAmount = ''
 
           // Exact ISO match
           if (pIso === targetIso || pIso.split(',').map(s => s.trim()).includes(targetIso)) return true;
+
+          // Region matrix mapping match
+          if (isPlanInRegion(p, targetIso)) return true;
 
           // Region keywords match
           const regKeys = REGION_KEYWORDS[targetIso];
