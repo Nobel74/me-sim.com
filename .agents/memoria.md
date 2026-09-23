@@ -1,6 +1,27 @@
 # 📝 Memoria del Proyecto y Bitácora de Sesiones - ME-SIM.COM
 
-## 📅 Última Actualización: 22 de Septiembre de 2026 - 10:55 CEST
+## 📅 Última Actualización: 23 de Septiembre de 2026 - 12:45 CEST
+
+---
+
+### 📌 Resumen de la Sesión Actual: Sincronización Real de Precios y Erradicación de Mocks en Panel de Administración
+En esta sesión se resolvió la discrepancia de precios entre la tienda pública y la sección "Precios" del panel de administración (`/admin/precios`):
+1. **Causa Raíz Identificada:**
+   - En la tienda pública (`/destination/mx`), el precio de **11.08 €** para México 3 GB (15 días) era 100% real y correcto, calculado en vivo contra StrongeSIM ($6.84 USD / 6.33 € coste mayorista $\times$ 1.75 margen de Norteamérica = 11.08 €).
+   - En el panel de administración (`/api/admin/pricing-rules`), la muestra de planes (`samplePlans`) utilizaba una matriz sintética hardcodeada (`countryTiers` y `baseCostEur = 4.90 € * 2.0x = 9.80 €`). Se inventaba un coste mayorista de 9.80 € inflando el PVP mostrado a 17.15 € y violando la directiva de Cero Mocks.
+2. **Corrección Aplicada:**
+   - **`src/app/api/admin/pricing-rules/route.js`**: Se eliminó la generación sintética de `samplePlans` y se conectó con el catálogo mayorista en vivo de StrongeSIM (`strongesimFetch('/plans?limit=10000')`).
+   - Se implementó caché en memoria viva (`cachedMasterPlans`) con TTL de 5 minutos e invalidación inmediata al publicar cambios (`PUT`) o ejecutar rollback (`POST action=rollback`), logrando respuestas ultrarrápidas (<10ms).
+   - Se mantiene la matriz sintética únicamente como fallback de contingencia técnica en caso de fallo crítico de red con StrongeSIM.
+3. **Verificación Automatizada:**
+   - Coincidencia exacta al céntimo verificada mediante `scratch/test_qa_pricing_sync.mjs`:
+     * México 3 GB (15 días): Coste Proveedor 6.33 € / PVP 11.08 € (Admin) == 11.08 € (Web).
+     * España 1 GB (7 días): Coste Proveedor 0.78 € / PVP 3.12 € (Admin) == 3.12 € (Web).
+     * EE.UU. 3 GB (30 días): Coste Proveedor 2.52 € / PVP 5.27 € (Admin) == 5.27 € (Web).
+     * Japón 3 GB (30 días): Coste Proveedor 2.00 € / PVP 4.62 € (Admin) == 4.62 € (Web).
+     * Francia 5 GB (30 días): Coste Proveedor 3.00 € / PVP 5.85 € (Admin) == 5.85 € (Web).
+     * Reino Unido 10 GB (30 días): Coste Proveedor 5.22 € / PVP 9.66 € (Admin) == 9.66 € (Web).
+   - Pruebas de regresión (`test-qa-pricing-rules.ps1` y `test-qa-currency-and-pvp.ps1`) superadas al 100% con 0 errores.
 
 ---
 
