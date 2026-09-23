@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { getTranslation, detectBrowserPreferences } from '../lib/i18n';
-import SupportChatbot from '../components/SupportChatbot';
 import CookieBanner from '../components/CookieBanner';
+
+const SupportChatbot = dynamic(() => import('../components/SupportChatbot'), { ssr: false });
 
 export default function ClientLayout({ children }) {
   const pathname = usePathname();

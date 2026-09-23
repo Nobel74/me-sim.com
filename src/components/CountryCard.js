@@ -22,6 +22,10 @@ export default function CountryCard({ iso, countryName, priceEur, lang = 'es', c
           <img
             src={isoCode === 'global' || isoCode === 'bq' ? `/flags/${isoCode}.gif` : `/flags/${isoCode}.webp`}
             alt={`eSIM ${displayName}`}
+            width="40"
+            height="40"
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover"
             onError={(e) => {
               e.target.src = '/flags/gl.webp';

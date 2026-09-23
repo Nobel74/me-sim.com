@@ -177,21 +177,21 @@ const REGION_CARDS_DATA = [
 ];
 
 const HERO_RANDOM_BACKGROUNDS = [
-  { url: 'https://images.unsplash.com/photo-1543783207-ec64e4d95325?q=80&w=1200&auto=format&fit=crop', nameEs: 'España & Marruecos', nameEn: 'Spain & Morocco' },
-  { url: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=1200&auto=format&fit=crop', nameEs: 'París, Francia', nameEn: 'Paris, France' },
-  { url: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=1200&auto=format&fit=crop', nameEs: 'Tokio, Japón', nameEn: 'Tokyo, Japan' },
-  { url: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?q=80&w=1200&auto=format&fit=crop', nameEs: 'Dubái, EAU', nameEn: 'Dubai, UAE' },
-  { url: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?q=80&w=1200&auto=format&fit=crop', nameEs: 'Londres, Reino Unido', nameEn: 'London, UK' },
-  { url: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?q=80&w=1200&auto=format&fit=crop', nameEs: 'Roma, Italia', nameEn: 'Rome, Italy' },
-  { url: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?q=80&w=1200&auto=format&fit=crop', nameEs: 'Gran Muralla, China', nameEn: 'Great Wall, China' },
-  { url: 'https://images.unsplash.com/photo-1523482580672-f109ba8cb9be?q=80&w=1200&auto=format&fit=crop', nameEs: 'Sídney, Australia', nameEn: 'Sydney, Australia' },
-  { url: 'https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?q=80&w=1200&auto=format&fit=crop', nameEs: 'Bangkok, Tailandia', nameEn: 'Bangkok, Thailand' },
-  { url: 'https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?q=80&w=1200&auto=format&fit=crop', nameEs: 'El Cairo, Egipto', nameEn: 'Cairo, Egypt' },
-  { url: 'https://images.unsplash.com/photo-1518684079-3c830dcef090?q=80&w=1200&auto=format&fit=crop', nameEs: 'Nueva York, EE.UU.', nameEn: 'New York, USA' },
-  { url: 'https://images.unsplash.com/photo-1539650116574-8efeb43e2750?q=80&w=1200&auto=format&fit=crop', nameEs: 'Estambul, Turquía', nameEn: 'Istanbul, Turkey' },
-  { url: 'https://images.unsplash.com/photo-1512813195386-6cf811ad3542?q=80&w=1200&auto=format&fit=crop', nameEs: 'Playa del Carmen, México', nameEn: 'Mexico' },
-  { url: 'https://images.unsplash.com/photo-1483729558449-99ef09a8c325?q=80&w=1200&auto=format&fit=crop', nameEs: 'Río de Janeiro, Brasil', nameEn: 'Rio, Brazil' },
-  { url: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=1200&auto=format&fit=crop', nameEs: 'Bali, Indonesia', nameEn: 'Bali, Indonesia' },
+  { url: 'https://images.unsplash.com/photo-1543783207-ec64e4d95325?q=75&w=800&auto=format&fit=crop', nameEs: 'España & Marruecos', nameEn: 'Spain & Morocco' },
+  { url: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=75&w=800&auto=format&fit=crop', nameEs: 'París, Francia', nameEn: 'Paris, France' },
+  { url: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=75&w=800&auto=format&fit=crop', nameEs: 'Tokio, Japón', nameEn: 'Tokyo, Japan' },
+  { url: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?q=75&w=800&auto=format&fit=crop', nameEs: 'Dubái, EAU', nameEn: 'Dubai, UAE' },
+  { url: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?q=75&w=800&auto=format&fit=crop', nameEs: 'Londres, Reino Unido', nameEn: 'London, UK' },
+  { url: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?q=75&w=800&auto=format&fit=crop', nameEs: 'Roma, Italia', nameEn: 'Rome, Italy' },
+  { url: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?q=75&w=800&auto=format&fit=crop', nameEs: 'Gran Muralla, China', nameEn: 'Great Wall, China' },
+  { url: 'https://images.unsplash.com/photo-1523482580672-f109ba8cb9be?q=75&w=800&auto=format&fit=crop', nameEs: 'Sídney, Australia', nameEn: 'Sydney, Australia' },
+  { url: 'https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?q=75&w=800&auto=format&fit=crop', nameEs: 'Bangkok, Tailandia', nameEn: 'Bangkok, Thailand' },
+  { url: 'https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?q=75&w=800&auto=format&fit=crop', nameEs: 'El Cairo, Egipto', nameEn: 'Cairo, Egypt' },
+  { url: 'https://images.unsplash.com/photo-1518684079-3c830dcef090?q=75&w=800&auto=format&fit=crop', nameEs: 'Nueva York, EE.UU.', nameEn: 'New York, USA' },
+  { url: 'https://images.unsplash.com/photo-1539650116574-8efeb43e2750?q=75&w=800&auto=format&fit=crop', nameEs: 'Estambul, Turquía', nameEn: 'Istanbul, Turkey' },
+  { url: 'https://images.unsplash.com/photo-1512813195386-6cf811ad3542?q=75&w=800&auto=format&fit=crop', nameEs: 'Playa del Carmen, México', nameEn: 'Mexico' },
+  { url: 'https://images.unsplash.com/photo-1483729558449-99ef09a8c325?q=75&w=800&auto=format&fit=crop', nameEs: 'Río de Janeiro, Brasil', nameEn: 'Rio, Brazil' },
+  { url: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?q=75&w=800&auto=format&fit=crop', nameEs: 'Bali, Indonesia', nameEn: 'Bali, Indonesia' },
 ];
 
 export default function HomePage() {
@@ -200,7 +200,7 @@ export default function HomePage() {
   const [rates, setRates] = useState({ EUR: 1, USD: 1.09, GBP: 0.85, AUD: 1.65 });
   const [plans, setPlans] = useState([]);
   const [mode, setMode] = useState('local');
-  const [heroBg, setHeroBg] = useState(HERO_RANDOM_BACKGROUNDS[0]);
+  const [heroBg] = useState(HERO_RANDOM_BACKGROUNDS[0]);
 
   const t = getTranslation(lang);
 
@@ -211,9 +211,6 @@ export default function HomePage() {
 
   useEffect(() => {
     syncPreferences();
-
-    const randomIndex = Math.floor(Math.random() * HERO_RANDOM_BACKGROUNDS.length);
-    setHeroBg(HERO_RANDOM_BACKGROUNDS[randomIndex]);
 
     const handleCurrencyChange = () => syncPreferences();
     const handleLangChange = () => syncPreferences();
@@ -308,6 +305,9 @@ export default function HomePage() {
           <img
             src={heroBg.url}
             alt={lang === 'en' ? heroBg.nameEn : heroBg.nameEs}
+            fetchPriority="high"
+            loading="eager"
+            decoding="async"
             className="absolute inset-0 w-full h-full object-cover object-center opacity-75 filter brightness-95 transition-opacity duration-700"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-black/25"></div>
@@ -430,12 +430,29 @@ export default function HomePage() {
       {/* MODE 1: LOCAL */}
       {mode === 'local' && (
         plans.length === 0 ? (
-          <LoadingProgressBar
-            lang={lang}
-            isDark={false}
-            messageEs="Cargando planes..."
-            messageEn="Loading plans..."
-          />
+          <div className="min-h-[520px] mb-16">
+            <LoadingProgressBar
+              lang={lang}
+              isDark={false}
+              messageEs="Cargando planes..."
+              messageEn="Loading planes..."
+            />
+            {/* Tarjetas esqueleto para reservar altura y garantizar CLS 0.000 */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 landscape:grid-cols-2 sm:landscape:grid-cols-3 lg:landscape:grid-cols-3 xl:landscape:grid-cols-4 gap-4 sm:gap-5 mt-4 opacity-40 pointer-events-none" aria-hidden="true">
+              {Array.from({ length: 8 }).map((_, idx) => (
+                <div key={idx} className="bg-white rounded-2xl border border-zinc-200 p-4 flex items-center justify-between h-[74px]">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-10 h-10 rounded-full bg-zinc-200 animate-pulse" />
+                    <div className="space-y-2">
+                      <div className="w-24 h-4 bg-zinc-200 rounded animate-pulse" />
+                      <div className="w-16 h-3 bg-zinc-100 rounded animate-pulse" />
+                    </div>
+                  </div>
+                  <div className="w-6 h-6 rounded-full bg-zinc-200 animate-pulse" />
+                </div>
+              ))}
+            </div>
+          </div>
         ) : (
           <div className="mb-16">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 landscape:grid-cols-2 sm:landscape:grid-cols-3 lg:landscape:grid-cols-3 xl:landscape:grid-cols-4 gap-4 sm:gap-5">
@@ -469,12 +486,29 @@ export default function HomePage() {
       {/* MODE 2: REGIONAL */}
       {mode === 'regional' && (
         plans.length === 0 ? (
-          <LoadingProgressBar
-            lang={lang}
-            isDark={false}
-            messageEs="Cargando planes..."
-            messageEn="Loading plans..."
-          />
+          <div className="min-h-[520px] mb-16">
+            <LoadingProgressBar
+              lang={lang}
+              isDark={false}
+              messageEs="Cargando planes..."
+              messageEn="Loading planes..."
+            />
+            {/* Tarjetas esqueleto para reservar altura y garantizar CLS 0.000 */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 landscape:grid-cols-2 sm:landscape:grid-cols-3 lg:landscape:grid-cols-3 xl:landscape:grid-cols-4 gap-4 sm:gap-5 mt-4 opacity-40 pointer-events-none" aria-hidden="true">
+              {Array.from({ length: 8 }).map((_, idx) => (
+                <div key={idx} className="bg-white rounded-2xl border border-zinc-200 p-4 flex items-center justify-between h-[74px]">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-10 h-10 rounded-full bg-zinc-200 animate-pulse" />
+                    <div className="space-y-2">
+                      <div className="w-24 h-4 bg-zinc-200 rounded animate-pulse" />
+                      <div className="w-16 h-3 bg-zinc-100 rounded animate-pulse" />
+                    </div>
+                  </div>
+                  <div className="w-6 h-6 rounded-full bg-zinc-200 animate-pulse" />
+                </div>
+              ))}
+            </div>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
             {REGION_CARDS_DATA.map((reg) => {
