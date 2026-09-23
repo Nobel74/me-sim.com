@@ -1,6 +1,25 @@
 # 📝 Memoria del Proyecto y Bitácora de Sesiones - ME-SIM.COM
 
-## 📅 Última Actualización: 23 de Septiembre de 2026 - 14:35 CEST
+## 📅 Última Actualización: 23 de Septiembre de 2026 - 15:16 CEST
+
+---
+
+### 📌 Resumen de la Sesión Actual: Accesibilidad y SEO: Corrección de Niveles de Encabezado (Lighthouse Heading Order)
+En esta sesión se corrigió la advertencia de accesibilidad en Google Lighthouse relativa al salto de niveles jerárquicos de encabezados HTML (`heading-order`), asegurando una navegación semántica óptima para lectores de pantalla sin alterar la estética visual ni tocar código sensible ni pasarelas:
+1. **Causa Raíz Identificada:**
+   - En el `<footer>` global de [`src/app/ClientLayout.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/ClientLayout.js), los títulos de columna ("eSIMs Populares", "Soporte y Ayuda" e "Información Legal") utilizaban etiquetas `<h4>` con clases `text-white font-semibold text-sm tracking-wider uppercase text-[#ffec00]`.
+   - En la página principal y fichas de destino, la jerarquía saltaba abruptamente desde `<h2>` (o `<h1>`) a `<h4>` sin ningún `<h3>` intermedio, infringiendo el criterio WCAG 2.1 / Lighthouse `heading-order`.
+   - Elementos decorativos y dropdowns de búsqueda en [`src/components/HeroSearch.js`](file:///c:/Users/Paco/Documents/me-sim/src/components/HeroSearch.js), [`src/app/destinations/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/destinations/page.js), marcas de dispositivos en [`src/components/FaqSection.js`](file:///c:/Users/Paco/Documents/me-sim/src/components/FaqSection.js), modal de cookies en [`src/components/CookieBanner.js`](file:///c:/Users/Paco/Documents/me-sim/src/components/CookieBanner.js), sidebar de filtros en [`src/components/plans/PlanFilterSidebar.js`](file:///c:/Users/Paco/Documents/me-sim/src/components/plans/PlanFilterSidebar.js) y características en [`src/app/destination/[iso]/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/destination/%5Biso%5D/page.js) presentaban también etiquetas `<h4>` descontextualizadas.
+2. **Corrección Quirúrgica Aplicada:**
+   - **`src/app/ClientLayout.js`**: Las 3 cabeceras de columnas del footer fueron transformadas de `<h4>` a `<p>` conservando **el 100% de las clases de Tailwind CSS intactas**, garantizando una apariencia visual idéntica pixel por pixel y erradicando el salto de nivel.
+   - **`src/components/HeroSearch.js`** y **`src/app/destinations/page.js`**: Normalización de etiquetas de resultados de búsqueda emergentes de `<h4>` a `<p>` con idéntico diseño.
+   - **`src/components/FaqSection.js`**: Normalización del nombre de marca en la pestaña de dispositivos de `<h4>` a `<p>`.
+   - **`src/app/destination/[iso]/page.js`**: Normalización de las 6 tarjetas de características de `<h4>` a `<p>` manteniendo la iconografía y tipografía exacta.
+   - **`src/components/plans/PlanFilterSidebar.js`** y **`src/components/CookieBanner.js`**: Normalización de títulos decorativos internos.
+3. **Control de Calidad y Verificación (QA):**
+   - Creado y ejecutado el test automatizado [`scratch/test-qa-heading-order.ps1`](file:///c:/Users/Paco/Documents/me-sim/scratch/test-qa-heading-order.ps1): 100% superado (0 errores).
+   - Verificada la no-regresión de suites de precios y divisa (`test-qa-currency-sync.ps1`).
+   - Cero afectación en pasarelas de pago, checkout, APIs, lógica de conversión o cashflow.
 
 ---
 

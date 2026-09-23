@@ -54,12 +54,12 @@ export default function PlanFilterSidebar({
         }`}
       >
         <div className="pb-3 border-b border-zinc-100">
-          <h4 className="text-base font-bold font-sans tracking-tight text-black flex items-center gap-2">
+          <p className="text-base font-bold font-sans tracking-tight text-black flex items-center gap-2">
             <svg className="w-4 h-4 text-black fill-current flex-shrink-0" viewBox="0 0 24 24">
               <path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z" />
             </svg>
             <span>{lang === 'en' ? 'Find Your Ideal Plan' : 'Encuentra tu Plan Ideal'}</span>
-          </h4>
+          </p>
 
           {isFiltered && (
             <div className="mt-2.5">

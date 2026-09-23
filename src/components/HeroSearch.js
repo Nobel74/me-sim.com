@@ -164,9 +164,9 @@ export default function HeroSearch({ lang = 'es', currency = 'EUR', rates = {}, 
         <div className="absolute top-full left-0 right-0 mt-3 bg-white rounded-3xl shadow-2xl border border-zinc-200 p-3 sm:p-4 text-black overflow-hidden z-50 transition-all max-h-80 sm:max-h-96 overflow-y-auto scrollbar-thin animate-scale-in">
           {!searchTerm.trim() ? (
             <div>
-              <h4 className="text-xs font-semibold font-condensed tracking-wider text-zinc-400 uppercase mb-3 px-3">
+              <p className="text-xs font-semibold font-condensed tracking-wider text-zinc-400 uppercase mb-3 px-3">
                 {t.popularDestinations}
-              </h4>
+              </p>
               <div className="space-y-1">
                 {popularDestinations.map((dest) => {
                   const name = getCountryName(dest.iso, lang);
@@ -198,9 +198,9 @@ export default function HeroSearch({ lang = 'es', currency = 'EUR', rates = {}, 
             </div>
           ) : (
             <div>
-              <h4 className="text-xs font-semibold font-condensed tracking-wider text-zinc-400 uppercase mb-3 px-3">
+              <p className="text-xs font-semibold font-condensed tracking-wider text-zinc-400 uppercase mb-3 px-3">
                 RESULTADOS PARA &quot;{searchTerm.toUpperCase()}&quot;
-              </h4>
+              </p>
               {searchSuggestions.length === 0 ? (
                 <p className="text-zinc-500 text-sm p-4 font-semibold font-sans">{t.noResults}</p>
               ) : (

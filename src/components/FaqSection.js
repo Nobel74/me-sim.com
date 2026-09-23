@@ -177,7 +177,7 @@ export default function FaqSection() {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-bold text-black text-base">{b.brand}</h4>
+                      <p className="font-bold text-black text-base">{b.brand}</p>
                       <span className="bg-[#ffec00] text-black text-[10px] font-bold px-2 py-0.5 rounded-full uppercase border border-black/10">
                         ✓ Compatible
                       </span>

@@ -274,9 +274,9 @@ export default function AllDestinationsPage() {
             {/* Floating Suggestions Dropdown */}
             {isOpen && searchTerm.trim() && (
               <div className="absolute top-full left-0 right-0 mt-3 bg-white rounded-3xl shadow-2xl border border-zinc-200 p-3 sm:p-4 text-black overflow-hidden z-50 transition-all max-h-80 overflow-y-auto scrollbar-thin animate-scale-in">
-                <h4 className="text-xs font-semibold font-condensed tracking-wider text-zinc-400 uppercase mb-3 px-3">
+                <p className="text-xs font-semibold font-condensed tracking-wider text-zinc-400 uppercase mb-3 px-3">
                   {lang === 'en' ? `RESULTS FOR "${searchTerm.toUpperCase()}"` : `RESULTADOS PARA "${searchTerm.toUpperCase()}"`}
-                </h4>
+                </p>
                 {searchSuggestions.length === 0 ? (
                   <p className="text-zinc-500 text-sm p-4 font-semibold font-sans">{t.noResults}</p>
                 ) : (

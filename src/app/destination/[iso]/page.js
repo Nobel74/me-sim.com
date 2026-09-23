@@ -580,9 +580,9 @@ export default function DestinationPage() {
                 ✓
               </span>
               <div>
-                <h4 className="font-bold text-black text-lg mb-1">
+                <p className="font-bold text-black text-lg mb-1">
                   {lang === 'en' ? 'Instant delivery' : 'Entrega instantánea'}
-                </h4>
+                </p>
                 <p className="text-base text-zinc-600 leading-relaxed font-sans">
                   {lang === 'en'
                     ? 'QR code by email and in your user dashboard, seconds after checkout.'
@@ -596,9 +596,9 @@ export default function DestinationPage() {
                 ✓
               </span>
               <div>
-                <h4 className="font-bold text-black text-lg mb-1">
+                <p className="font-bold text-black text-lg mb-1">
                   {lang === 'en' ? 'Data only, drama free' : 'Solo datos, sin sorpresas'}
-                </h4>
+                </p>
                 <p className="text-base text-zinc-600 leading-relaxed font-sans">
                   {lang === 'en'
                     ? `Pure mobile data for ${countryName}. Your number and WhatsApp stay exactly as they are.`
@@ -612,9 +612,9 @@ export default function DestinationPage() {
                 ✓
               </span>
               <div>
-                <h4 className="font-bold text-black text-lg mb-1">
+                <p className="font-bold text-black text-lg mb-1">
                   {lang === 'en' ? 'Hotspot included' : 'Hotspot e internet compartido'}
-                </h4>
+                </p>
                 <p className="text-base text-zinc-600 leading-relaxed font-sans">
                   {lang === 'en'
                     ? 'Tether laptops, tablets, and companion devices without restrictions.'
@@ -628,9 +628,9 @@ export default function DestinationPage() {
                 ✓
               </span>
               <div>
-                <h4 className="font-bold text-black text-lg mb-1">
+                <p className="font-bold text-black text-lg mb-1">
                   {lang === 'en' ? 'Flexible activation' : 'Activación flexible'}
-                </h4>
+                </p>
                 <p className="text-base text-zinc-600 leading-relaxed font-sans">
                   {lang === 'en'
                     ? '180 days to activate after purchase. Validity starts on first connection.'
@@ -644,9 +644,9 @@ export default function DestinationPage() {
                 ✓
               </span>
               <div>
-                <h4 className="font-bold text-black text-lg mb-1">
+                <p className="font-bold text-black text-lg mb-1">
                   {lang === 'en' ? 'Top up anytime' : 'Recarga fácil en 1 clic'}
-                </h4>
+                </p>
                 <p className="text-base text-zinc-600 leading-relaxed font-sans">
                   {lang === 'en'
                     ? 'Add data or extend your days in seconds directly from your customer account.'
@@ -660,9 +660,9 @@ export default function DestinationPage() {
                 ✓
               </span>
               <div>
-                <h4 className="font-bold text-black text-lg mb-1">
+                <p className="font-bold text-black text-lg mb-1">
                   {lang === 'en' ? '24/7 human support' : 'Soporte humano 24/7'}
-                </h4>
+                </p>
                 <p className="text-base text-zinc-600 leading-relaxed font-sans">
                   {lang === 'en'
                     ? 'Real human assistance around the clock via email and dashboard.'

@@ -439,9 +439,9 @@ export default function ClientLayout({ children }) {
 
             {/* Col 2: Popular Destinations */}
             <div className="space-y-4 text-center sm:text-left">
-              <h4 className="text-white font-semibold text-sm tracking-wider uppercase text-[#ffec00]">
+              <p className="text-white font-semibold text-sm tracking-wider uppercase text-[#ffec00]">
                 {lang === 'en' ? 'Popular eSIMs' : 'eSIMs Populares'}
-              </h4>
+              </p>
               <ul className="space-y-2.5 text-sm font-medium">
                 <li>
                   <Link href="/destination/us" className="hover:text-[#ffec00] transition-colors underline decoration-transparent hover:decoration-[#ffec00] underline-offset-4">
@@ -473,9 +473,9 @@ export default function ClientLayout({ children }) {
 
             {/* Col 3: Support */}
             <div className="space-y-4 text-center sm:text-left">
-              <h4 className="text-white font-semibold text-sm tracking-wider uppercase text-[#ffec00]">
+              <p className="text-white font-semibold text-sm tracking-wider uppercase text-[#ffec00]">
                 {lang === 'en' ? 'Help & Support' : 'Soporte y Ayuda'}
-              </h4>
+              </p>
               <ul className="space-y-2.5 text-sm font-medium">
                 <li>
                   <Link href="/soporte" className="hover:text-[#ffec00] transition-colors underline decoration-transparent hover:decoration-[#ffec00] underline-offset-4">
@@ -497,9 +497,9 @@ export default function ClientLayout({ children }) {
 
             {/* Col 4: Legal */}
             <div className="space-y-4 text-center sm:text-left">
-              <h4 className="text-white font-semibold text-sm tracking-wider uppercase text-[#ffec00]">
+              <p className="text-white font-semibold text-sm tracking-wider uppercase text-[#ffec00]">
                 {lang === 'en' ? 'Legal Information' : 'Información Legal'}
-              </h4>
+              </p>
               <ul className="space-y-2.5 text-sm font-medium">
                 <li>
                   <Link href={lang === 'en' ? '/en/privacy-policy/' : '/pollitica-de-privacidad/'} className="hover:text-[#ffec00] transition-colors underline decoration-transparent hover:decoration-[#ffec00] underline-offset-4">
