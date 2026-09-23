@@ -1,6 +1,23 @@
 # 📝 Memoria del Proyecto y Bitácora de Sesiones - ME-SIM.COM
 
-## 📅 Última Actualización: 23 de Septiembre de 2026 - 13:25 CEST
+## 📅 Última Actualización: 23 de Septiembre de 2026 - 13:35 CEST
+
+---
+
+### 📌 Resumen de la Sesión Actual: Internacionalización de Tooltips de Validación Nativa en Checkout
+En esta sesión se corrigió la localización de los globos/tooltips de validación nativa HTML5 en el formulario de compra ([`src/app/checkout/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/checkout/page.js)):
+1. **Causa Raíz:**
+   - Los campos con el atributo estándar `required` disparaban el mensaje por defecto del sistema operativo/navegador del usuario (ej. *"Completa este campo"* en español) independientemente de que la web estuviera configurada en inglés.
+2. **Corrección Implementada:**
+   - **`src/app/checkout/page.js`**:
+     * Se implementó el helper `getValidationMessage(type, validity)` que detecta dinámicamente el idioma activo (`lang === 'en'`).
+     * Se conectaron los eventos `onInvalid` y `onInput` a los campos requeridos (`firstName`, `email` y el checkbox de términos):
+       - **Inglés (`lang === 'en'`):** Muestra *"Please fill out this field."*, *"Please enter a valid email address."* y *"Please check this box if you want to proceed."*.
+       - **Español (`lang === 'es'`):** Muestra *"Completa este campo."*, *"Introduce una dirección de correo válida."* y *"Marca esta casilla si deseas continuar."*.
+     * Al escribir o marcar la casilla, `onInput` / `onChange` limpia `setCustomValidity('')` garantizando un comportamiento fluido sin falsos positivos.
+     * En `syncPreferences` se sincroniza dinámicamente `document.documentElement.lang = activeLang`.
+3. **Verificación:**
+   - Código analizado y validado sintácticamente.
 
 ---
 

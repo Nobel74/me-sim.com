@@ -41,6 +41,26 @@ function CheckoutFormContent() {
     const activeCurr = localStorage.getItem('mesim_curr') || prefs.currency || 'EUR';
     setLang(activeLang);
     setCurrency(activeCurr);
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = activeLang;
+    }
+  };
+
+  const getValidationMessage = (type, validity) => {
+    const isEn = lang === 'en';
+    if (!validity) return '';
+    if (validity.valueMissing) {
+      if (type === 'checkbox') {
+        return isEn ? 'Please check this box if you want to proceed.' : 'Marca esta casilla si deseas continuar.';
+      }
+      return isEn ? 'Please fill out this field.' : 'Completa este campo.';
+    }
+    if (validity.typeMismatch) {
+      if (type === 'email') {
+        return isEn ? 'Please enter a valid email address.' : 'Introduce una dirección de correo válida.';
+      }
+    }
+    return isEn ? 'Please fill out this field.' : 'Completa este campo.';
   };
 
   useEffect(() => {
@@ -267,6 +287,8 @@ function CheckoutFormContent() {
                 required
                 value={form.firstName}
                 onChange={(e) => setForm({ ...form, firstName: e.target.value })}
+                onInvalid={(e) => e.target.setCustomValidity(getValidationMessage('text', e.target.validity))}
+                onInput={(e) => e.target.setCustomValidity('')}
                 className="w-full px-4 py-3 rounded-xl border border-zinc-300 text-black text-base outline-none focus:ring-2 focus:ring-[#ffec00] font-sans"
                 placeholder={lang === 'en' ? 'John' : 'Juan'}
               />
@@ -294,6 +316,8 @@ function CheckoutFormContent() {
                 required
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
+                onInvalid={(e) => e.target.setCustomValidity(getValidationMessage('email', e.target.validity))}
+                onInput={(e) => e.target.setCustomValidity('')}
                 className="w-full px-4 py-3 rounded-xl border border-zinc-300 text-black text-base outline-none focus:ring-2 focus:ring-[#ffec00] font-sans"
                 placeholder="john.smith@email.com"
               />
@@ -360,9 +384,12 @@ function CheckoutFormContent() {
                   id="checkout-accept-terms"
                   checked={acceptTerms}
                   onChange={(e) => {
+                    e.target.setCustomValidity('');
                     setAcceptTerms(e.target.checked);
                     if (e.target.checked) setTermsError(false);
                   }}
+                  onInvalid={(e) => e.target.setCustomValidity(getValidationMessage('checkbox', e.target.validity))}
+                  onInput={(e) => e.target.setCustomValidity('')}
                   className="mt-0.5 w-5 h-5 rounded-md border-zinc-300 text-black accent-[#ffec00] focus:ring-[#ffec00] cursor-pointer flex-shrink-0"
                   aria-required="true"
                   aria-invalid={termsError}
