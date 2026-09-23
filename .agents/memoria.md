@@ -1,6 +1,31 @@
 # 📝 Memoria del Proyecto y Bitácora de Sesiones - ME-SIM.COM
 
-## 📅 Última Actualización: 23 de Septiembre de 2026 - 15:16 CEST
+## 📅 Última Actualización: 23 de Septiembre de 2026 - 15:58 CEST
+
+---
+
+### 📌 Resumen de la Sesión Actual: Optimización de Navegación Agéntica, Schema.org BreadcrumbList y Enlaces Nativos (3/3 Score)
+En esta sesión se optimizó la estructura semántica, los datos estructurados Schema.org y la navegabilidad para agentes de IA y rastreadores web en ME-SIM.COM, alcanzando una puntuación perfecta (3/3) en auditorías de Lighthouse y rastreo agéntico, manteniendo un blindaje absoluto de funcionalidad comercial (precios, divisas, catálogo y checkout):
+1. **Corrección de Niveles HN (Lighthouse Audit):**
+   - En [`src/components/RegionModal.js`](file:///c:/Users/Paco/Documents/me-sim/src/components/RegionModal.js), las etiquetas decorativas `<h4>` (título del plan regional y selector de países) fueron sustituidas por `<p>` manteniendo **el 100% de las clases de Tailwind CSS intactas**, asegurando una secuencia jerárquica limpia y continua (H1 -> H2 -> H3) en la Home y eliminando el salto de nivel.
+   - En [`src/app/dashboard/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/dashboard/page.js), normalización de etiquetas `<h4>` restantes a `<p>` en los estados vacíos y opciones de instalación de eSIM.
+   - El proyecto cuenta ahora con **0 etiquetas `<h4>`** en toda la interfaz web.
+2. **Implementación de Schema.org (`BreadcrumbList` JSON-LD):**
+   - En [`src/app/destination/[iso]/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/destination/[iso]/page.js), se inyectó el esquema oficial `BreadcrumbList` con sus 3 niveles estándar:
+     * Posición 1: Inicio (`https://me-sim.com`)
+     * Posición 2: Destinos (`https://me-sim.com/destinations`)
+     * Posición 3: Nombre del destino (`https://me-sim.com/destination/[iso]`)
+   - En [`src/app/region/[iso]/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/region/[iso]/page.js), se inyectó el marcado JSON-LD análogo con las 3 posiciones apuntando a `https://me-sim.com/region/[regionKey]`.
+   - Soporte dinámico para internacionalización bilingüe (ES / EN) y enlaces visuales semánticos accesibles con `aria-label="Breadcrumb"`.
+3. **Enlaces Semánticos Nativos (`<Link href="...">`):**
+   - En [`src/components/CountryCard.js`](file:///c:/Users/Paco/Documents/me-sim/src/components/CountryCard.js), se sustituyó el contenedor exterior `<div>` con `onClick={() => router.push(...)}` por el componente nativo `<Link href={`/destination/${isoCode}`}>`. Los rastreadores de IA ahora detectan etiquetas `<a href>` directamente en el DOM, permitiendo el rastreo automático y sin barreras de los 198+ destinos.
+   - En [`src/components/RegionCard.js`](file:///c:/Users/Paco/Documents/me-sim/src/components/RegionCard.js), se transformó el contenedor exterior en `<Link href={`/region/${regionData.iso}`}>`.
+   - En [`src/components/RegionModal.js`](file:///c:/Users/Paco/Documents/me-sim/src/components/RegionModal.js), las opciones y destinos del modal emergente se migraron a enlaces nativos `<Link href="...">`.
+4. **Control de Calidad y Verificación (QA):**
+   - Creado y ejecutado el test automatizado [`scratch/test-qa-agentic-seo.ps1`](file:///c:/Users/Paco/Documents/me-sim/scratch/test-qa-agentic-seo.ps1): 6/6 pruebas superadas (0 errores).
+   - Verificada la no-regresión con [`scratch/test-qa-heading-order.ps1`](file:///c:/Users/Paco/Documents/me-sim/scratch/test-qa-heading-order.ps1) (100% superado).
+   - Verificada la no-regresión financiera y de precios con [`scratch/test-qa-currency-sync.ps1`](file:///c:/Users/Paco/Documents/me-sim/scratch/test-qa-currency-sync.ps1) (100% superado).
+   - Cero afectación en pasarelas de pago, checkout, APIs, lógica de conversión o cashflow.
 
 ---
 

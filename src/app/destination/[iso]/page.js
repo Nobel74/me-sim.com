@@ -355,14 +355,44 @@ export default function DestinationPage() {
     }
   };
 
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": lang === 'en' ? "Home" : "Inicio",
+        "item": "https://me-sim.com"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": lang === 'en' ? "Destinations" : "Destinos",
+        "item": "https://me-sim.com/destinations"
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": countryName,
+        "item": `https://me-sim.com/destination/${isoCode}`
+      }
+    ]
+  };
+
   return (
     <div className="container-naked max-w-5xl font-sans pb-16 space-y-12">
       <SeoMeta path={`/destination/${isoCode}`} schemaJson={productSchema} />
+      {/* Schema.org BreadcrumbList JSON-LD */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
       {/* Breadcrumbs */}
-      <nav className="text-xs font-semibold text-zinc-500 flex items-center gap-2">
-        <Link href="/" className="hover:text-black transition-colors">Home</Link>
+      <nav aria-label="Breadcrumb" className="text-xs font-semibold text-zinc-500 flex items-center gap-2">
+        <Link href="/" className="hover:text-black transition-colors">{lang === 'en' ? 'Home' : 'Inicio'}</Link>
         <span>/</span>
-        <span>{lang === 'en' ? 'Destinations' : 'Destino'}</span>
+        <Link href="/destinations" className="hover:text-black transition-colors">{lang === 'en' ? 'Destinations' : 'Destinos'}</Link>
         <span>/</span>
         <span className="text-black font-semibold font-semi">{countryName}</span>
       </nav>

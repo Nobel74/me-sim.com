@@ -1,12 +1,11 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { getTranslation } from '../lib/i18n';
 import { convertCurrency, formatCurrency } from '../lib/currency';
 import { getDestinationStartingPrice } from '../lib/regionMapping';
 
 export default function RegionCard({ regionData, lang = 'es', currency = 'EUR', rates = {} }) {
-  const router = useRouter();
   const t = getTranslation(lang);
 
   const basePrice = typeof regionData.priceEur === 'number' && regionData.priceEur > 0
@@ -17,15 +16,11 @@ export default function RegionCard({ regionData, lang = 'es', currency = 'EUR', 
   const desc = lang === 'en' ? regionData.descEn : regionData.descEs;
   const badge = lang === 'en' ? regionData.badgeEn : regionData.badgeEs;
 
-  const handleClick = () => {
-    router.push(`/region/${regionData.iso}`);
-  };
-
   return (
-    <div
-      onClick={handleClick}
+    <Link
+      href={`/region/${regionData.iso}`}
       aria-label={`eSIM ${title}`}
-      className="bg-white rounded-3xl border border-zinc-200 hover:border-black p-3.5 sm:p-5 flex flex-col justify-between cursor-pointer hover:shadow-2xl transition-all group relative overflow-hidden"
+      className="bg-white rounded-3xl border border-zinc-200 hover:border-black p-3.5 sm:p-5 flex flex-col justify-between cursor-pointer hover:shadow-2xl transition-all group relative overflow-hidden block text-inherit no-underline"
     >
       <div className="absolute top-0 right-0 w-24 h-24 bg-[#ffec00]/15 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform"></div>
 
@@ -73,6 +68,6 @@ export default function RegionCard({ regionData, lang = 'es', currency = 'EUR', 
           {t.fromPrice} <strong className="text-black font-bold font-sans text-lg sm:text-xl ml-1">{formatCurrency(displayPrice, currency)}</strong>
         </span>
       </div>
-    </div>
+    </Link>
   );
 }

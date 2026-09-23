@@ -170,20 +170,50 @@ export default function RegionPage() {
   }
   const displayMinPrice = convertCurrency(minPriceEur, currency, rates);
 
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": lang === 'en' ? "Home" : "Inicio",
+        "item": "https://me-sim.com"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": lang === 'en' ? "Destinations" : "Destinos",
+        "item": "https://me-sim.com/destinations"
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": regionName,
+        "item": `https://me-sim.com/region/${regionKey}`
+      }
+    ]
+  };
+
   return (
     <div className="container-naked">
+      {/* Schema.org BreadcrumbList JSON-LD */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
       {/* Breadcrumb Navigation */}
-      <div className="pt-4 mb-4 flex items-center gap-2 text-xs font-semibold text-zinc-500 font-sans">
+      <nav aria-label="Breadcrumb" className="pt-4 mb-4 flex items-center gap-2 text-xs font-semibold text-zinc-500 font-sans">
         <Link href="/" className="hover:text-black transition-colors">
           {lang === 'en' ? 'Home' : 'Inicio'}
         </Link>
         <span>/</span>
         <Link href="/destinations" className="hover:text-black transition-colors">
-          {lang === 'en' ? 'Regions' : 'Regiones'}
+          {lang === 'en' ? 'Destinations' : 'Destinos'}
         </Link>
         <span>/</span>
         <span className="text-black font-bold capitalize">{regionName}</span>
-      </div>
+      </nav>
 
       {/* Hero Banner Section */}
       <div className="relative rounded-3xl bg-zinc-900 text-white mb-10 shadow-2xl border border-zinc-800">

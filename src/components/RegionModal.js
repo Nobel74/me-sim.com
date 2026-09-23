@@ -1,11 +1,10 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { ALL_WORLD_COUNTRIES, getTranslation, getCountryName } from '../lib/i18n';
 import { convertCurrency, formatCurrency } from '../lib/currency';
 
 export default function RegionModal({ regionData, onClose, lang = 'es', currency = 'EUR', rates = {} }) {
-  const router = useRouter();
   if (!regionData) return null;
 
   const t = getTranslation(lang);
@@ -15,16 +14,6 @@ export default function RegionModal({ regionData, onClose, lang = 'es', currency
   const regionCountries = ALL_WORLD_COUNTRIES.filter(
     (c) => c.region === regionData.iso || c.region === (regionData.iso === 'middle-east' ? 'middle-east' : regionData.iso)
   );
-
-  const handleSelectRegionalPlan = () => {
-    onClose();
-    router.push(`/destination/${regionData.iso}`);
-  };
-
-  const handleSelectCountry = (iso) => {
-    onClose();
-    router.push(`/destination/${iso}`);
-  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
@@ -59,9 +48,10 @@ export default function RegionModal({ regionData, onClose, lang = 'es', currency
         {/* Modal Body with 2 Options */}
         <div className="p-5 sm:p-6 overflow-y-auto space-y-6 scrollbar-thin">
           {/* OPTION 1: Full Region Multi-Country Plan */}
-          <div
-            onClick={handleSelectRegionalPlan}
-            className="bg-gradient-to-r from-zinc-900 to-zinc-800 text-white p-4 sm:p-5 rounded-2xl border border-zinc-700 hover:border-[#ffec00] cursor-pointer transition-all shadow-md group relative overflow-hidden"
+          <Link
+            href={`/destination/${regionData.iso}`}
+            onClick={onClose}
+            className="bg-gradient-to-r from-zinc-900 to-zinc-800 text-white p-4 sm:p-5 rounded-2xl border border-zinc-700 hover:border-[#ffec00] cursor-pointer transition-all shadow-md group relative overflow-hidden block text-inherit no-underline"
           >
             <div className="absolute top-0 right-0 w-24 h-24 bg-[#ffec00]/10 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform"></div>
             
@@ -77,9 +67,9 @@ export default function RegionModal({ regionData, onClose, lang = 'es', currency
               </span>
             </div>
 
-            <h4 className="text-lg sm:text-xl font-bold text-white mb-1 group-hover:text-[#ffec00] transition-colors">
+            <p className="text-lg sm:text-xl font-bold text-white mb-1 group-hover:text-[#ffec00] transition-colors">
               {lang === 'en' ? `Full ${title} eSIM Plan` : `eSIM Multipaís ${title}`}
-            </h4>
+            </p>
             <p className="text-xs sm:text-sm text-zinc-300 mb-3 font-normal">
               {regionData.descEs}
             </p>
@@ -88,18 +78,18 @@ export default function RegionModal({ regionData, onClose, lang = 'es', currency
               <span className="text-xs font-bold text-zinc-300">
                 {lang === 'en' ? 'Includes all regional countries' : 'Cubre todos los países de la región'}
               </span>
-              <button className="bg-[#ffec00] hover:bg-yellow-300 text-black text-xs font-bold px-3.5 py-1.5 rounded-xl shadow-xs transition-all flex items-center gap-1">
+              <span className="bg-[#ffec00] group-hover:bg-yellow-300 text-black text-xs font-bold px-3.5 py-1.5 rounded-xl shadow-xs transition-all flex items-center gap-1">
                 <span>{lang === 'en' ? 'View Regional Plan' : 'Ver Plan Regional'}</span> ➔
-              </button>
+              </span>
             </div>
-          </div>
+          </Link>
 
           {/* OPTION 2: Individual Country Selection inside Region */}
           <div>
-            <h4 className="text-xs font-bold tracking-wider text-zinc-500 uppercase mb-3 px-1 flex items-center justify-between">
+            <p className="text-xs font-bold tracking-wider text-zinc-500 uppercase mb-3 px-1 flex items-center justify-between">
               <span>{lang === 'en' ? `Individual Countries in ${title}` : `Países y Destinos de ${title}`}</span>
               <span className="text-zinc-400 font-semibold">{regionCountries.length} {lang === 'en' ? 'destinations' : 'destinos'}</span>
-            </h4>
+            </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {regionCountries.map((c) => {
@@ -107,10 +97,11 @@ export default function RegionModal({ regionData, onClose, lang = 'es', currency
                 const displayPrice = convertCurrency(c.baseEur || 4.90, currency, rates);
 
                 return (
-                  <div
+                  <Link
                     key={c.iso}
-                    onClick={() => handleSelectCountry(c.iso)}
-                    className="bg-zinc-50 hover:bg-[#ffec00]/15 border border-zinc-200 hover:border-black p-3 rounded-2xl cursor-pointer transition-all flex items-center justify-between group shadow-2xs"
+                    href={`/destination/${c.iso}`}
+                    onClick={onClose}
+                    className="bg-zinc-50 hover:bg-[#ffec00]/15 border border-zinc-200 hover:border-black p-3 rounded-2xl cursor-pointer transition-all flex items-center justify-between group shadow-2xs text-inherit no-underline"
                   >
                     <div className="flex items-center gap-3">
                       <img
@@ -129,7 +120,7 @@ export default function RegionModal({ regionData, onClose, lang = 'es', currency
                     <span className="text-xs font-bold text-zinc-500 font-condensed">
                       {t.fromPrice} <strong className="text-black font-bold text-sm ml-0.5">{formatCurrency(displayPrice, currency)}</strong>
                     </span>
-                  </div>
+                  </Link>
                 );
               })}
             </div>

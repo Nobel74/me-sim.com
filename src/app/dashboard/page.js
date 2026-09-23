@@ -683,9 +683,9 @@ export default function DashboardPage() {
                       <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z" />
                     </svg>
                   </div>
-                  <h4 className="text-lg font-bold text-black">
+                  <p className="text-lg font-bold text-black">
                     {lang === 'en' ? 'No eSIMs found in this view' : 'No hay tarjetas eSIM en esta vista'}
-                  </h4>
+                  </p>
                   <p className="text-xs text-zinc-500 max-w-md mx-auto">
                     {esimFilter === 'active'
                       ? (lang === 'en' ? 'You have no active eSIMs right now.' : 'No tienes eSIMs activas en este momento.')
@@ -947,12 +947,12 @@ export default function DashboardPage() {
                         </div>
 
                         <div className="space-y-2.5 text-xs w-full min-w-0">
-                          <h4 className="font-bold text-black font-sans uppercase text-xs flex items-center gap-1.5">
+                          <p className="font-bold text-black font-sans uppercase text-xs flex items-center gap-1.5">
                             <svg className="w-3.5 h-3.5 fill-current text-black flex-shrink-0" viewBox="0 0 24 24">
                               <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z" />
                             </svg>
                             <span>{lang === 'en' ? 'eSIM Installation Options' : 'Opciones de Instalación eSIM'}</span>
-                          </h4>
+                          </p>
                           <p className="text-zinc-600 text-[11px] leading-tight">
                             {lang === 'en' ? 'Scan the QR code with your phone camera or copy the manual code:' : 'Escanea el código QR con la cámara de tu móvil o copia el código manual:'}
                           </p>

@@ -1,21 +1,20 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { getCountryName, getTranslation } from '../lib/i18n';
 import { convertCurrency, formatCurrency } from '../lib/currency';
 
 export default function CountryCard({ iso, countryName, priceEur, lang = 'es', currency = 'EUR', rates = {} }) {
-  const router = useRouter();
   const t = getTranslation(lang);
   const isoCode = (iso || 'gl').toLowerCase();
   const displayName = countryName || getCountryName(isoCode, lang);
   const displayPrice = convertCurrency(priceEur, currency, rates);
 
   return (
-    <div
-      onClick={() => router.push(`/destination/${isoCode}`)}
+    <Link
+      href={`/destination/${isoCode}`}
       aria-label={`eSIM ${displayName}`}
-      className="bg-white rounded-2xl border border-zinc-200 hover:border-black p-4 flex items-center justify-between cursor-pointer hover:shadow-xl transition-all group"
+      className="bg-white rounded-2xl border border-zinc-200 hover:border-black p-4 flex items-center justify-between cursor-pointer hover:shadow-xl transition-all group block text-inherit no-underline"
     >
       <div className="flex items-center gap-3.5 min-w-0">
         <div className="w-10 h-10 rounded-full overflow-hidden border border-zinc-200 shadow-sm flex-shrink-0 bg-zinc-50 group-hover:scale-105 transition-transform">
@@ -47,6 +46,6 @@ export default function CountryCard({ iso, countryName, priceEur, lang = 'es', c
       <span className="w-7.5 h-7.5 p-1.5 rounded-full bg-[#ffec00] text-black font-bold text-xs flex items-center justify-center group-hover:translate-x-1 transition-transform ml-2 shadow-xs flex-shrink-0">
         ➔
       </span>
-    </div>
+    </Link>
   );
 }
