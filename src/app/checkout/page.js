@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { getTranslation, detectBrowserPreferences } from '../../lib/i18n';
 import { formatCurrency, convertCurrency, getExchangeRates } from '../../lib/currency';
 import { loadStripe } from '@stripe/stripe-js';
@@ -23,6 +24,8 @@ function CheckoutFormContent() {
   const [loading, setLoading] = useState(false);
   const [rates, setRates] = useState(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [termsError, setTermsError] = useState(false);
 
   const [form, setForm] = useState({
     firstName: '',
@@ -96,6 +99,18 @@ function CheckoutFormContent() {
     e.preventDefault();
     if (!form.email || !form.firstName) {
       alert(lang === 'en' ? 'Please complete required fields.' : 'Por favor, completa los campos requeridos.');
+      return;
+    }
+
+    if (!acceptTerms) {
+      setTermsError(true);
+      const el = document.getElementById('checkout-accept-terms');
+      if (el) el.focus();
+      alert(
+        lang === 'en'
+          ? 'You must accept the Terms and Conditions and the Privacy Policy to complete your order.'
+          : 'Debes aceptar los Términos y Condiciones y la Política de Privacidad para completar tu compra.'
+      );
       return;
     }
 
@@ -193,6 +208,8 @@ function CheckoutFormContent() {
           dataAmount: cart[0]?.dataAmount || '10 GB',
           days: cart[0]?.days || 30,
           lang: customerLang,
+          acceptedTerms: true,
+          termsAcceptedAt: new Date().toISOString(),
         }),
       });
 
@@ -330,10 +347,97 @@ function CheckoutFormContent() {
               </div>
             </div>
 
+            {/* Aceptación Obligatoria de Términos y Condiciones y Política de Privacidad */}
+            <div className={`mt-5 p-3.5 sm:p-4 rounded-2xl border transition-all ${
+              termsError
+                ? 'bg-red-50/90 border-red-300 ring-2 ring-red-400/20'
+                : 'bg-zinc-50 border-zinc-200 hover:border-zinc-300'
+            }`}>
+              <label htmlFor="checkout-accept-terms" className="flex items-start gap-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  required
+                  id="checkout-accept-terms"
+                  checked={acceptTerms}
+                  onChange={(e) => {
+                    setAcceptTerms(e.target.checked);
+                    if (e.target.checked) setTermsError(false);
+                  }}
+                  className="mt-0.5 w-5 h-5 rounded-md border-zinc-300 text-black accent-[#ffec00] focus:ring-[#ffec00] cursor-pointer flex-shrink-0"
+                  aria-required="true"
+                  aria-invalid={termsError}
+                />
+                <span className="text-xs sm:text-sm text-zinc-700 font-medium leading-relaxed font-sans">
+                  {lang === 'en' ? (
+                    <>
+                      I have read and agree to the{' '}
+                      <Link
+                        href="/en/terms-and-conditions/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-black font-bold underline underline-offset-2 hover:text-amber-600 transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Terms and Conditions
+                      </Link>
+                      {' '}and the{' '}
+                      <Link
+                        href="/en/privacy-policy/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-black font-bold underline underline-offset-2 hover:text-amber-600 transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Privacy Policy
+                      </Link>
+                      . <span className="text-red-500 font-bold">*</span>
+                    </>
+                  ) : (
+                    <>
+                      He leído y acepto los{' '}
+                      <Link
+                        href="/condiciones-de-servicio/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-black font-bold underline underline-offset-2 hover:text-amber-600 transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Términos y Condiciones
+                      </Link>
+                      {' '}y la{' '}
+                      <Link
+                        href="/pollitica-de-privacidad/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-black font-bold underline underline-offset-2 hover:text-amber-600 transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Política de Privacidad
+                      </Link>
+                      . <span className="text-red-500 font-bold">*</span>
+                    </>
+                  )}
+                </span>
+              </label>
+
+              {termsError && (
+                <div className="text-xs text-red-600 font-semibold mt-2.5 pl-8 flex items-center gap-1.5 font-sans animate-in fade-in duration-200">
+                  <svg className="w-3.5 h-3.5 fill-current text-red-600 flex-shrink-0" viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+                  </svg>
+                  <span>
+                    {lang === 'en'
+                      ? 'You must accept the terms and conditions and privacy policy to complete your order.'
+                      : 'Debes aceptar los términos y condiciones y la política de privacidad para completar tu compra.'}
+                  </span>
+                </div>
+              )}
+            </div>
+
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#ffec00] hover:bg-yellow-300 text-black font-semibold font-condensed tracking-wider uppercase py-3.5 px-6 rounded-xl text-xl transition-all shadow-lg mt-6 border border-black/10"
+              className="w-full bg-[#ffec00] hover:bg-yellow-300 text-black font-semibold font-condensed tracking-wider uppercase py-3.5 px-6 rounded-xl text-xl transition-all shadow-lg mt-5 border border-black/10"
             >
               {loading
                 ? (lang === 'en' ? 'Processing Stripe Payment...' : 'Procesando Pago con Stripe...')

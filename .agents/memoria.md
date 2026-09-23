@@ -1,6 +1,21 @@
 # 📝 Memoria del Proyecto y Bitácora de Sesiones - ME-SIM.COM
 
-## 📅 Última Actualización: 23 de Septiembre de 2026 - 12:45 CEST
+## 📅 Última Actualización: 23 de Septiembre de 2026 - 13:25 CEST
+
+---
+
+### 📌 Resumen de la Sesión Actual: Aceptación Legal Obligatoria en Checkout (Términos, Privacidad y Blindaje i18n)
+En esta sesión se implementó el blindaje legal obligatorio en el proceso de compra dentro de [`src/app/checkout/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/checkout/page.js):
+1. **Componente de Aceptación Obligatoria:**
+   - Ubicado estratégicamente justo debajo del formulario de tarjeta cifrado de Stripe Elements y encima del botón de pago ("Pagar X €").
+   - Checkbox estilizado con acento amarillo corporativo (`#ffec00`), área de toque optimizada para móvil y tablet (`select-none cursor-pointer`, `w-5 h-5`).
+2. **Soporte Bilingüe Completo (i18n):**
+   - **Castellano (`lang === 'es'`):** Enlace directo a Términos y Condiciones ([`/condiciones-de-servicio/`](file:///c:/Users/Paco/Documents/me-sim/src/app/condiciones-de-servicio/page.js)) y Política de Privacidad ([`/pollitica-de-privacidad/`](file:///c:/Users/Paco/Documents/me-sim/src/app/pollitica-de-privacidad/page.js)).
+   - **Inglés (`lang === 'en'`):** Enlace directo a Terms and Conditions ([`/en/terms-and-conditions/`](file:///c:/Users/Paco/Documents/me-sim/src/app/en/terms-and-conditions/page.js)) y Privacy Policy ([`/en/privacy-policy/`](file:///c:/Users/Paco/Documents/me-sim/src/app/en/privacy-policy/page.js)).
+   - Todos los enlaces abren en pestaña nueva (`target="_blank" rel="noopener noreferrer"`) con `e.stopPropagation()` para que el usuario pueda consultar las condiciones sin perder los datos del formulario ni el carrito.
+3. **Validación Estricta y Trazabilidad:**
+   - Si el comprador intenta pulsar el botón de pago sin marcar la casilla, se frena el envío, el contenedor se resalta con borde de alerta suave (`bg-red-50/90 border-red-300 ring-2`), se muestra mensaje de advertencia bilingüe con icono SVG plano y se enfoca el checkbox automáticamente.
+   - En el payload de `/api/orders`, se registra la trazabilidad del consentimiento (`acceptedTerms: true`, `termsAcceptedAt: new Date().toISOString()`).
 
 ---
 
