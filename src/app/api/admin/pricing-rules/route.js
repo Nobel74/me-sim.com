@@ -16,6 +16,7 @@ import {
 import { ALL_WORLD_COUNTRIES } from '../../../../lib/i18n.js';
 import { strongesimFetch } from '../../../../lib/strongesim.js';
 import { REGION_MAPPING, isPlanInRegion } from '../../../../lib/regionMapping.js';
+import { getExchangeRates } from '../../../../lib/currency.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -114,6 +115,11 @@ export async function GET(request) {
   const currentRules = mode === 'live' ? liveRules : draftRules;
 
   let samplePlans = [];
+  let liveExchangeRates = { EUR: 1.0, USD: 1.145, GBP: 0.858, AUD: 1.61 };
+  try {
+    liveExchangeRates = await getExchangeRates();
+  } catch (_) {}
+
   if (includeSample) {
     try {
       const masterPlans = await getMasterLivePlans();
@@ -125,8 +131,8 @@ export async function GET(request) {
 
           const effectiveRegion = mapIsoToRegion(pIso, p.is_region, p.region || countryMeta?.region);
 
-          const livePricing = computePlanPricing(p.costUsd, effectiveRegion, liveRules);
-          const draftPricing = computePlanPricing(p.costUsd, effectiveRegion, draftRules);
+          const livePricing = computePlanPricing(p.costUsd, effectiveRegion, liveRules, liveExchangeRates);
+          const draftPricing = computePlanPricing(p.costUsd, effectiveRegion, draftRules, liveExchangeRates);
           const selectedPricing = mode === 'live' ? livePricing : draftPricing;
 
           const variationPct = livePricing.pvpFinal > 0
@@ -197,8 +203,8 @@ export async function GET(request) {
             const tierCostEur = parseFloat((baseCostEur * tier.mult).toFixed(2));
             const tierCostUsd = tierCostEur / (liveRules.usdToEurRate || 0.926);
 
-            const livePricing = computePlanPricing(tierCostUsd, effectiveRegion, liveRules);
-            const draftPricing = computePlanPricing(tierCostUsd, effectiveRegion, draftRules);
+            const livePricing = computePlanPricing(tierCostUsd, effectiveRegion, liveRules, liveExchangeRates);
+            const draftPricing = computePlanPricing(tierCostUsd, effectiveRegion, draftRules, liveExchangeRates);
             const selectedPricing = mode === 'live' ? livePricing : draftPricing;
 
             const variationPct = livePricing.pvpFinal > 0
@@ -251,6 +257,7 @@ export async function GET(request) {
     liveRules,
     draftRules,
     hasBackup: hasBackupAvailable(),
+    exchangeRates: liveExchangeRates,
     samplePlans,
   });
 }

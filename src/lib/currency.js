@@ -10,9 +10,9 @@ const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 horas en milisegundos
 // Fallback rates por seguridad en caso de fallo de red
 const FALLBACK_RATES = {
   EUR: 1.0,
-  USD: 1.09,
-  GBP: 0.85,
-  AUD: 1.65,
+  USD: 1.145,
+  GBP: 0.858,
+  AUD: 1.61,
 };
 
 export async function getExchangeRates() {

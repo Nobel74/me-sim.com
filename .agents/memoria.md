@@ -1,6 +1,32 @@
 # 📝 Memoria del Proyecto y Bitácora de Sesiones - ME-SIM.COM
 
-## 📅 Última Actualización: 23 de Septiembre de 2026 - 14:05 CEST
+## 📅 Última Actualización: 23 de Septiembre de 2026 - 14:35 CEST
+
+---
+
+### 📌 Resumen de la Sesión Actual: Paridad Exacta de Precios Multi-Divisa (Admin vs Tienda Pública) y Sincronización en Vivo de Tipos de Cambio
+En esta sesión se erradicó la variación de céntimos detectada al auditar precios en libras esterlinas (£10.70 en Admin vs £10.74 en la Tienda Pública para Oriente Medio 1 GB 7 días):
+1. **Causa Raíz Identificada:**
+   - La base de datos y cálculo comercial de ME-SIM opera en **Euros (EUR)** como moneda maestra (12.52 € en ambos entornos).
+   - En el storefront del cliente final, la aplicación consulta en tiempo real la cotización de divisas de mercado vía `open.er-api.com` (tasa viva para GBP: `0.857935` ➔ $12.52 \times 0.857935 =$ **£ 10.74**).
+   - En el backend del panel de administración (`src/lib/pricingRules.js`), la muestra de auditoría (`samplePlans`) precalculaba `pvpGbp` utilizando una constante estática fija (`CURRENCY_RATES.EUR_TO_GBP = 0.855` ➔ $12.52 \times 0.855 =$ **£ 10.70**), y la función `formatPvpWeb` en el admin priorizaba el campo estático por encima de las tasas en vivo cargadas por el navegador.
+2. **Corrección Integral Aplicada:**
+   - **`src/lib/pricingRules.js`**:
+     * Se dotó a `computePlanPricing(costUsd, regionKey, customRules, customRates)` de soporte para aceptar un objeto dinámico `customRates` en vivo.
+     * Se actualizaron las tasas de contingencia `CURRENCY_RATES` a cotizaciones de mercado actualizadas (USD 1.145, GBP 0.858, AUD 1.61).
+   - **`src/app/api/admin/pricing-rules/route.js`**:
+     * Se integró `getExchangeRates()` en la petición `GET` de `/api/admin/pricing-rules`.
+     * Las muestras de planes comerciales (`samplePlans`) ahora se computan en el servidor utilizando los tipos de cambio en tiempo real y se devuelven en la clave `exchangeRates` del payload JSON.
+   - **`src/app/admin/precios/page.js`**:
+     * Se unificaron `formatPvpWeb` y `formatProviderCost` para calcular el importe visible multiplicando directamente por `exchangeRates[targetCurrency]`, igualando la lógica matemática exacta de la tienda pública (`formatMoney` y `convertCurrency`).
+     * `fetchRulesAndPlans` hidrata reactivamente el estado de `exchangeRates` con los datos en vivo recibidos del endpoint.
+   - **`src/lib/currency.js` y `src/app/destination/[iso]/page.js`**:
+     * Actualización de los valores de fallback de contingencia por consistencia arquitectónica.
+3. **Verificación Automatizada:**
+   - Verificado con la suite de pruebas automatizadas `scratch/test-qa-currency-sync.ps1`:
+     * Oriente Medio 1 GB (PVP Maestro 12.52 EUR) a tasa viva GBP (0.857935) da exactamente **£ 10.74** tanto en Storefront como en Admin.
+     * Coherencia certificada en USD ($14.34 en ambos) y AUD (A$20.16 en ambos).
+     * Suites de regresión `test-qa-pricing-rules.ps1` y `test-qa-currency-and-pvp.ps1` superadas con 100% de éxito (0 errores).
 
 ---
 

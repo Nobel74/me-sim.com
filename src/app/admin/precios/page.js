@@ -46,7 +46,7 @@ export default function AdminPreciosPage() {
   const [lang, setLang] = useState('es');
   const [theme, setTheme] = useState('dark'); // 'dark' | 'light'
   const [selectedCurrency, setSelectedCurrency] = useState('EUR'); // 'EUR' | 'GBP' | 'USD' | 'AUD'
-  const [exchangeRates, setExchangeRates] = useState({ EUR: 1.0, USD: 1.09, GBP: 0.85, AUD: 1.65 });
+  const [exchangeRates, setExchangeRates] = useState({ EUR: 1.0, USD: 1.145, GBP: 0.858, AUD: 1.61 });
   const [mode, setMode] = useState('draft'); // 'draft' | 'live'
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -119,6 +119,9 @@ export default function AdminPreciosPage() {
         setRules(data.rules);
         setLiveRules(data.liveRules);
         setHasBackup(!!data.hasBackup);
+        if (data.exchangeRates) {
+          setExchangeRates((prev) => ({ ...prev, ...data.exchangeRates }));
+        }
         if (data.samplePlans) {
           setSamplePlans(data.samplePlans);
         }
@@ -321,32 +324,29 @@ export default function AdminPreciosPage() {
       const usdVal = plan.costUsd !== undefined ? plan.costUsd : (plan.costEur / (rules.usdToEurRate || 0.926));
       return `$${(parseFloat(usdVal) || 0).toFixed(2)}`;
     }
-    if (targetCurrency === 'GBP') {
-      const gbpVal = plan.costGbp !== undefined ? plan.costGbp : (plan.costEur * (exchangeRates.GBP || 0.85));
-      return `£${(parseFloat(gbpVal) || 0).toFixed(2)}`;
+    const rate = exchangeRates[targetCurrency] || 1.0;
+    if (targetCurrency === 'EUR') {
+      return `${(parseFloat(plan.costEur) || 0).toFixed(2)} €`;
     }
-    if (targetCurrency === 'AUD') {
-      const audVal = plan.costAud !== undefined ? plan.costAud : (plan.costEur * (exchangeRates.AUD || 1.65));
-      return `A$${(parseFloat(audVal) || 0).toFixed(2)}`;
-    }
-    return `${(parseFloat(plan.costEur) || 0).toFixed(2)} €`;
+    const val = (parseFloat(plan.costEur) || 0) * rate;
+    const fixed = val.toFixed(2);
+    if (targetCurrency === 'GBP') return `£${fixed}`;
+    if (targetCurrency === 'AUD') return `A$${fixed}`;
+    return `${fixed} ${targetCurrency}`;
   };
 
-  // Helper para PVP WEB en la moneda activa
+  // Helper para PVP WEB en la moneda activa (100% alineado con tienda pública)
   const formatPvpWeb = (plan, targetCurrency = selectedCurrency) => {
-    if (targetCurrency === 'USD') {
-      const usdVal = plan.pvpUsd !== undefined ? plan.pvpUsd : (plan.pvpFinal * (exchangeRates.USD || 1.09));
-      return `$${(parseFloat(usdVal) || 0).toFixed(2)}`;
+    const rate = exchangeRates[targetCurrency] || 1.0;
+    if (targetCurrency === 'EUR') {
+      return `${(parseFloat(plan.pvpFinal) || 0).toFixed(2)} €`;
     }
-    if (targetCurrency === 'GBP') {
-      const gbpVal = plan.pvpGbp !== undefined ? plan.pvpGbp : (plan.pvpFinal * (exchangeRates.GBP || 0.85));
-      return `£${(parseFloat(gbpVal) || 0).toFixed(2)}`;
-    }
-    if (targetCurrency === 'AUD') {
-      const audVal = plan.pvpAud !== undefined ? plan.pvpAud : (plan.pvpFinal * (exchangeRates.AUD || 1.65));
-      return `A$${(parseFloat(audVal) || 0).toFixed(2)}`;
-    }
-    return `${(parseFloat(plan.pvpFinal) || 0).toFixed(2)} €`;
+    const val = (parseFloat(plan.pvpFinal) || 0) * rate;
+    const fixed = val.toFixed(2);
+    if (targetCurrency === 'USD') return `$${fixed}`;
+    if (targetCurrency === 'GBP') return `£${fixed}`;
+    if (targetCurrency === 'AUD') return `A$${fixed}`;
+    return `${fixed} ${targetCurrency}`;
   };
 
   // Filtrado reactivo de la tabla de planes comerciales

@@ -79,7 +79,7 @@ export default function DestinationPage() {
 
   const [lang, setLang] = useState('es');
   const [currency, setCurrency] = useState('EUR');
-  const [rates, setRates] = useState({ EUR: 1, USD: 1.09, GBP: 0.85, AUD: 1.65 });
+  const [rates, setRates] = useState({ EUR: 1, USD: 1.145, GBP: 0.858, AUD: 1.61 });
   const [plans, setPlans] = useState([]);
   const [activeTab, setActiveTab] = useState(initialTab);
   const [selectedPlanId, setSelectedPlanId] = useState(null);

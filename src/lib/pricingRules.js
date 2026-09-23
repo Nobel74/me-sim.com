@@ -32,11 +32,11 @@ export const DEFAULT_PRICING_RULES = {
   },
 };
 
-// Tasas estimadas de cambio secundario para visualización en tabla (GBP, AUD)
+// Tasas estimadas de cambio secundario de contingencia (GBP, USD, AUD)
 export const CURRENCY_RATES = {
-  EUR_TO_USD: 1.09,
-  EUR_TO_GBP: 0.855,
-  EUR_TO_AUD: 1.645,
+  EUR_TO_USD: 1.145,
+  EUR_TO_GBP: 0.858,
+  EUR_TO_AUD: 1.61,
 };
 
 // Caché en memoria para entorno Serverless / Edge y alta velocidad
@@ -499,7 +499,7 @@ export function mapIsoToRegion(iso = '', isRegion = false, fallbackRegion = null
  * Algoritmo financiero centralizado de cálculo de PVP y desglose:
  * Devuelve PVP final, IVA (21%), Stripe (1.5% + 0.25€), beneficio neto y si se aplicó el suelo.
  */
-export function computePlanPricing(costUsd, regionKey, customRules = null) {
+export function computePlanPricing(costUsd, regionKey, customRules = null, customRates = null) {
   const rules = customRules || getPricingRules('live');
   const rate = parseFloat(rules.usdToEurRate) || 0.926;
   const rawCostUsd = Math.max(0, parseFloat(costUsd) || 0);
@@ -530,12 +530,16 @@ export function computePlanPricing(costUsd, regionKey, customRules = null) {
   const profitNetEur = parseFloat((netRevenue - costEur).toFixed(2));
   const profitNetPct = costEur > 0 ? parseFloat(((profitNetEur / costEur) * 100).toFixed(1)) : 0;
 
-  // Monedas secundarias
-  const costGbp = parseFloat((costEur * CURRENCY_RATES.EUR_TO_GBP).toFixed(2));
-  const costAud = parseFloat((costEur * CURRENCY_RATES.EUR_TO_AUD).toFixed(2));
-  const pvpUsd = parseFloat((pvpFinal * CURRENCY_RATES.EUR_TO_USD).toFixed(2));
-  const pvpGbp = parseFloat((pvpFinal * CURRENCY_RATES.EUR_TO_GBP).toFixed(2));
-  const pvpAud = parseFloat((pvpFinal * CURRENCY_RATES.EUR_TO_AUD).toFixed(2));
+  // Monedas secundarias (sincronizadas en vivo o contingencia)
+  const fxUsd = customRates?.USD || CURRENCY_RATES.EUR_TO_USD;
+  const fxGbp = customRates?.GBP || CURRENCY_RATES.EUR_TO_GBP;
+  const fxAud = customRates?.AUD || CURRENCY_RATES.EUR_TO_AUD;
+
+  const costGbp = parseFloat((costEur * fxGbp).toFixed(2));
+  const costAud = parseFloat((costEur * fxAud).toFixed(2));
+  const pvpUsd = parseFloat((pvpFinal * fxUsd).toFixed(2));
+  const pvpGbp = parseFloat((pvpFinal * fxGbp).toFixed(2));
+  const pvpAud = parseFloat((pvpFinal * fxAud).toFixed(2));
 
   return {
     rawCostUsd,
