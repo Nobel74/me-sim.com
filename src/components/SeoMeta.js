@@ -12,7 +12,7 @@ export default function SeoMeta({
   schemaJson = null,
 }) {
   useEffect(() => {
-    const siteUrl = 'https://me-sim.com';
+    const siteUrl = 'https://www.me-sim.com';
     const cleanPath = path.startsWith('/') ? path : `/${path}`;
     const canonicalUrl = `${siteUrl}${cleanPath === '/' ? '' : cleanPath}`;
     

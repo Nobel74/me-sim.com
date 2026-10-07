@@ -1,12 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  trailingSlash: false,
   images: {
     unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
         hostname: 'me-sim.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.me-sim.com',
       },
     ],
   },

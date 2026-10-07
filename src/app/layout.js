@@ -26,6 +26,10 @@ const barlowSemiCondensed = Barlow_Semi_Condensed({
 });
 
 export const metadata = {
+  metadataBase: new URL('https://www.me-sim.com'),
+  alternates: {
+    canonical: '/',
+  },
   title: 'eSIM Internacional para Viajar | ME-SIM',
   description: 'Conectividad móvil instantánea en más de 198 países sin roaming',
   icons: {
@@ -42,10 +46,10 @@ export default function RootLayout({ children }) {
     "@context": "https://schema.org",
     "@type": "WebSite",
     "name": "ME-SIM",
-    "url": "https://me-sim.com",
+    "url": "https://www.me-sim.com",
     "potentialAction": {
       "@type": "SearchAction",
-      "target": "https://me-sim.com/?search={search_term_string}",
+      "target": "https://www.me-sim.com/?search={search_term_string}",
       "query-input": "required name=search_term_string"
     }
   };

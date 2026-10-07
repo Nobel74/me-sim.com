@@ -7,6 +7,7 @@ import { ALL_WORLD_COUNTRIES, getTranslation, getCountryName, getRegionName } fr
 import { convertCurrency, formatCurrency } from '../../../lib/currency';
 import CountryCard from '../../../components/CountryCard';
 import FaqSection from '../../../components/FaqSection';
+import SeoMeta from '../../../components/SeoMeta';
 
 const REGION_HERO_IMAGES = {
   europe: 'https://images.unsplash.com/photo-1467269204594-9661b134dd2b?q=80&w=1000&auto=format&fit=crop',
@@ -67,6 +68,10 @@ const REGION_DESCRIPTIONS = {
     en: 'Connect seamlessly in Mainland China, Hong Kong, and Macau without censorship. Direct access to WhatsApp, Google, Instagram, and YouTube with zero VPN needed.',
   },
   'east-asia': {
+    es: 'Conexión 5G ultra rápida en Japón, Corea del Sur y Taiwán. Ideal para viajes multilaterales por Asia Oriental.',
+    en: 'Ultra fast 5G connectivity across Japan, South Korea, and Taiwan. Ideal for multi-destination trips in East Asia.',
+  },
+  'japan-korea-taiwan': {
     es: 'Conexión 5G ultra rápida en Japón, Corea del Sur y Taiwán. Ideal para viajes multilaterales por Asia Oriental.',
     en: 'Ultra fast 5G connectivity across Japan, South Korea, and Taiwan. Ideal for multi-destination trips in East Asia.',
   },
@@ -148,7 +153,7 @@ export default function RegionPage() {
     regionCountries = ALL_WORLD_COUNTRIES.filter((c) => ['au', 'gb', 'us'].includes(c.iso));
   } else if (regionKey === 'china-hk-macau') {
     regionCountries = ALL_WORLD_COUNTRIES.filter((c) => ['cn', 'hk', 'mo'].includes(c.iso));
-  } else if (regionKey === 'east-asia') {
+  } else if (regionKey === 'east-asia' || regionKey === 'japan-korea-taiwan') {
     regionCountries = ALL_WORLD_COUNTRIES.filter((c) => ['jp', 'kr', 'tw'].includes(c.iso));
   } else if (regionKey === 'southeast-asia') {
     regionCountries = ALL_WORLD_COUNTRIES.filter((c) => ['th', 'my', 'sg', 'id', 'vn', 'ph', 'kh', 'la', 'mm'].includes(c.iso));
@@ -178,25 +183,26 @@ export default function RegionPage() {
         "@type": "ListItem",
         "position": 1,
         "name": lang === 'en' ? "Home" : "Inicio",
-        "item": "https://me-sim.com"
+        "item": "https://www.me-sim.com"
       },
       {
         "@type": "ListItem",
         "position": 2,
         "name": lang === 'en' ? "Destinations" : "Destinos",
-        "item": "https://me-sim.com/destinations"
+        "item": "https://www.me-sim.com/destinations"
       },
       {
         "@type": "ListItem",
         "position": 3,
         "name": regionName,
-        "item": `https://me-sim.com/region/${regionKey}`
+        "item": `https://www.me-sim.com/region/${regionKey}`
       }
     ]
   };
 
   return (
     <div className="container-naked">
+      <SeoMeta path={`/region/${regionKey}`} />
       {/* Schema.org BreadcrumbList JSON-LD */}
       <script
         type="application/ld+json"

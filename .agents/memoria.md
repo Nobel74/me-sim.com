@@ -1,6 +1,37 @@
 # 📝 Memoria del Proyecto y Bitácora de Sesiones - ME-SIM.COM
 
-## 📅 Última Actualización: 23 de Septiembre de 2026 - 15:58 CEST
+## 📅 Última Actualización: 7 de Octubre de 2026 - 14:25 CEST
+
+---
+
+### 📌 Resumen de la Sesión Actual: Resolución Canónicas, Sitemap Dinámico y Redirecciones (Search Console Fix)
+En esta sesión se resolvieron los errores de indexación, redirección y etiquetas canónicas ausentes en Google Search Console para la propiedad oficial `https://www.me-sim.com/`, aplicando un enfoque 100% SEO con blindaje total del proceso transaccional y comercial:
+1. **Configuración de Metadatos y Canónicas Base en RootLayout (`src/app/layout.js`):**
+   - Configurado `metadataBase: new URL('https://www.me-sim.com')`.
+   - Añadida regla canónica base `alternates: { canonical: '/' }`.
+   - Actualizado el schema JSON-LD de WebSite a la URL canónica `https://www.me-sim.com`.
+2. **Canónicas Dinámicas Absolutas en Páginas de Catálogo (`layout.js` Server Components):**
+   - Creado [`src/app/destination/[iso]/layout.js`](file:///c:/Users/PACO-PORTATIL/.git/me-sim.com/src/app/destination/[iso]/layout.js) con `generateMetadata({ params })` que resuelve la canónica absoluta `https://www.me-sim.com/destination/${country}` (admitiendo tanto `params.country` como `params.iso`) junto a títulos y descripciones enriquecidas.
+   - Creado [`src/app/region/[iso]/layout.js`](file:///c:/Users/PACO-PORTATIL/.git/me-sim.com/src/app/region/[iso]/layout.js) con `generateMetadata({ params })` devolviendo `https://www.me-sim.com/region/${slug}` (soportando tanto `params.slug` como `params.iso`).
+   - Creado [`src/app/destinations/layout.js`](file:///c:/Users/PACO-PORTATIL/.git/me-sim.com/src/app/destinations/layout.js) con `alternates: { canonical: 'https://www.me-sim.com/destinations' }`.
+   - En [`src/components/SeoMeta.js`](file:///c:/Users/PACO-PORTATIL/.git/me-sim.com/src/components/SeoMeta.js), actualizada la constante `siteUrl` a `https://www.me-sim.com` para evitar que la hidratación cliente sobreescribiera la canónica al dominio sin `www.`.
+   - En [`src/app/destination/[iso]/page.js`](file:///c:/Users/PACO-PORTATIL/.git/me-sim.com/src/app/destination/[iso]/page.js) y [`src/app/region/[iso]/page.js`](file:///c:/Users/PACO-PORTATIL/.git/me-sim.com/src/app/region/[iso]/page.js), unificadas las URLs de `BreadcrumbList` a `https://www.me-sim.com`.
+3. **Limpieza y Optimización del Sitemap Dinámico (`src/app/sitemap.js`):**
+   - Todas las URLs listadas apuntan obligatoriamente al dominio oficial `https://www.me-sim.com`.
+   - Se eliminaron las barras finales inconsistentes (la home ahora es `https://www.me-sim.com` en lugar de `https://www.me-sim.com/`).
+   - Cero parámetros de URL.
+   - 100% de URLs con estado HTTP 200 garantizado: Homepage, `/destinations`, 14 regiones comerciales canónicas oficiales y los 209 destinos mundiales del catálogo.
+4. **Ajuste de Robots.txt (`src/app/robots.js`):**
+   - Configurado para permitir el rastreo libre del catálogo público (`allow: '/'`) y restringir únicamente las rutas internas y de checkout según directiva:
+     `disallow: ['/api/', '/admin/', '/checkout/success/', '/user/']`.
+   - Sitemap oficial apuntando a `https://www.me-sim.com/sitemap.xml`.
+5. **Estandarización de Rutas sin Barra Final (`next.config.js`):**
+   - Configurado `trailingSlash: false` para asegurar la normalización global de URLs sin barra final y prevenir problemas de contenido duplicado.
+   - Añadido `www.me-sim.com` a `remotePatterns` en la configuración de imágenes.
+6. **Verificación y Control de Calidad (QA):**
+   - Creada y ejecutada la suite de pruebas [`scratch/test-qa-seo-fix.mjs`](file:///c:/Users/PACO-PORTATIL/.git/me-sim.com/scratch/test-qa-seo-fix.mjs): 4/4 pruebas superadas con éxito.
+   - Compilación completa de producción (`npm run build`) finalizada exitosamente con código 0.
+   - Cero afectación en pasarelas de Stripe, WooCommerce, APIs de StrongeSIM o procesos transaccionales.
 
 ---
 

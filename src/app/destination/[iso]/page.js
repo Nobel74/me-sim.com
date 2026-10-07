@@ -316,14 +316,14 @@ export default function DestinationPage() {
       "price": minPriceEur,
       "priceCurrency": "EUR",
       "availability": "https://schema.org/InStock",
-      "url": `https://me-sim.com/destination/${isoCode}`,
+      "url": `https://www.me-sim.com/destination/${isoCode}`,
       "hasMerchantReturnPolicy": {
         "@type": "MerchantReturnPolicy",
         "applicableCountry": "ES",
         "returnPolicyCategory": "https://schema.org/MerchantReturnNotPermitted",
         "merchantReturnLink": lang === 'en'
-          ? "https://me-sim.com/en/refund-policy"
-          : "https://me-sim.com/politica-de-reembolso"
+          ? "https://www.me-sim.com/en/refund-policy"
+          : "https://www.me-sim.com/politica-de-reembolso"
       },
       "shippingDetails": {
         "@type": "OfferShippingDetails",
@@ -363,19 +363,19 @@ export default function DestinationPage() {
         "@type": "ListItem",
         "position": 1,
         "name": lang === 'en' ? "Home" : "Inicio",
-        "item": "https://me-sim.com"
+        "item": "https://www.me-sim.com"
       },
       {
         "@type": "ListItem",
         "position": 2,
         "name": lang === 'en' ? "Destinations" : "Destinos",
-        "item": "https://me-sim.com/destinations"
+        "item": "https://www.me-sim.com/destinations"
       },
       {
         "@type": "ListItem",
         "position": 3,
         "name": countryName,
-        "item": `https://me-sim.com/destination/${isoCode}`
+        "item": `https://www.me-sim.com/destination/${isoCode}`
       }
     ]
   };
