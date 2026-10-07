@@ -15,7 +15,7 @@ import {
 } from '../../../../lib/pricingRules.js';
 import { ALL_WORLD_COUNTRIES } from '../../../../lib/i18n.js';
 import { strongesimFetch } from '../../../../lib/strongesim.js';
-import { REGION_MAPPING, isPlanInRegion } from '../../../../lib/regionMapping.js';
+import { REGION_MAPPING, isPlanInRegion, getRegionDefinition } from '../../../../lib/regionMapping.js';
 import { getExchangeRates } from '../../../../lib/currency.js';
 
 export const dynamic = 'force-dynamic';
@@ -73,9 +73,10 @@ async function getMasterLivePlans() {
 
         let mappedPlans = rawPlans.map((p) => mapSinglePlan(p, null, null, false));
         for (const [slug, def] of Object.entries(REGION_MAPPING)) {
+          if (slug !== def.canonicalSlug) continue;
           const matchedReg = rawPlans.filter((p) => isPlanInRegion(p, slug));
           matchedReg.forEach((p) => {
-            mappedPlans.push(mapSinglePlan(p, slug, def.canonicalSlug, true, def.nameEs));
+            mappedPlans.push(mapSinglePlan(p, def.canonicalSlug, def.canonicalSlug, true, def.nameEs));
           });
         }
 
@@ -127,7 +128,7 @@ export async function GET(request) {
         samplePlans = masterPlans.map((p) => {
           const pIso = (p.iso || '').toLowerCase();
           const countryMeta = countryNameMap.get(pIso);
-          const regionDef = REGION_MAPPING[pIso];
+          const regionDef = getRegionDefinition(pIso);
 
           const effectiveRegion = mapIsoToRegion(pIso, p.is_region, p.region || countryMeta?.region);
 

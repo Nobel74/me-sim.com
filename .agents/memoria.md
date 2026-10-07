@@ -1,6 +1,59 @@
 # 📝 Memoria del Proyecto y Bitácora de Sesiones - ME-SIM.COM
 
-## 📅 Última Actualización: 7 de Octubre de 2026 - 14:25 CEST
+## 📅 Última Actualización: 7 de Octubre de 2026 - 15:40 CEST
+
+---
+
+### 📌 Resumen de la Sesión Actual: Deduplicación de Regiones en Catálogo y Panel de Precios (`/admin/precios`)
+En esta sesión se resolvió el reporte del usuario sobre la duplicación de los planes de Oriente Medio en la tabla de `/admin/precios`, donde los mismos 5 planes aparecían repetidos bajo `MIDDLE-EAST | Oriente Medio` y `GCC | Países del Golfo (GCC)`:
+1. **Diagnóstico y Causa Raíz:**
+   - En [`src/lib/regionMapping.js`](file:///c:/Users/PACO-PORTATIL/.git/me-sim.com/src/lib/regionMapping.js), se habían incorporado tres alias regionales (`'gcc'`, `'australia-new-zealand'` y `'east-asia'`) como claves de nivel superior en la matriz `REGION_MAPPING`, elevando a 17 las entradas en lugar de las 14 oficiales.
+   - En [`src/app/api/admin/pricing-rules/route.js`](file:///c:/Users/PACO-PORTATIL/.git/me-sim.com/src/app/api/admin/pricing-rules/route.js) (`getMasterLivePlans()`) y en [`src/app/api/plans/route.js`](file:///c:/Users/PACO-PORTATIL/.git/me-sim.com/src/app/api/plans/route.js), el bucle que construye el catálogo comercial itera sobre `Object.entries(REGION_MAPPING)`.
+   - Al iterar sobre `'middle-east'` y luego sobre `'gcc'`, ambos evaluaban y extraían los 5 planes reales del paquete de StrongeSIM `SAAEQAKWOMBH-6`. Al guardarse con claves de ISO distintas (`middle-east` y `gcc`), el mapa de deduplicación no los unificaba, generando dos bloques idénticos de 5 filas en `/admin/precios`.
+2. **Corrección Quirúrgica Aplicada:**
+   - **`src/lib/regionMapping.js`**:
+     * Reducción y blindaje de las claves de nivel superior de `REGION_MAPPING` estrictamente a las **14 regiones canónicas oficiales**: `middle-east`, `europe`, `asia`, `north-america`, `south-america`, `caribbean`, `africa`, `oceania`, `aukus`, `china-hk-macau`, `japan-korea-taiwan`, `southeast-asia`, `europe-morocco` y `global`.
+     * Las entradas redundantes (`gcc`, `australia-new-zealand`, `east-asia`) se eliminaron como claves de primer nivel y se mantuvieron en el array `aliases` de su respectiva región canónica.
+     * Funciones `getRegionDefinition()` y `normalizeRegionSlug()` continúan resolviendo cualquier consulta por alias (`gcc`, etc.) hacia la región canónica correspondiente de forma 100% transparente.
+   - **`src/app/api/admin/pricing-rules/route.js`**:
+     * Añadida guarda estricta `if (slug !== def.canonicalSlug) continue;` en el generador `getMasterLivePlans()`.
+     * Mapeo de `iso` y `region` forzado a `def.canonicalSlug`.
+     * En la lectura de metadatos de planes (`GET`), uso de `getRegionDefinition(pIso)` para evitar fallos por alias.
+   - **`src/app/api/plans/route.js`**:
+     * Añadida guarda idéntica `if (slug !== def.canonicalSlug) continue;` y mapeo con `def.canonicalSlug` en la generación del catálogo global.
+3. **Control de Calidad (QA):**
+   - Ejecutado script de verificación simulando el maestro de planes de StrongeSIM:
+     * Regiones canónicas procesadas: exactamente 14.
+     * Planes de `middle-east`: exactamente 5.
+     * Planes de `gcc`: exactamente 0 (eliminado el duplicado).
+     * Planes de `australia-new-zealand`: 0.
+   - Verificado el endpoint en vivo `http://localhost:3000/api/plans`: 5 planes para `middle-east`, 0 planes para `gcc`.
+   - Cero afectación a pasarelas de pago, cálculo de precios o márgenes ($4.79 coste mayorista GCC / 7.62 € PVP garantizado).
+
+---
+
+### 📌 Resumen de la Sesión Actual: Corrección Crítica de Mapeo y Precios de Oriente Medio / GCC (Blindaje Financiero y Paridad Reseller)
+En esta sesión se resolvió la discrepancia crítica de precios entre el panel del reseller de StrongeSIM ($4.79 coste mayorista GCC / 8.90 € PVP reseller) y ME-SIM ($2.23 coste en Admin / 4.70 € PVP en tienda pública), erradicando el riesgo de venta por debajo de coste y garantizando la cobertura completa en Dubái y los 6 países del Golfo:
+1. **Diagnóstico y Causa Raíz:**
+   - Entre el 27 y 30 de septiembre, StrongeSIM añadió al catálogo un paquete de bajo coste denominado `"Middle East (5 areas)"` (`ME-5`) a un coste mayorista de **$2.232 USD** que sólo cubre 5 países (Irak, Israel, Kuwait, Qatar y Arabia Saudí). **No incluía a Emiratos Árabes Unidos (Dubái), ni Omán, ni Baréin**.
+   - En [`src/lib/regionMapping.js`](file:///c:/Users/PACO-PORTATIL/.git/me-sim.com/src/lib/regionMapping.js), la coincidencia genérica por palabras clave (`nameKeywords: ['middle east']`) capturó este paquete a $2.23 y el algoritmo de precios calculó el PVP en **4.70 €** ($2.23 $\times$ 1.61 markup).
+   - En cambio, en el panel del reseller de StrongeSIM, el paquete oficial para los países del Golfo es **GCC (`SAAEQAKWOMBH-6`)** (Bahrein, Kuwait, Omán, Qatar, Arabia Saudí y EAU/Dubái), cuyo coste mayorista real es **$4.79 USD** (1 GB), **$13.86 USD** (3 GB), **$21.74 USD** (5 GB) y **$39.67 USD** (10 GB), y cuyo PVP en la tienda del reseller es de **8.90 €**, **16.90 €**, **20.90 €** y **38.90 €**.
+   - Al comparar el coste de $4.79 del reseller con los 4.70 € visibles en ME-SIM, parecía que la tienda estaba vendiendo por debajo de coste. Además, si un cliente compraba la eSIM para viajar a Dubái (la imagen de cabecera del Burj Khalifa), el paquete de $2.23 no habría funcionado.
+2. **Corrección Quirúrgica Aplicada:**
+   - **`src/lib/regionMapping.js`**:
+     * Mapeo explícito y exclusivo de `'middle-east'` y `'gcc'` al código oficial **`SAAEQAKWOMBH-6`** de StrongeSIM.
+     * En `isPlanInRegion`: regla de exclusión estricta que rechaza de inmediato cualquier plan con `regionCode === 'ME-5'` o con `'5 areas'` en el nombre.
+     * Actualización de `REGION_STARTING_PRICES['middle-east']` y `'gcc'` a **7.62 €** (el PVP garantizado para 1 GB sobre el coste real de $4.79 USD con beneficio neto positivo).
+   - **`src/lib/strongesim.js`**:
+     * En `resolveStrongeSimPlanId`: exclusión estricta de `ME-5` y actualización de `REGION_KEYWORDS['MIDDLE-EAST'] = ['GCC', 'SAAEQAKWOMBH-6']`. El aprovisionamiento automático asigna siempre el paquete oficial `36864` (`GCC 1GB 7Days`) con cobertura completa garantizada en los 6 países del Golfo (incluyendo Dubái).
+   - **`src/app/api/plans/route.js` y `src/app/api/admin/pricing-rules/route.js`**:
+     * Actualización de `regionMeta` baseEur a 4.43 € ($4.79 USD).
+     * En el panel de administración de ME-SIM ([`/admin/precios`](file:///c:/Users/PACO-PORTATIL/.git/me-sim.com/src/app/admin/precios/page.js)), el Provider Cost de Oriente Medio refleja con exactitud matemática los **$4.79 USD** reales del reseller (eliminando los $2.23 erróneos).
+     * En la tienda pública ([`/destination/middle-east`](file:///c:/Users/PACO-PORTATIL/.git/me-sim.com/src/app/destination/%5Biso%5D/page.js)), el PVP pasa de 4.70 € a **7.62 €** (o el multiplicador que Paco configure), garantizando **+1.51 € de beneficio neto limpio** tras Stripe (1.5% + 0.25 €) e IVA (21%).
+3. **Control de Calidad (QA):**
+   - Ejecutada la suite de pruebas [`scratch/test-qa-middle-east-fix.mjs`](file:///c:/Users/PACO-PORTATIL/.git/me-sim.com/scratch/test-qa-middle-east-fix.mjs): 5/5 pruebas aprobadas con 0 errores.
+   - Verificada la suite de regresión SEO ([`scratch/test-qa-seo-fix.mjs`](file:///c:/Users/PACO-PORTATIL/.git/me-sim.com/scratch/test-qa-seo-fix.mjs)).
+   - Compilación completa de producción (`npm run build`) validada con código 0.
 
 ---
 

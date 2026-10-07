@@ -150,7 +150,8 @@ const REGION_KEYWORDS = {
   'SOUTH-AMERICA': ['SOUTH AMERICA', 'AMÉRICA DEL SUR', 'AMERICA DEL SUR', 'LATAM', 'LATIN AMERICA'],
   CARIBBEAN: ['CARIBBEAN', 'CARIBE'],
   AFRICA: ['AFRICA', 'ÁFRICA'],
-  'MIDDLE-EAST': ['MIDDLE EAST', 'ORIENTE MEDIO', 'MIDDLE-EAST'],
+  'MIDDLE-EAST': ['GCC', 'SAAEQAKWOMBH-6'],
+  GCC: ['GCC', 'SAAEQAKWOMBH-6'],
   OCEANIA: ['OCEANIA', 'OCEANÍA', 'AUSTRALIA & NEW ZEALAND'],
   AUKUS: ['AUKUS', 'AUSTRALIA, UK, US'],
   'CHINA-HK-MACAU': ['CHINA, HONG KONG, MACAU', 'CHINA HONG KONG MACAU', 'CHINA-HK-MACAU'],
@@ -226,9 +227,14 @@ export async function resolveStrongeSimPlanId({ sku, iso = 'es', dataAmount = ''
       if (Array.isArray(plansList) && plansList.length > 0) {
         // 1. Filter plans matching country / region
         const countryPlans = plansList.filter(p => {
-          const pIso = (p.country_code || p.iso || p.isoCode || p.location || '').toUpperCase().trim();
+          const pRc = (p.regionCode || p.region_code || '').toUpperCase().trim();
           const pCountry = (p.country || p.country_name || p.name || p.title || '').toUpperCase().trim();
           const pCode = (p.package_code || p.packageCode || p.code || p.sku || '').toUpperCase().trim();
+
+          // Excluir planes mutilados de 5 países (ME-5) sin Dubái ni Golfo
+          if (pRc === 'ME-5' || pCountry.includes('5 AREAS') || pCountry.includes('5 AREA')) return false;
+
+          const pIso = (p.country_code || p.iso || p.isoCode || p.location || '').toUpperCase().trim();
 
           // Exact ISO match
           if (pIso === targetIso || pIso.split(',').map(s => s.trim()).includes(targetIso)) return true;

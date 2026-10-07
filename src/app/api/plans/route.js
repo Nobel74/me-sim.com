@@ -45,7 +45,7 @@ const regionMeta = [
   { iso: 'south-america', name: 'América del Sur (14 Países)', region: 'south-america', baseEur: 6.90 },
   { iso: 'caribbean', name: 'Caribe (16 Islas)', region: 'caribbean', baseEur: 6.90 },
   { iso: 'africa', name: 'África (26 Países)', region: 'africa', baseEur: 7.90 },
-  { iso: 'middle-east', name: 'Oriente Medio (12 Países)', region: 'middle-east', baseEur: 7.78 },
+  { iso: 'middle-east', name: 'Oriente Medio (Golfo / GCC)', region: 'middle-east', baseEur: 4.43 },
   { iso: 'australia-new-zealand', name: 'Australia y Nueva Zelanda', region: 'oceania', baseEur: 5.90 },
   { iso: 'oceania', name: 'Oceanía (8 Países)', region: 'oceania', baseEur: 6.90 },
   { iso: 'aukus', name: 'Alianza AUKUS (AU, UK, US)', region: 'oceania', baseEur: 4.90 },
@@ -190,9 +190,10 @@ export async function GET(request) {
           mappedPlans = rawPlans.map((p) => mapSinglePlan(p, null, null, false));
           // Y además incluir planes para cada región comercial mapeada
           for (const [slug, def] of Object.entries(REGION_MAPPING)) {
+            if (slug !== def.canonicalSlug) continue;
             const matchedReg = rawPlans.filter((p) => isPlanInRegion(p, slug));
             matchedReg.forEach((p) => {
-              mappedPlans.push(mapSinglePlan(p, slug, def.canonicalSlug, true, def.nameEs));
+              mappedPlans.push(mapSinglePlan(p, def.canonicalSlug, def.canonicalSlug, true, def.nameEs));
             });
           }
         }

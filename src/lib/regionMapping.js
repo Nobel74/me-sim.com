@@ -11,11 +11,11 @@ export const REGION_MAPPING = {
     canonicalSlug: 'middle-east',
     nameEs: 'Oriente Medio',
     nameEn: 'Middle East',
-    regionCodes: ['ME-12', 'ME-13', 'MENA', 'MIDDLE-EAST'],
-    countryCodes: ['QA', 'AE', 'SA', 'OM', 'KW', 'BH', 'JO', 'EG', 'IQ', 'IL', 'LB', 'PS', 'YE'],
-    nameKeywords: ['middle east & north africa', 'middle east', 'mena', 'oriente medio'],
-    preferredRegionCode: 'ME-12',
-    aliases: ['middle_east', 'mena', 'oriente-medio', 'orientemedio'],
+    regionCodes: ['SAAEQAKWOMBH-6'],
+    countryCodes: ['QA', 'AE', 'SA', 'OM', 'KW', 'BH'],
+    nameKeywords: ['gcc', 'gulf (gcc)'],
+    preferredRegionCode: 'SAAEQAKWOMBH-6',
+    aliases: ['gcc', 'gulf', 'golfo', 'middle_east', 'mena', 'oriente-medio', 'orientemedio', 'paises-del-golfo'],
   },
   'europe': {
     canonicalSlug: 'europe',
@@ -89,17 +89,7 @@ export const REGION_MAPPING = {
     countryCodes: ['AU', 'NZ', 'NC', 'FJ', 'PG', 'WS', 'TO', 'VU'],
     nameKeywords: ['oceania', 'oceanía', 'australia & new zealand', 'australia and new zealand'],
     preferredRegionCode: 'AUNZ-2',
-    aliases: ['oceania', 'oceanía', 'australia-new-zealand', 'australia_new_zealand', 'aunz'],
-  },
-  'australia-new-zealand': {
-    canonicalSlug: 'oceania',
-    nameEs: 'Australia y Nueva Zelanda',
-    nameEn: 'Australia & New Zealand',
-    regionCodes: ['AUNZ-2'],
-    countryCodes: ['AU', 'NZ'],
-    nameKeywords: ['australia & new zealand', 'australia and new zealand'],
-    preferredRegionCode: 'AUNZ-2',
-    aliases: ['aunz', 'australia-nz'],
+    aliases: ['oceania', 'oceanía', 'australia-new-zealand', 'australia_new_zealand', 'australia-nz', 'aunz'],
   },
   'aukus': {
     canonicalSlug: 'aukus',
@@ -129,17 +119,7 @@ export const REGION_MAPPING = {
     countryCodes: ['JP', 'KR', 'TW'],
     nameKeywords: ['japan & south korea', 'china mainland & japan & south korea', 'japan and south korea'],
     preferredRegionCode: 'JPKR-2',
-    aliases: ['east-asia', 'east_asia', 'jpkrtw', 'japon-corea-taiwan', 'jp-kr-tw'],
-  },
-  'east-asia': {
-    canonicalSlug: 'japan-korea-taiwan',
-    nameEs: 'Asia Oriental',
-    nameEn: 'East Asia',
-    regionCodes: ['CNJPKR-3', 'JPKR-2'],
-    countryCodes: ['JP', 'KR', 'TW'],
-    nameKeywords: ['japan & south korea', 'china mainland & japan & south korea'],
-    preferredRegionCode: 'JPKR-2',
-    aliases: ['east-asia', 'east_asia'],
+    aliases: ['east-asia', 'east_asia', 'jpkrtw', 'japon-corea-taiwan', 'jp-kr-tw', 'asia-oriental'],
   },
   'southeast-asia': {
     canonicalSlug: 'southeast-asia',
@@ -235,6 +215,11 @@ export function isPlanInRegion(plan, targetSlug = '') {
   const planName = (plan.name || '').toLowerCase();
   const planCountryCode = (plan.country_code || '').toUpperCase().trim();
 
+  // Excluir planes mutilados de 5 países (ME-5) que no cubren Dubái ni los países del Golfo
+  if (planRc === 'ME-5' || planName.includes('5 areas') || planName.includes('5 area')) {
+    return false;
+  }
+
   // 1. Coincidencia directa por regionCode explícito de StrongeSIM
   if (planRc && def.regionCodes.includes(planRc)) {
     // Si el regionCode es un código de continente genérico (e.g. "EU", "AS", "AF", "NA", "SA", "OC", "US"),
@@ -291,7 +276,8 @@ export function isPlanInRegion(plan, targetSlug = '') {
  * sin parpadeos ni desfases antes de recibir la respuesta de la API.
  */
 export const REGION_STARTING_PRICES = {
-  'middle-east': 12.52,
+  'middle-east': 7.62,
+  'gcc': 7.62,
   'europe': 3.01,
   'asia': 4.07,
   'north-america': 4.80,
