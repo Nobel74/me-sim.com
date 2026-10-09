@@ -6,6 +6,8 @@ const VALID_COUPONS = {
   BIENVENIDA: { code: 'BIENVENIDA', discountPercent: 15, type: 'percent', label: '15% Descuento de Bienvenida' },
   SUMMER20: { code: 'SUMMER20', discountPercent: 20, type: 'percent', label: '20% Descuento Promo Verano' },
   VIP25: { code: 'VIP25', discountPercent: 25, type: 'percent', label: '25% Descuento Cliente VIP' },
+  MESIM100: { code: 'MESIM100', discountPercent: 100, type: 'percent', label: '100% Descuento Cortesía ME-SIM' },
+  VIP100: { code: 'VIP100', discountPercent: 100, type: 'percent', label: '100% Descuento Cortesía ME-SIM' },
 };
 
 export async function POST(request) {

@@ -1,8 +1,14 @@
 <?php
+
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 class AdminPageHandler
 {
     private $settings;
     private $productSyncManager;
+    private $api_client = null;
 
     public function __construct($settings, $productSyncManager)
     {
@@ -10,7 +16,9 @@ class AdminPageHandler
         $this->productSyncManager = $productSyncManager;
 
         add_action('admin_post_register_esim_webhook', array($this, 'register_webhook'));
-        add_filter('plugin_action_links_esim-woocommerce-integration/esim-woocommerce-integration.php', array($this, 'add_plugin_action_links'));
+        // Derived from the real plugin file so the link still appears when the
+        // plugin folder has been renamed.
+        add_filter('plugin_action_links_' . plugin_basename(ESIM_WC_PLUGIN_FILE), array($this, 'add_plugin_action_links'));
     }
 
     public function add_plugin_action_links($links) {
@@ -20,32 +28,62 @@ class AdminPageHandler
     }
 
     private function getLogoUrl() {
-        return plugins_url('esim-woocommerce-integration/assets/logo/strongesim-logo.webp');
+        return plugins_url('assets/logo/strongesim-logo.webp', ESIM_WC_PLUGIN_FILE);
+    }
+
+    /**
+     * One API client per request instead of a new one (and a new login) per call.
+     */
+    public function get_api_client() {
+        return $this->apiClient();
+    }
+
+    private function apiClient() {
+        if ($this->api_client === null) {
+            $this->api_client = new \StrongESIM_API(
+                $this->settings->get_option('esim_api_email'),
+                $this->settings->get_option('esim_api_password'),
+                new \ESIMWooCommerce\Utils\Logger('eSIM Admin')
+            );
+        }
+        return $this->api_client;
     }
 
     private function getAccountInfo() {
-        $api_client = new \StrongESIM_API(
-            $this->settings->get_option('esim_api_email'),
-            $this->settings->get_option('esim_api_password'),
-            new \ESIMWooCommerce\Utils\Logger()
-        );
-        $account_info = $api_client->getAccountInfo();
+        $client = $this->apiClient();
 
-        // Return empty array if API fails
+        if (!$client->has_credentials()) {
+            return array('error' => 'StrongESIM API credentials are not set.');
+        }
+
+        $account_info = $client->getAccountInfo();
+
         if (!$account_info) {
-            return array('error' => 'Unable to fetch account info');
+            $reason = $client->get_last_error();
+            return array('error' => $reason !== '' ? $reason : 'Unable to fetch account info.');
         }
 
         return $account_info;
     }
 
     private function getTotalPlansCount() {
-        $api_client = new \StrongESIM_API(
-            $this->settings->get_option('esim_api_email'),
-            $this->settings->get_option('esim_api_password'),
-            new \ESIMWooCommerce\Utils\Logger()
-        );
-        return $api_client->getTotalPlansCount();
+        $client = $this->apiClient();
+        if (!$client->has_credentials()) {
+            return false;
+        }
+
+        // Cached so opening the sync page does not call the API every time.
+        $cached = get_transient('esim_total_plans_count');
+        if ($cached !== false) {
+            return (int) $cached;
+        }
+
+        $count = $client->getTotalPlansCount();
+        if ($count !== false) {
+            set_transient('esim_total_plans_count', (int) $count, 5 * MINUTE_IN_SECONDS);
+        }
+
+        return $count;
     }
 
     private function renderHeader() {
@@ -359,7 +397,15 @@ class AdminPageHandler
                 <?php } else { ?>
                     <div style="color: #dc3545; font-size: 13px;">
                         <p style="margin: 0;"><strong>⚠ Connection Failed</strong></p>
-                        <p style="margin: 5px 0 0 0; font-size: 11px;">Check API credentials</p>
+                        <p style="margin: 5px 0 0 0; font-size: 11px;"><?php
+                            // Surface the reason instead of only "check credentials":
+                            // the usual causes are an unset password, a wrong role
+                            // or an outbound HTTPS block, and they look identical.
+                            echo isset($account_info['error'])
+                                ? esc_html($account_info['error'])
+                                : esc_html__('Check API credentials', 'esim-woocommerce-integration');
+                        ?></p>
+                        <p style="margin: 5px 0 0 0; font-size: 11px;"><?php esc_html_e('Details are in WooCommerce &gt; Status &gt; Logs (source "strongesim").', 'esim-woocommerce-integration'); ?></p>
                     </div>
                 <?php } ?>
             </div>
@@ -392,15 +438,43 @@ class AdminPageHandler
     {
         add_options_page('StrongESIM API Settings', 'StrongESIM API', 'manage_options', 'esim-api-settings', array($this, 'settings_page'));
         add_submenu_page('edit.php?post_type=product', 'Sync StrongESIM Products', 'Sync StrongESIM Products', 'manage_options', 'sync-esim-products', array($this, 'sync_products_page'));
-        add_meta_box('esim_order_details', 'eSIM Details', array($this, 'display_esim_order_details'), 'shop_order', 'normal', 'high');
+    }
 
+    /**
+     * Register the eSIM details meta box on the order edit screen.
+     *
+     * Hooked to add_meta_boxes, and registered for both the legacy 'shop_order'
+     * post screen and the HPOS orders screen. Registering it inside
+     * add_admin_menu against 'shop_order' only meant the box never appeared on a
+     * store using High-Performance Order Storage, which is the default for new
+     * WooCommerce installs.
+     *
+     * @param string $screen_id Current screen id.
+     */
+    public function add_order_meta_box($screen_id = '', $post_or_order = null)
+    {
+        if (!in_array($screen_id, ESIM_OrderStore::order_screen_ids(), true)) {
+            return;
+        }
+
+        add_meta_box(
+            'esim_order_details',
+            __('eSIM Details', 'esim-woocommerce-integration'),
+            array($this, 'display_esim_order_details'),
+            $screen_id,
+            'normal',
+            'high'
+        );
     }
 
     public function register_webhook()
     {
+        if (!current_user_can('manage_woocommerce')) {
+            wp_die(esc_html__('You do not have permission to do that.', 'esim-woocommerce-integration'), '', array('response' => 403));
+        }
         check_admin_referer('register_esim_webhook_action');
 
-        $logger = new \ESIMWooCommerce\Utils\Logger();
+        $logger = new \ESIMWooCommerce\Utils\Logger('eSIM Admin');
         $webhook_url = get_site_url() . '/wp-json/esim/v1/webhook';
 
         // First, unregister old webhook if exists
@@ -415,38 +489,33 @@ class AdminPageHandler
 
         $logger->log('Webhook registration completed. Response: ' . json_encode($response));
 
-        if ($response && isset($response['success']) && $response['success'] === true) {
-            // Store webhook ID and secret
+        if (is_array($response) && !empty($response['success']) && !empty($response['data']['id'])) {
             update_option('esim_webhook_id', $response['data']['id']);
-            update_option('esim_webhook_secret', $response['data']['secret']);
 
-            $logger->log('Webhook registered successfully. ID: ' . $response['data']['id']);
-            add_settings_error('esim_webhook', 'webhook_registered', 'Webhook registered successfully with StrongESIM API!', 'updated');
+            // Without the secret, every incoming webhook fails signature
+            // verification, so say so plainly instead of silently storing null.
+            if (!empty($response['data']['secret'])) {
+                update_option('esim_webhook_secret', $response['data']['secret']);
+                add_settings_error('esim_webhook', 'webhook_registered', 'Webhook registered successfully with the StrongESIM API.', 'updated');
+            } else {
+                add_settings_error('esim_webhook', 'webhook_no_secret', 'Webhook registered but the API returned no signing secret. Incoming webhooks will be rejected until it is re-registered.', 'error');
+            }
+
+            $logger->log('Webhook registered. ID: ' . $response['data']['id']);
         } else {
             $error_message = isset($response['message']) ? $response['message'] : 'Unknown error occurred';
             $logger->log('Webhook registration failed: ' . $error_message);
             add_settings_error('esim_webhook', 'webhook_failed', 'Failed to register webhook: ' . $error_message, 'error');
         }
 
-        wp_redirect(admin_url('options-general.php?page=esim-api-settings'));
+        set_transient('settings_errors', get_settings_errors(), 30);
+        wp_safe_redirect(admin_url('options-general.php?page=esim-api-settings&settings-updated=true'));
         exit;
     }
 
     private function register_webhook_api($webhook_url)
     {
-        $logger = new \ESIMWooCommerce\Utils\Logger();
-        $api_client = new \StrongESIM_API(
-            $this->settings->get_option('esim_api_email'),
-            $this->settings->get_option('esim_api_password'),
-            $logger
-        );
-
-        $response = $api_client->registerWebhook($webhook_url);
-
-        // Log the response for debugging
-        $logger->log('Webhook registration response: ' . json_encode($response));
-
-        return $response;
+        return $this->apiClient()->registerWebhook($webhook_url);
     }
 
     private function unregister_webhook_api()
@@ -456,13 +525,7 @@ class AdminPageHandler
             return false;
         }
 
-        $api_client = new \StrongESIM_API(
-            $this->settings->get_option('esim_api_email'),
-            $this->settings->get_option('esim_api_password'),
-            new \ESIMWooCommerce\Utils\Logger()
-        );
-
-        $response = $api_client->deleteWebhook($webhook_id);
+        $response = $this->apiClient()->deleteWebhook($webhook_id);
 
         if ($response && isset($response['success']) && $response['success']) {
             delete_option('esim_webhook_id');
@@ -475,6 +538,10 @@ class AdminPageHandler
 
     public function settings_page()
 {
+    if (!current_user_can('manage_options')) {
+        wp_die(esc_html__('You do not have permission to view this page.', 'esim-woocommerce-integration'), '', array('response' => 403));
+    }
+    wp_enqueue_script('jquery');
     ?>
     <style>
         /* WhatsApp Contact Button Styles */
@@ -515,7 +582,6 @@ class AdminPageHandler
             width: 100%;
             height: 100%;
             background-color: rgba(0, 0, 0, 0.5);
-            animation: fadeIn 0.2s ease;
         }
 
         .esim-whatsapp-modal.active {
@@ -531,7 +597,6 @@ class AdminPageHandler
             max-width: 450px;
             width: 90%;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-            animation: slideUp 0.3s ease;
         }
 
         .esim-whatsapp-modal-close {
@@ -703,11 +768,22 @@ class AdminPageHandler
                     <tr valign="top">
                         <th scope="row">API Password</th>
                         <td>
+                            <?php $has_password = (bool) get_option('esim_api_password'); ?>
                             <input type="password"
                                    name="esim_api_password"
-                                   value="<?php echo esc_attr(get_option('esim_api_password')); ?>"
+                                   value=""
+                                   autocomplete="new-password"
+                                   placeholder="<?php echo $has_password ? esc_attr__('Saved. Leave blank to keep it.', 'esim-woocommerce-integration') : esc_attr__('Enter your API password', 'esim-woocommerce-integration'); ?>"
                                    class="regular-text" />
-                            <p class="description">Your StrongESIM account password. Kept secure on your server.</p>
+                            <p class="description">
+                                <?php
+                                // The stored password is never printed back into the
+                                // page. Submitting the field empty keeps the saved value.
+                                echo $has_password
+                                    ? esc_html__('A password is saved. Leave this blank to keep it, or type a new one to replace it.', 'esim-woocommerce-integration')
+                                    : esc_html__('Your StrongESIM account password. Stored on your server and only sent to the StrongESIM API.', 'esim-woocommerce-integration');
+                                ?>
+                            </p>
                         </td>
                     </tr>
 
@@ -981,6 +1057,54 @@ class AdminPageHandler
             </div>
         </form>
 
+        <!-- Connection Test -->
+        <div class="esim-settings-section">
+            <h3><?php esc_html_e('Connection Test', 'esim-woocommerce-integration'); ?></h3>
+            <p style="color: #666; margin-bottom: 15px;">
+                <?php esc_html_e('Checks each step separately: whether this server can reach the API, whether the saved credentials are accepted, whether the account is a reseller, and whether it can see plans. Save your credentials first.', 'esim-woocommerce-integration'); ?>
+            </p>
+            <button type="button" id="esim-test-connection" class="button button-secondary"><?php esc_html_e('Test API connection', 'esim-woocommerce-integration'); ?></button>
+            <div id="esim-test-connection-result" style="margin-top: 15px;"></div>
+        </div>
+
+        <script type="text/javascript">
+        jQuery(function ($) {
+            $('#esim-test-connection').on('click', function () {
+                var $button = $(this);
+                var $out = $('#esim-test-connection-result');
+
+                $button.prop('disabled', true);
+                $out.html('<p><?php echo esc_js(__('Testing...', 'esim-woocommerce-integration')); ?></p>');
+
+                $.post(ajaxurl, {
+                    action: 'esim_test_connection',
+                    nonce: <?php echo wp_json_encode(wp_create_nonce('esim_test_connection')); ?>
+                }).done(function (response) {
+                    if (!response || !response.data || !response.data.steps) {
+                        $out.html('<p style="color:#dc3545;"><?php echo esc_js(__('The test could not run.', 'esim-woocommerce-integration')); ?></p>');
+                        return;
+                    }
+
+                    var html = '<table class="widefat striped"><tbody>';
+                    response.data.steps.forEach(function (step) {
+                        var icon = step.ok
+                            ? '<span style="color:#28a745;font-weight:700;">OK</span>'
+                            : '<span style="color:#dc3545;font-weight:700;">FAILED</span>';
+                        html += '<tr><td style="width:60px;">' + icon + '</td>'
+                             + '<td style="width:190px;"><strong>' + step.label + '</strong></td>'
+                             + '<td>' + step.detail + '</td></tr>';
+                    });
+                    html += '</tbody></table>';
+                    $out.html(html);
+                }).fail(function (xhr) {
+                    $out.html('<p style="color:#dc3545;">HTTP ' + xhr.status + '</p>');
+                }).always(function () {
+                    $button.prop('disabled', false);
+                });
+            });
+        });
+        </script>
+
         <!-- Webhook Settings Section -->
         <div class="esim-settings-section">
             <h3>Webhook Configuration</h3>
@@ -1119,12 +1243,16 @@ class AdminPageHandler
 
     public function sync_products_page()
     {
+        if (!current_user_can('manage_options')) {
+            wp_die(esc_html__('You do not have permission to view this page.', 'esim-woocommerce-integration'), '', array('response' => 403));
+        }
+        wp_enqueue_script('jquery');
         ?>
         <div class="wrap strongesim-admin-page">
             <?php $this->renderHeader(); ?>
             <div class="strongesim-page-content">
             <?php
-if (isset($_POST['sync_esim_products'])) {
+if (isset($_POST['sync_esim_products']) && current_user_can('manage_options')) {
             check_admin_referer('sync_esim_products', 'sync_esim_products_nonce');
             $specific_package_code = isset($_POST['esim_package_code']) ? sanitize_text_field($_POST['esim_package_code']) : null;
 
@@ -1140,7 +1268,7 @@ if (isset($_POST['sync_esim_products'])) {
 
             echo '<div id="sync-progress" style="background: #f0f0f1; padding: 15px; margin: 10px 0; border-left: 4px solid #2271b1;">';
             echo '<p><strong>Sync in progress...</strong> Please wait, do not close this page.</p>';
-            echo '<p>Check the log file at <code>wp-content/esim-plugin.log</code> for detailed progress.</p>';
+            echo '<p>Progress is written to WooCommerce &gt; Status &gt; Logs (source <code>strongesim</code>).</p>';
             echo '<p id="sync-status">Starting sync...</p>';
             echo '</div>';
             flush();
@@ -1159,7 +1287,7 @@ if (isset($_POST['sync_esim_products'])) {
                     <div class="error">
                         <p><strong>Error:</strong> <?php echo esc_html($sync_results['error']); ?></p>
                         <p>Sync ran for <?php echo esc_html($sync_time); ?> seconds before failing.</p>
-                        <p>Check <code>wp-content/esim-plugin.log</code> for details.</p>
+                        <p>Details are in WooCommerce &gt; Status &gt; Logs (source <code>strongesim</code>).</p>
                     </div>
                     <?php
 } else {
@@ -1175,7 +1303,7 @@ if (isset($_POST['sync_esim_products'])) {
                         <li><strong>Deleted:</strong> <?php echo esc_html($sync_results['deleted'] ?? 0); ?></li>
                         <li><strong>Failed:</strong> <?php echo esc_html($sync_results['failed']); ?></li>
                     </ul>
-                    <p><em>View detailed logs in <code>wp-content/esim-plugin.log</code></em></p>
+                    <p><em>Detailed logs: WooCommerce &gt; Status &gt; Logs (source <code>strongesim</code>)</em></p>
                     <?php
 }
         }
@@ -1232,24 +1360,14 @@ if (isset($_POST['sync_esim_products'])) {
                 }
                 .esim-progress-fill {
                     height: 100%;
-                    background: linear-gradient(90deg, #28a745, #20c997);
+                    background: #28a745;
                     width: 0%;
-                    transition: width 0.3s ease;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     color: #fff;
                     font-size: 12px;
                     font-weight: 600;
-                }
-                @keyframes shimmer {
-                    0% { background-position: -1000px 0; }
-                    100% { background-position: 1000px 0; }
-                }
-                .esim-progress-fill.active {
-                    background: linear-gradient(90deg, #28a745 0%, #20c997 50%, #28a745 100%);
-                    background-size: 1000px 100%;
-                    animation: shimmer 2s infinite;
                 }
                 .esim-sync-controls {
                     display: flex;
@@ -1473,12 +1591,6 @@ if (isset($_POST['sync_esim_products'])) {
                         width: 100%;
                         height: 100%;
                         background-color: rgba(0, 0, 0, 0.5);
-                        animation: fadeIn 0.2s ease;
-                    }
-
-                    @keyframes fadeIn {
-                        from { opacity: 0; }
-                        to { opacity: 1; }
                     }
 
                     .esim-modal.active {
@@ -1496,18 +1608,6 @@ if (isset($_POST['sync_esim_products'])) {
                         max-height: 80vh;
                         overflow-y: auto;
                         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-                        animation: slideUp 0.3s ease;
-                    }
-
-                    @keyframes slideUp {
-                        from {
-                            transform: translateY(20px);
-                            opacity: 0;
-                        }
-                        to {
-                            transform: translateY(0);
-                            opacity: 1;
-                        }
                     }
 
                     .esim-modal-header {
@@ -1772,47 +1872,23 @@ if (isset($_POST['sync_esim_products'])) {
                     $('#ajax-sync-status').html(
                         '<div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 5px; padding: 12px; margin-bottom: 15px; color: #856404; font-size: 13px;">' +
                         '<strong>⚠ Sync in Progress</strong><br>' +
+                        'The sync is running in the background. This may take several minutes depending on the number of products.<br>' +
                         'Do not close this page or navigate away. Your sync progress is being saved automatically.' +
                         '</div>'
                     );
 
-                    // Show progress bar
+                    // Show progress bar with initial loading state
                     $('.esim-progress-bar').show();
-                    $('.esim-progress-fill').addClass('active').text('0%');
+                    $('.esim-progress-fill').css('width', '100%').text('Loading... Please wait');
 
-                    return setInterval(function() {
-                        var elapsed = Math.round((new Date() - startTime) / 1000);
-
-                        // Poll for progress updates
-                        $.ajax({
-                            url: ajaxurl,
-                            type: 'POST',
-                            data: {
-                                action: 'esim_get_sync_status',
-                                nonce: syncNonce
-                            },
-                            success: function(response) {
-                                if (response.success && response.data.progress) {
-                                    var p = response.data.progress;
-                                    var processed = p.processed_codes ? p.processed_codes.length : 0;
-                                    var total = p.total || 0;
-                                    var percent = total > 0 ? Math.round((processed / total) * 100) : 0;
-
-                                    // Update progress bar with elapsed time
-                                    if (percent > 0) {
-                                        $('.esim-progress-fill').css('width', percent + '%').text(processed + ' / ' + total + ' (' + percent + '%) • ' + elapsed + 's');
-                                    }
-                                }
-                            }
-                        });
-                    }, 1000);
+                    // No continuous polling - just return a dummy interval
+                    return null;
                 }
 
                 function showSyncResults(response, timer) {
-                    clearInterval(timer);
+                    if (timer) clearInterval(timer);
                     // Hide progress bar
                     $('.esim-progress-bar').hide();
-                    $('.esim-progress-fill').removeClass('active');
 
                     if (response.success) {
                         var r = response.data.results;
@@ -1842,7 +1918,7 @@ if (isset($_POST['sync_esim_products'])) {
                             '<div style="font-size: 12px; color: #666; text-transform: uppercase;">Failed</div>' +
                             '</div>' +
                             '</div>' +
-                            '<p style="color: #155724; margin-top: 20px; margin-bottom: 0;"><em>View detailed logs in <code>wp-content/esim-plugin.log</code></em></p>' +
+                            '<p style="color: #155724; margin-top: 20px; margin-bottom: 0;"><em>Detailed logs: WooCommerce &gt; Status &gt; Logs (source <code>strongesim</code>)</em></p>' +
                             '</div>'
                         );
                         $('#sync-status-box').hide();
@@ -1856,7 +1932,7 @@ if (isset($_POST['sync_esim_products'])) {
                             '<p style="color: #721c24;"><strong>Error:</strong> ' + response.data.message + '</p>' +
                             '<p style="color: #721c24;"><strong>Time:</strong> ' + (response.data.time || 'unknown') + ' seconds</p>' +
                             (canResume ? '<p style="color: #721c24;"><strong>You can resume this sync!</strong> Click "Resume Previous Sync" to continue.</p>' : '') +
-                            '<p style="color: #721c24; margin-bottom: 0;">Check <code>wp-content/esim-plugin.log</code> for details.</p>' +
+                            '<p style="color: #721c24; margin-bottom: 0;">Details are in WooCommerce &gt; Status &gt; Logs (source <code>strongesim</code>).</p>' +
                             '</div>'
                         );
                         if (canResume) {
@@ -1868,10 +1944,9 @@ if (isset($_POST['sync_esim_products'])) {
                 }
 
                 function showConnectionError(timer, startTime, error, status) {
-                    clearInterval(timer);
+                    if (timer) clearInterval(timer);
                     // Hide progress bar
                     $('.esim-progress-bar').hide();
-                    $('.esim-progress-fill').removeClass('active');
 
                     var elapsed = Math.round((new Date() - startTime) / 1000);
                     $('#ajax-sync-status').html(
@@ -1881,7 +1956,7 @@ if (isset($_POST['sync_esim_products'])) {
                         '<p>Error: ' + error + '</p>' +
                         '<p>Elapsed: ' + elapsed + ' seconds</p>' +
                         '<p><strong>The sync may still be running or can be resumed.</strong></p>' +
-                        '<p>Check <code>wp-content/esim-plugin.log</code> for status, then click "Resume Previous Sync" to continue.</p>' +
+                        '<p>Check WooCommerce &gt; Status &gt; Logs (source <code>strongesim</code>) for status, then click "Resume Previous Sync" to continue.</p>' +
                         '</div>'
                     );
                     // Check if we can resume after connection error
@@ -1994,15 +2069,15 @@ if (isset($_POST['sync_esim_products'])) {
             jQuery(document).ready(function($) {
                 $('#delete-all-products').click(function(e) {
                     e.preventDefault();
-                    
+
                     if (!confirm('Are you sure you want to delete ALL eSIM synced products? This cannot be undone.')) {
                         return;
                     }
-                    
+
                     var $btn = $(this);
                     $btn.prop('disabled', true).text('Deleting...');
                     $('#delete-status').html('<span class="spinner is-active" style="float:none; margin:0 5px 0 0;"></span> Processing deletion...');
-                    
+
                     $.ajax({
                         url: ajaxurl,
                         type: 'POST',
@@ -2067,7 +2142,6 @@ if (isset($_POST['sync_esim_products'])) {
                     width: 100%;
                     height: 100%;
                     background-color: rgba(0, 0, 0, 0.5);
-                    animation: fadeIn 0.2s ease;
                 }
 
                 .esim-whatsapp-modal.active {
@@ -2083,7 +2157,6 @@ if (isset($_POST['sync_esim_products'])) {
                     max-width: 450px;
                     width: 90%;
                     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-                    animation: slideUp 0.3s ease;
                     position: relative;
                 }
 
@@ -2277,68 +2350,166 @@ if (isset($_POST['sync_esim_products'])) {
         <?php
 }
 
-    public function display_esim_order_details($post)
+    /**
+     * eSIM details meta box.
+     *
+     * @param WP_Post|WC_Order $post_or_order Handed a WC_Order under HPOS and a
+     *                                        WP_Post on the legacy screen.
+     */
+    public function display_esim_order_details($post_or_order)
     {
-        $order_id = $post->ID;
-        $qr_code_url = get_post_meta($order_id, '_esim_qr_code', true);
-        $iccid = get_post_meta($order_id, '_esim_iccid', true);
-        $esim_status = get_post_meta($order_id, '_esim_status', true);
-        $data_usage = get_post_meta($order_id, '_esim_data_usage', true);
-        $data_remaining = get_post_meta($order_id, '_esim_data_remaining', true);
-        $expiry_date = get_post_meta($order_id, '_esim_expiry_date', true);
-        $days_remaining = get_post_meta($order_id, '_esim_days_remaining', true);
+        $order = ESIM_OrderStore::resolve_order($post_or_order);
 
-        error_log("eSIM Details for Order ID {$order_id}:");
-        error_log("QR Code URL: " . ($qr_code_url ? $qr_code_url : 'Not set'));
-        error_log("ICCID: " . ($iccid ? $iccid : 'Not set'));
-        error_log("Status: " . ($esim_status ? $esim_status : 'Not set'));
-        error_log("Data Usage: " . ($data_usage ? $data_usage : 'Not set'));
-        error_log("Data Remaining: " . ($data_remaining ? $data_remaining : 'Not set'));
-        error_log("Expiry Date: " . ($expiry_date ? $expiry_date : 'Not set'));
-        error_log("Days Remaining: " . ($days_remaining ? $days_remaining : 'Not set'));
+        if (!$order) {
+            echo '<p>' . esc_html__('Order not found.', 'esim-woocommerce-integration') . '</p>';
+            return;
+        }
+
+        $order_id = $order->get_id();
+
+        // Read through the order object: with High-Performance Order Storage the
+        // order meta is not in the posts table, so get_post_meta() returned
+        // nothing here and the box always said "No QR code available".
+        $profiles = $order->get_meta('_esim_profiles', true);
+        if (!is_array($profiles) || empty($profiles)) {
+            $profiles = array();
+            $legacy_qr = $order->get_meta('_esim_qr_code', true);
+            if ($legacy_qr) {
+                $profiles['legacy'] = array(
+                    'qr_code_url' => $legacy_qr,
+                    'iccid' => $order->get_meta('_esim_iccid', true),
+                    'activation_code' => $order->get_meta('_esim_activation_code', true),
+                );
+            }
+        }
+
+        $esim_status = $order->get_meta('_esim_status', true);
+        $smdp_status = $order->get_meta('_esim_smdp_status', true);
+        $data_usage = $order->get_meta('_esim_data_usage', true);
+        $data_remaining = $order->get_meta('_esim_data_remaining', true);
+        $expiry_date = $order->get_meta('_esim_expiry_date', true);
+        $days_remaining = $order->get_meta('_esim_days_remaining', true);
+        $provision_failed = $order->get_meta('_esim_provision_failed', true) === 'yes';
 
         echo '<div class="esim-details">';
-        if ($qr_code_url) {
-            echo '<img src="' . esc_url($qr_code_url) . '" alt="eSIM QR Code" style="max-width:200px;" />';
-        } else {
-            echo '<p>No QR code available</p>';
-        }
-        echo '<p><strong>ICCID:</strong> ' . ($iccid ? esc_html($iccid) : 'Not available') . '</p>';
-        echo '<p><strong>Status:</strong> ' . ($esim_status ? esc_html($esim_status) : 'Not available') . '</p>';
-        echo '<p><strong>Data Usage:</strong> ' . ($data_usage ? esc_html($data_usage) . ' bytes' : 'Not available') . '</p>';
-        echo '<p><strong>Data Remaining:</strong> ' . ($data_remaining ? esc_html($data_remaining) . ' bytes' : 'Not available') . '</p>';
-        echo '<p><strong>Expiry Date:</strong> ' . ($expiry_date ? esc_html($expiry_date) : 'Not available') . '</p>';
-        echo '<p><strong>Days Remaining:</strong> ' . ($days_remaining ? esc_html($days_remaining) : 'Not available') . '</p>';
 
-        echo '<h4>Send SMS</h4>';
-        echo '<textarea id="esim-sms-message" rows="3" cols="50"></textarea><br>';
-        echo '<button id="esim-send-sms" class="button">Send SMS</button>';
+        if ($provision_failed) {
+            echo '<div class="notice notice-error inline"><p><strong>'
+                . esc_html__('eSIM provisioning did not complete for this paid order.', 'esim-woocommerce-integration')
+                . '</strong> '
+                . esc_html__('See the order notes below and WooCommerce > Status > Logs (source "strongesim").', 'esim-woocommerce-integration')
+                . '</p></div>';
+        }
+
+        if (empty($profiles)) {
+            echo '<p>' . esc_html__('No eSIM profile has been issued for this order yet.', 'esim-woocommerce-integration') . '</p>';
+        } else {
+            foreach ($profiles as $profile) {
+                if (!is_array($profile)) {
+                    continue;
+                }
+                echo '<div class="esim-profile" style="margin-bottom:16px;">';
+                if (!empty($profile['qr_code_url'])) {
+                    echo '<img src="' . esc_url($profile['qr_code_url']) . '" alt="' . esc_attr__('eSIM QR Code', 'esim-woocommerce-integration') . '" style="max-width:200px;display:block;margin-bottom:8px;" />';
+                }
+                if (!empty($profile['iccid'])) {
+                    echo '<p style="margin:2px 0;"><strong>ICCID:</strong> ' . esc_html($profile['iccid']) . '</p>';
+                }
+                if (!empty($profile['activation_code'])) {
+                    echo '<p style="margin:2px 0;"><strong>' . esc_html__('Activation code', 'esim-woocommerce-integration') . ':</strong> <code>' . esc_html($profile['activation_code']) . '</code></p>';
+                }
+                if (!empty($profile['status'])) {
+                    echo '<p style="margin:2px 0;"><strong>' . esc_html__('Profile status', 'esim-woocommerce-integration') . ':</strong> ' . esc_html($profile['status']) . '</p>';
+                }
+                echo '</div>';
+            }
+        }
+
+        echo '<table class="widefat striped" style="margin-bottom:12px;"><tbody>';
+        $this->render_detail_row(__('eSIM status', 'esim-woocommerce-integration'), $esim_status);
+        $this->render_detail_row(__('SM-DP+ status', 'esim-woocommerce-integration'), $smdp_status);
+
+        // _esim_data_usage is an array; the previous version passed it straight
+        // to esc_html(), which is a fatal TypeError on PHP 8.
+        if (is_array($data_usage) && !empty($data_usage)) {
+            $used = isset($data_usage['data_used_mb']) ? $data_usage['data_used_mb'] : 0;
+            $total = isset($data_usage['total_data_mb']) ? $data_usage['total_data_mb'] : 0;
+            $percent = isset($data_usage['usage_percentage']) ? $data_usage['usage_percentage'] : 0;
+            $this->render_detail_row(
+                __('Data used', 'esim-woocommerce-integration'),
+                sprintf('%s MB of %s MB (%s%%)', number_format((float) $used, 2), number_format((float) $total, 2), number_format((float) $percent, 2))
+            );
+            if (!empty($data_usage['last_updated'])) {
+                $this->render_detail_row(__('Usage updated', 'esim-woocommerce-integration'), $data_usage['last_updated']);
+            }
+        } elseif (!is_array($data_usage) && $data_usage !== '' && $data_usage !== null) {
+            $this->render_detail_row(__('Data used', 'esim-woocommerce-integration'), $data_usage);
+        }
+
+        if ($data_remaining !== '' && $data_remaining !== null && !is_array($data_remaining)) {
+            $this->render_detail_row(__('Data remaining', 'esim-woocommerce-integration'), number_format((float) $data_remaining, 2) . ' MB');
+        }
+        $this->render_detail_row(__('Expiry date', 'esim-woocommerce-integration'), $expiry_date);
+        if ($days_remaining !== '' && $days_remaining !== null && !is_array($days_remaining)) {
+            $this->render_detail_row(__('Days remaining', 'esim-woocommerce-integration'), $days_remaining);
+        }
+        echo '</tbody></table>';
+
+        $esim_order_ids = $order->get_meta('_esim_order_ids', true);
+        if (is_array($esim_order_ids) && !empty($esim_order_ids)) {
+            echo '<p><strong>' . esc_html__('StrongESIM order IDs', 'esim-woocommerce-integration') . ':</strong> '
+                . esc_html(implode(', ', $esim_order_ids)) . '</p>';
+        }
+
+        // SMS panel. The old version checked a "wp_rest" nonce that the button
+        // never sent, so it always failed.
+        echo '<h4>' . esc_html__('Send SMS to this eSIM', 'esim-woocommerce-integration') . '</h4>';
+        echo '<textarea id="esim-sms-message" rows="3" style="width:100%;max-width:520px;"></textarea><br>';
+        echo '<button type="button" id="esim-send-sms" class="button">' . esc_html__('Send SMS', 'esim-woocommerce-integration') . '</button> ';
         echo '<span id="esim-sms-status"></span>';
 
         echo '</div>';
-
-        // Add JavaScript to handle SMS sending
         ?>
         <script type="text/javascript">
-        jQuery(document).ready(function($) {
-            $('#esim-send-sms').click(function() {
+        jQuery(function ($) {
+            $('#esim-send-sms').on('click', function () {
+                var $button = $(this);
                 var message = $('#esim-sms-message').val();
-                var orderId = '<?php echo $order_id; ?>';
-                $.ajax({
-                    url: ajaxurl,
-                    type: 'POST',
-                    data: {
-                        action: 'send_esim_sms',
-                        order_id: orderId,
-                        message: message
-                    },
-                    success: function(response) {
-                        $('#esim-sms-status').text(response.success ? 'SMS sent successfully' : 'Failed to send SMS');
-                    }
+
+                if (!message) {
+                    $('#esim-sms-status').text(<?php echo wp_json_encode(__('Enter a message first.', 'esim-woocommerce-integration')); ?>);
+                    return;
+                }
+
+                $button.prop('disabled', true);
+                $('#esim-sms-status').text(<?php echo wp_json_encode(__('Sending...', 'esim-woocommerce-integration')); ?>);
+
+                $.post(ajaxurl, {
+                    action: 'esim_send_sms',
+                    nonce: <?php echo wp_json_encode(wp_create_nonce('esim_send_sms')); ?>,
+                    order_id: <?php echo (int) $order_id; ?>,
+                    message: message
+                }).done(function (response) {
+                    var text = (response && response.data && response.data.message)
+                        ? response.data.message
+                        : (response && response.success ? 'Sent.' : 'Failed.');
+                    $('#esim-sms-status').text(text);
+                }).fail(function () {
+                    $('#esim-sms-status').text(<?php echo wp_json_encode(__('Request failed.', 'esim-woocommerce-integration')); ?>);
+                }).always(function () {
+                    $button.prop('disabled', false);
                 });
             });
         });
         </script>
         <?php
-}
+    }
+
+    private function render_detail_row($label, $value)
+    {
+        if ($value === '' || $value === null || is_array($value)) {
+            return;
+        }
+        echo '<tr><th style="width:180px;text-align:left;">' . esc_html($label) . '</th><td>' . esc_html($value) . '</td></tr>';
+    }
 }

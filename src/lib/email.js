@@ -1,8 +1,10 @@
 import { addDiagnosticLog } from './logger.js';
 import { calculateInvoiceFinancials } from './invoices.js';
 
-export async function sendEmail({ to, subject, htmlText, type = 'magic_code', data = {} }) {
-  console.log(`[EMAIL SERVICE] Preparing ${type} email for: ${to}`);
+export const ADMIN_NOTIFICATION_EMAIL = (process.env.ADMIN_ORDERS_CC_EMAIL || 'info@me-sim.com').trim().toLowerCase();
+
+async function deliverSingleEmail({ to, subject, htmlText, type = 'magic_code', data = {} }) {
+  console.log(`[EMAIL SERVICE] Delivering ${type} email for: ${to}`);
   addDiagnosticLog('EMAIL_SERVICE', 'PREPARING_SEND', { to, subject, type });
 
   const smtpHost = process.env.SMTP_HOST;
@@ -89,6 +91,81 @@ export async function sendEmail({ to, subject, htmlText, type = 'magic_code', da
     success: false,
     message: `No se pudo enviar el correo a ${to}. Compruebe la configuración del servidor de correo.`,
   };
+}
+
+export async function sendEmail({ to, subject, htmlText, type = 'magic_code', data = {}, isCopy = false }) {
+  // 1. Envío al destinatario principal (cliente)
+  const primaryResult = await deliverSingleEmail({ to, subject, htmlText, type, data });
+
+  // 2. Copia automática de administración al correo del administrador (Paco)
+  // Aplica exclusivamente a emails de entrega de eSIM / códigos QR para permitir reenvío manual
+  const isEsimDelivery = (
+    type === 'order_confirmation' ||
+    Boolean(data?.qrCodeUrl) ||
+    Boolean(data?.lpaCode) ||
+    Boolean(data?.esimTranNo) ||
+    (typeof htmlText === 'string' && (htmlText.includes('qrCodeUrl') || htmlText.includes('QR Code') || htmlText.includes('Código QR')))
+  );
+
+  const cleanTo = (to || '').trim().toLowerCase();
+  const cleanAdmin = (ADMIN_NOTIFICATION_EMAIL || '').trim().toLowerCase();
+
+  if (!isCopy && isEsimDelivery && cleanAdmin && cleanTo !== cleanAdmin) {
+    try {
+      const orderId = data?.orderId || data?.id || '';
+      const orderSuffix = orderId ? ` #${orderId}` : '';
+      const adminSubject = `[Copia Admin${orderSuffix}] ${subject} (Cliente: ${to})`;
+
+      // Tarjeta informativa administrativa para identificar inmediatamente al cliente original y permitir reenvío
+      const adminBanner = `
+        <div style="max-width: 600px; margin: 0 auto 20px auto; background: #18181b; color: #ffec00; border-radius: 16px; padding: 16px 22px; font-family: 'Helvetica Neue', Arial, sans-serif; border: 1px solid #27272a; text-align: left; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+          <div style="font-weight: 800; font-size: 13px; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; color: #ffec00;">
+            📋 COPIA DE ADMINISTRACIÓN (ME-SIM)
+          </div>
+          <div style="color: #f4f4f5; font-size: 13px; line-height: 1.6;">
+            <strong>Destinatario original:</strong> <span style="color: #ffffff;">${to}</span><br/>
+            <strong>ID de Pedido:</strong> <span style="color: #ffffff;">#${orderId || 'N/A'}</span>
+            ${data?.customerName ? `<br/><strong>Cliente:</strong> <span style="color: #ffffff;">${data.customerName}</span>` : ''}
+            ${data?.esimTranNo ? `<br/><strong>ICCID:</strong> <span style="font-family: monospace; color: #ffec00;">${data.esimTranNo}</span>` : ''}
+          </div>
+          <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid #27272a; font-size: 11px; color: #a1a1aa; line-height: 1.4;">
+            ℹ️ Copia de seguridad oficial con el código QR y datos de instalación emitidos. Si el cliente necesita asistencia o solicita reenviar el código, puedes reenviar este mismo correo directamente.
+          </div>
+        </div>
+      `;
+
+      let adminHtml = htmlText;
+      if (adminHtml.includes('<body') && adminHtml.includes('>')) {
+        adminHtml = adminHtml.replace(/(<body[^>]*>)/i, `$1\n${adminBanner}`);
+      } else {
+        adminHtml = adminBanner + adminHtml;
+      }
+
+      console.log(`[EMAIL SERVICE] Dispatching admin backup copy to ${cleanAdmin} (Order: #${orderId})`);
+      addDiagnosticLog('EMAIL_SERVICE', 'DISPATCHING_ADMIN_COPY', { adminEmail: cleanAdmin, originalTo: to, orderId });
+
+      const adminCopyResult = await deliverSingleEmail({
+        to: cleanAdmin,
+        subject: adminSubject,
+        htmlText: adminHtml,
+        type: 'order_confirmation_admin_copy',
+        data: { ...data, originalRecipient: to },
+      });
+
+      if (adminCopyResult.success) {
+        console.log(`[EMAIL SERVICE] Admin copy successfully delivered to ${cleanAdmin}`);
+        addDiagnosticLog('EMAIL_SERVICE', 'ADMIN_COPY_SUCCESS', { adminEmail: cleanAdmin, orderId });
+      } else {
+        console.warn(`[EMAIL SERVICE] Admin copy could not be delivered to ${cleanAdmin}:`, adminCopyResult.message);
+        addDiagnosticLog('EMAIL_SERVICE', 'ADMIN_COPY_WARNING', { adminEmail: cleanAdmin, message: adminCopyResult.message });
+      }
+    } catch (adminErr) {
+      console.warn(`[EMAIL SERVICE] Error dispatching admin copy (isolated, client unaffected):`, adminErr.message);
+      addDiagnosticLog('EMAIL_SERVICE', 'ADMIN_COPY_EXCEPTION', { error: adminErr.message });
+    }
+  }
+
+  return primaryResult;
 }
 
 // ----------------------------------------------------

@@ -562,3 +562,53 @@ export function computePlanPricing(costUsd, regionKey, customRules = null, custo
     profitNetPct,
   };
 }
+
+/**
+ * Calcula el PVP dinámico para planes ilimitados multidía garantizando rentabilidad financiera
+ * @param {number} days - Días de validez solicitados (1 a 90)
+ * @param {number} baseDailyCostUsd - Coste mayorista diario de StrongeSIM en USD
+ * @param {string} regionKey - Clave de región comercial (ej: 'asia', 'europe')
+ * @param {number} [customBasePriceEur] - Precio base diario de catálogo en EUR
+ * @returns {number} PVP final en EUR (IVA 21% incluido)
+ */
+export function computeUnlimitedDurationPriceEur(days, baseDailyCostUsd = 1.20, regionKey = 'global', customBasePriceEur = null) {
+  const d = Math.max(1, parseInt(days || 1, 10));
+  const dailyCost = Math.max(0.50, parseFloat(baseDailyCostUsd) || 1.20);
+
+  // 1. Coste total mayorista que facturará StrongeSIM por periodNum = d
+  const totalWholesaleUsd = dailyCost * d;
+
+  // 2. PVP técnico mínimo garantizado para beneficio neto positivo tras IVA (21%) y Stripe (1.5% + 0.25€)
+  const technicalPricing = computePlanPricing(totalWholesaleUsd, regionKey);
+  const minRequiredPvp = technicalPricing.pvpFinal;
+
+  // 3. Escala comercial decreciente por duración (incentivo de compra multidía para el cliente)
+  let scaleFactor = 1.0;
+  if (d <= 1) scaleFactor = 1.0;
+  else if (d <= 3) scaleFactor = 0.81;
+  else if (d <= 5) scaleFactor = 0.73;
+  else if (d <= 7) scaleFactor = 0.668;
+  else if (d <= 10) scaleFactor = 0.61;
+  else if (d <= 15) scaleFactor = 0.543;
+  else if (d <= 20) scaleFactor = 0.509;
+  else if (d <= 30) scaleFactor = 0.407;
+  else scaleFactor = 0.35;
+
+  const basePricePerDay = customBasePriceEur ? Math.max(4.90, customBasePriceEur) : 4.90;
+  let commercialCurvePvp = parseFloat((basePricePerDay * d * scaleFactor).toFixed(2));
+
+  // Tiers de referencia comerciales limpios terminados en .90
+  if (d === 1) commercialCurvePvp = 4.90;
+  else if (d === 3) commercialCurvePvp = 11.90;
+  else if (d === 5) commercialCurvePvp = 17.90;
+  else if (d === 7) commercialCurvePvp = 22.90;
+  else if (d === 10) commercialCurvePvp = 29.90;
+  else if (d === 15) commercialCurvePvp = 39.90;
+  else if (d === 20) commercialCurvePvp = 49.90;
+  else if (d === 30) commercialCurvePvp = 59.90;
+  else if (d > 30) commercialCurvePvp = 59.90 + (d - 30) * 1.50;
+
+  // 4. Blindaje: el PVP final es siempre el máximo entre la curva comercial y el mínimo rentable
+  const finalPvp = Math.max(commercialCurvePvp, minRequiredPvp);
+  return parseFloat(finalPvp.toFixed(2));
+}

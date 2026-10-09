@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server.js';
-import { strongesimFetch, resolveStrongeSimPlanId } from '../../../lib/strongesim.js';
+import {
+  strongesimFetch,
+  resolveStrongeSimPlanId,
+  resolveStrongeSimPlanDetails,
+  createStrongeSimOrder,
+  DEFAULT_RESELLER_PROFILE_ID,
+} from '../../../lib/strongesim.js';
 import { addDiagnosticLog } from '../../../lib/logger.js';
 import { checkOrderProvisioned, markOrderProvisioned } from '../../../lib/idempotency.js';
 import { saveOrUpdateOrder, getLocalOrders } from '../../../lib/ordersService.js';
@@ -43,7 +49,9 @@ export async function POST(request) {
     // =========================================================================
     // 0. IDEMPOTENCIA: Evitar compras duplicadas por doble clic o reintentos
     // =========================================================================
-    const dedupeKey = paymentIntentId || `${customerEmail}_${planId}`;
+    const dedupeKey = (paymentIntentId && !paymentIntentId.startsWith('free_coupon'))
+      ? paymentIntentId
+      : `${customerEmail}_${planId}_${paymentIntentId || Date.now()}`;
     const existingOrder = checkOrderProvisioned(dedupeKey);
     if (existingOrder && existingOrder.iccid) {
       console.log(`[POST /api/orders] Petición duplicada detectada para key [${dedupeKey}]. Devolviendo orden ya provisionada.`);
@@ -114,12 +122,15 @@ export async function POST(request) {
     let strongesimOrderId = null;
 
     try {
-      const realStrongeSimPlanId = await resolveStrongeSimPlanId({
+      const planDetails = await resolveStrongeSimPlanDetails({
         sku: planId,
         iso: iso || 'es',
         dataAmount: dataAmount || title || '1 GB',
         days: days || 30,
       });
+
+      const realStrongeSimPlanId = planDetails?.planId;
+      const periodNum = planDetails?.periodNum;
 
       if (!realStrongeSimPlanId) {
         console.error(`No StrongeSIM package found for planId [${planId}], iso [${iso}]`);
@@ -129,31 +140,24 @@ export async function POST(request) {
         }, { status: 400 });
       }
 
-      console.log(`[BLOQUE 1] Resolved plan [${planId}] -> StrongeSIM real numeric package ID: [${realStrongeSimPlanId}]`);
-      addDiagnosticLog('STRONGESIM', 'RESOLVE_PLAN_ID_START', { originalPlanId: planId, iso, dataAmount, days });
+      console.log(`[BLOQUE 1] Resolved plan [${planId}] -> StrongeSIM package ID: [${realStrongeSimPlanId}], periodNum: [${periodNum || 'N/A'}]`);
+      addDiagnosticLog('STRONGESIM', 'RESOLVE_PLAN_ID_START', { originalPlanId: planId, iso, dataAmount, days, periodNum });
 
-      const response = await strongesimFetch('/orders', {
-        method: 'POST',
-        body: JSON.stringify({
-          plan_id: realStrongeSimPlanId,
-          customer_email: customerEmail,
-          end_customer_email: customerEmail,
-          email: customerEmail,
-          user_email: customerEmail,
-          customer_name: customerName,
-          send_email: true,
-          sendEmail: true,
-          send_email_to_customer: true,
-          notify_customer: true,
-          send_qr_email: true,
-          deliver_qr: true,
-        }),
+      const response = await createStrongeSimOrder({
+        planId: realStrongeSimPlanId,
+        quantity: 1,
+        periodNum: periodNum || null,
+        customerEmail,
+        customerName,
+        idempotencyKey: dedupeKey,
+        resellerProfileId: DEFAULT_RESELLER_PROFILE_ID,
       });
 
       addDiagnosticLog('STRONGESIM', 'POST_ORDERS_RESPONSE', {
         status: response.status,
         ok: response.ok,
         realStrongeSimPlanId,
+        periodNum,
       });
 
       if (response.ok) {
@@ -388,6 +392,19 @@ export async function POST(request) {
         }
 
         // 3. Crear orden en WooCommerce con todos los metadatos de eSIM
+        // =====================================================================
+        // FISCALIDAD ESPAÑOLA / UE & PARIDAD AL CÉNTIMO (STRIPE == WOOCOMMERCE)
+        // =====================================================================
+        // En ME-SIM, todos los precios anunciados y cobrados en Stripe son PVP
+        // final con el 21% de IVA incluido.
+        // WooCommerce calcula el impuesto (21%) a partir de los campos `subtotal`
+        // y `total` de cada línea. Para que la factura oficial de WooCommerce
+        // coincida exactamente al céntimo con el cobro en tarjeta de Stripe:
+        // Base Imponible = Total / 1.21
+        // Con precisión de 6 decimales, WooCommerce redondea la suma al céntimo exacto.
+        const chargedGross = parseFloat(price || '0.00') || 0;
+        const netBaseAmount = chargedGross > 0 ? (chargedGross / 1.21).toFixed(6) : '0.00';
+
         const wcRes = await fetch(`${wcUrl}/wp-json/wc/v3/orders`, {
           method: 'POST',
           headers: {
@@ -413,9 +430,9 @@ export async function POST(request) {
                 name: title || `eSIM Plan (${planId})`,
                 quantity: 1,
                 sku: String(planId || 'esim-plan'),
-                price: String(price || '0.00'),
-                subtotal: String(price || '0.00'),
-                total: String(price || '0.00'),
+                price: netBaseAmount,
+                subtotal: netBaseAmount,
+                total: netBaseAmount,
                 meta_data: [
                   { key: 'plan_id', value: String(planId) },
                   { key: '_plan_id', value: String(planId) },
@@ -458,6 +475,18 @@ export async function POST(request) {
             const numericWcOrderId = String(wcData.id);
             console.log(`[BLOQUE 3] Pedido WooCommerce creado exitosamente: #${numericWcOrderId}`);
 
+            const finalChargedAmount = parseFloat(price || 0);
+            let finalPriceEur = finalChargedAmount;
+            if (body.priceEur !== undefined) {
+              finalPriceEur = parseFloat(body.priceEur) || finalChargedAmount;
+            } else if ((currency || 'EUR').toUpperCase() !== 'EUR') {
+              const approxRate = (currency || '').toUpperCase() === 'USD' ? 1.12 : ((currency || '').toUpperCase() === 'GBP' ? 0.86 : 1.61);
+              finalPriceEur = parseFloat((finalChargedAmount / approxRate).toFixed(2));
+            }
+
+            const calculatedWholesaleUsd = planDetails?.wholesaleCostUsd ||
+              (planDetails?.plan?.price ? parseFloat((parseFloat(planDetails.plan.price) * (periodNum || 1)).toFixed(2)) : undefined);
+
             // Actualizar el pedido en la BD local con el ID numérico oficial de WooCommerce
             saveOrUpdateOrder({
               orderId: numericWcOrderId,
@@ -468,8 +497,9 @@ export async function POST(request) {
               lang: customerLang,
               title: title || `eSIM Plan (${planId})`,
               plan: title || `eSIM Plan (${planId})`,
-              amount: parseFloat(price || 0),
-              priceEur: parseFloat(price || 0),
+              amount: finalChargedAmount,
+              price: finalChargedAmount,
+              priceEur: finalPriceEur,
               currency: (currency || 'EUR').toUpperCase(),
               status: 'Completed',
               date: new Date().toISOString().split('T')[0],
@@ -484,6 +514,8 @@ export async function POST(request) {
               iso: (iso || 'es').toLowerCase(),
               dataAmount: dataAmount || '1 GB',
               days: parseInt(days || 30, 10),
+              periodNum: periodNum || null,
+              wholesaleCostUsd: calculatedWholesaleUsd,
               coupon: couponCode || '',
               couponPercent: parseFloat(couponPercent || 0),
               originalAmount: parseFloat(originalPrice || price || 0),

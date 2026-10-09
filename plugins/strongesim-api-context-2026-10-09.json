@@ -1,0 +1,1277 @@
+{
+  "$schema": "https://strongesim.com/schemas/ai-context/v1",
+  "generated_at": "2026-10-09T10:53:30.973Z",
+  "generated_for": "info@me-sim.com",
+  "brief": "You are helping a Strong eSIM reseller work with the Strong eSIM API.\nThis file is the complete reference: every endpoint, its method, path, parameters and example body.\nBase URL is https://api.strongesim.com/api/v1. All paths below are relative to it.\nAuthenticate first with POST /auth/login using the account in `credentials`.\nThat returns an accessToken and a session_id. Send BOTH on every authenticated call:\n  Authorization: Bearer <accessToken>\n  X-Session-ID: <session_id>\nThe access token expires after about an hour. Refresh it rather than logging in repeatedly.\nMoney is real. Orders debit the reseller's prepaid wallet and provision a real eSIM immediately.\nNever place an order, a top up or a refund without the reseller explicitly asking for that exact action.\nSend one stable idempotency key per order so a retry cannot double charge.\nIf the password below is still the placeholder, ask the reseller for it. Do not guess it.",
+  "credentials": {
+    "email": "info@me-sim.com",
+    "password": "<your Strong eSIM password, the same one you sign in with>",
+    "note": "Your password is deliberately not included. The portal never stores it, and a credential that can spend your wallet should not be uploaded to an AI provider. Fill it in locally if you need to, and remove it before sharing this file."
+  },
+  "auth": {
+    "login": {
+      "method": "POST",
+      "path": "/auth/login"
+    },
+    "headers": [
+      {
+        "key": "Authorization",
+        "value": "Bearer {access_token}",
+        "note": "JWT access token from POST /auth/login"
+      },
+      {
+        "key": "X-Session-ID",
+        "value": "{session_id}",
+        "note": "Session id returned at login, tracks the session"
+      }
+    ],
+    "token_lifetime": "about 1 hour; use the refresh token rather than re-logging in"
+  },
+  "rate_limits": [
+    {
+      "scope": "Login / Registration",
+      "limit": "5 attempts per IP per 15 minutes"
+    },
+    {
+      "scope": "Password reset",
+      "limit": "3 attempts per email per hour"
+    },
+    {
+      "scope": "All other endpoints",
+      "limit": "1000 requests per user per hour"
+    }
+  ],
+  "conventions": {
+    "envelope": "Most responses are { success, data } but the shape of `data` is NOT uniform. /orders returns an array, /credits/transactions nests under data.transactions, /plans returns an object keyed by index, /reseller/pricing nests under data.pricing. Check the shape of each endpoint rather than assuming.",
+    "pagination": "page and limit query parameters; totals under `pagination`.",
+    "currency": "USD throughout. Prices already include the reseller's markup."
+  },
+  "sections": [
+    {
+      "id": "auth",
+      "name": "Auth",
+      "description": "Account creation, login, email/OTP verification, JWT access + refresh tokens, password reset, and session management. Start here to obtain the bearer token every other endpoint needs.",
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/auth/register",
+          "summary": "Register a new user account. Available roles: `mobile_user`, `reseller`,",
+          "requires_auth": false,
+          "parameters": [],
+          "example_body": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\",\n  \"role\": \"reseller\",\n  \"name\": \"Test User\",\n  \"reseller_id\": \"{{reseller_id}}\"\n}"
+        },
+        {
+          "method": "POST",
+          "path": "/auth/login",
+          "summary": "Authenticate a user and receive access + refresh tokens. Creates a login",
+          "requires_auth": false,
+          "parameters": [],
+          "example_body": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\",\n  \"role\": \"reseller\"\n}"
+        },
+        {
+          "method": "GET",
+          "path": "/auth/verify-email",
+          "summary": "Verify a user's email address using the token sent during registration.",
+          "requires_auth": false,
+          "parameters": []
+        },
+        {
+          "method": "POST",
+          "path": "/auth/verify-otp",
+          "summary": "Verify a `mobile_user` email address using the 6-digit OTP sent at registration.",
+          "requires_auth": false,
+          "parameters": [],
+          "example_body": "{\n  \"email\": \"{{email}}\",\n  \"otp\": \"\"\n}"
+        },
+        {
+          "method": "POST",
+          "path": "/auth/resend-verification",
+          "summary": "Resend a verification email to an unverified user",
+          "requires_auth": false,
+          "parameters": [],
+          "example_body": "{\n  \"email\": \"{{email}}\",\n  \"role\": \"reseller\"\n}"
+        },
+        {
+          "method": "POST",
+          "path": "/auth/refresh-token",
+          "summary": "Refresh an expired access token using a valid refresh token. Handled by the",
+          "requires_auth": false,
+          "parameters": [],
+          "example_body": "{\n  \"refreshToken\": \"\"\n}"
+        },
+        {
+          "method": "POST",
+          "path": "/auth/logout",
+          "summary": "Logout the current user. Can revoke a specific session or all active",
+          "requires_auth": true,
+          "parameters": [],
+          "example_body": "{\n  \"session_id\": \"{{session_id}}\"\n}"
+        },
+        {
+          "method": "POST",
+          "path": "/auth/forgot-password",
+          "summary": "Request a password reset link via email. The link is valid for 1 hour",
+          "requires_auth": false,
+          "parameters": [],
+          "example_body": "{\n  \"email\": \"{{email}}\",\n  \"role\": \"reseller\",\n  \"frontend_reset_url\": \"\"\n}"
+        },
+        {
+          "method": "GET",
+          "path": "/auth/reset-password",
+          "summary": "Browser-facing endpoint. Validates the reset token and serves an HTML form for",
+          "requires_auth": false,
+          "parameters": [
+            {
+              "name": "role",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "If provided, restricts the token lookup to a specific role"
+            }
+          ]
+        },
+        {
+          "method": "POST",
+          "path": "/auth/reset-password",
+          "summary": "Reset the user's password using a valid reset token. All existing sessions are",
+          "requires_auth": false,
+          "parameters": [],
+          "example_body": "{\n  \"token\": \"\",\n  \"password\": \"{{password}}\",\n  \"role\": \"reseller\"\n}"
+        },
+        {
+          "method": "GET",
+          "path": "/auth/sessions",
+          "summary": "Get all active (non-expired, non-revoked) sessions for the currently",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "DELETE",
+          "path": "/auth/sessions/{session_id}",
+          "summary": "Revoke a specific active session for the currently authenticated user. Cannot",
+          "requires_auth": true,
+          "parameters": []
+        }
+      ]
+    },
+    {
+      "id": "users",
+      "name": "Users",
+      "description": "Read and update the authenticated account profile, and change the account password.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/users/me",
+          "summary": "Get the currently authenticated user's profile, including role-specific",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "PUT",
+          "path": "/users/me",
+          "summary": "Update the authenticated user's profile. At least one of `name` or",
+          "requires_auth": true,
+          "parameters": [],
+          "example_body": "{\n  \"name\": \"Test User\",\n  \"companyName\": \"\"\n}"
+        },
+        {
+          "method": "PUT",
+          "path": "/users/me/password",
+          "summary": "Change the authenticated user's password. All active sessions are revoked and",
+          "requires_auth": true,
+          "parameters": [],
+          "example_body": "{\n  \"old_password\": \"\",\n  \"new_password\": \"\",\n  \"confirm_password\": \"\"\n}"
+        }
+      ]
+    },
+    {
+      "id": "credits",
+      "name": "Credits",
+      "description": "Check your prepaid (or postpaid) credit balance and review the credit transaction ledger. Reseller-scoped.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/credits/balance",
+          "summary": "Get the current credit balance or postpaid credit usage for the authenticated",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "GET",
+          "path": "/credits/transactions",
+          "summary": "Get credit transactions for the authenticated reseller with filtering and",
+          "requires_auth": true,
+          "parameters": [
+            {
+              "name": "type",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Filter by transaction type: `topup`, `deduction`, `refund`,"
+            },
+            {
+              "name": "status",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Filter by status: `completed`, `pending`, `failed`"
+            },
+            {
+              "name": "search",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Case-insensitive search in `reference_id` or `notes`"
+            },
+            {
+              "name": "start_date",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "ISO 8601 — include transactions created on or after this date"
+            },
+            {
+              "name": "end_date",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "ISO 8601 — include transactions created on or before this date"
+            },
+            {
+              "name": "page",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Page number"
+            },
+            {
+              "name": "limit",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Results per page"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "payment",
+      "name": "Payment",
+      "description": "Top up credits via PayPal or Stripe: create and capture orders, handle redirects and webhooks, and read the credit balance.",
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/payment/create-paypal-order",
+          "summary": "Create a PayPal order in preparation for checkout. Returns a PayPal order ID",
+          "requires_auth": true,
+          "parameters": [],
+          "example_body": "{\n  \"amount\": 50,\n  \"currency\": \"USD\",\n  \"orderId\": \"\",\n  \"landingPage\": \"\"\n}"
+        },
+        {
+          "method": "POST",
+          "path": "/payment/capture-paypal-order",
+          "summary": "Capture an approved PayPal payment and credit the captured amount to the",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "GET",
+          "path": "/payment/return",
+          "summary": "PayPal redirect handler. Called by PayPal after the user approves a payment on",
+          "requires_auth": false,
+          "parameters": [
+            {
+              "name": "PayerID",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "PayPal payer identifier. Passed through to the frontend redirect"
+            }
+          ]
+        },
+        {
+          "method": "POST",
+          "path": "/payment/paypal-webhook",
+          "summary": "Receive and process PayPal webhook event notifications. Performs HMAC",
+          "requires_auth": false,
+          "parameters": []
+        },
+        {
+          "method": "GET",
+          "path": "/payment/credit-balance",
+          "summary": "Get the authenticated user's current credit account balance and the 5 most",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "POST",
+          "path": "/payment/stripe/payment-intent",
+          "summary": "Create a Stripe PaymentIntent and return its `clientSecret` so the client SDK",
+          "requires_auth": true,
+          "parameters": [],
+          "example_body": "{\n  \"amount\": 50,\n  \"currency\": \"USD\",\n  \"orderId\": \"\",\n  \"use_referral_credit\": false\n}"
+        },
+        {
+          "method": "POST",
+          "path": "/payment/stripe/confirm-order",
+          "summary": "Verify a Stripe PaymentIntent succeeded (re-fetched directly from Stripe —",
+          "requires_auth": true,
+          "parameters": [],
+          "example_body": "{\n  \"paymentIntentId\": \"\",\n  \"orderId\": \"\",\n  \"credit_amount_applied\": 1\n}"
+        }
+      ]
+    },
+    {
+      "id": "plans",
+      "name": "Plans",
+      "description": "Browse the live plan catalogue, countries, coverage stats, and incremental change feeds. V1 and V2 catalogues.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/plans",
+          "summary": "List all active eSIM plans with optional filtering, search, and pagination.",
+          "requires_auth": true,
+          "parameters": [
+            {
+              "name": "country",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Filter by ISO 3166-1 alpha-2 country code (e.g. `\"DE\"`, `\"US\"`)"
+            },
+            {
+              "name": "country_name",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Filter by country name (e.g. `\"Germany\"`). Internally mapped to a country code. Returns empty result with `200` if name cannot be"
+            },
+            {
+              "name": "region",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Filter by `region_code`"
+            },
+            {
+              "name": "provider",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Filter by `provider_id`"
+            },
+            {
+              "name": "search",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Case-insensitive substring search across `name`, `description`, and"
+            },
+            {
+              "name": "page",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Page number (minimum `1`)"
+            },
+            {
+              "name": "limit",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Results per page (minimum `1`)"
+            }
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/plans/countries",
+          "summary": "Get all unique countries that have at least one active plan, with the minimum",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "POST",
+          "path": "/plans/sync/{provider_id}",
+          "summary": "Trigger a manual sync of plans from a specific provider",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "GET",
+          "path": "/plans/last-updated",
+          "summary": "Get the timestamp when any active plan was last modified, plus the total count",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "GET",
+          "path": "/plans/changes",
+          "summary": "Get plans that were added, updated, or deactivated since a given timestamp.",
+          "requires_auth": true,
+          "parameters": [
+            {
+              "name": "limit",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Maximum results per category (`updated` and `removed` are each capped independently). Clamped between `1` and"
+            }
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/plans/{id}",
+          "summary": "Get a single active or inactive eSIM plan by its primary key. Applies the same",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "GET",
+          "path": "/plans/stats/coverage",
+          "summary": "Get aggregated coverage statistics: total unique countries and regions with",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "GET",
+          "path": "/plans-v2",
+          "summary": "List all active V2 eSIM plans with optional filtering, search, and pagination.",
+          "requires_auth": true,
+          "parameters": [
+            {
+              "name": "country",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Filter by ISO 3166-1 alpha-2 country code (e.g. `\"DE\"`, `\"US\"`)"
+            },
+            {
+              "name": "country_name",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Filter by country name (e.g. `\"Germany\"`). Mapped to country code internally. Returns empty result with `200` if name cannot be"
+            },
+            {
+              "name": "region",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Filter by `region_code`"
+            },
+            {
+              "name": "provider",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Filter by `provider_id`"
+            },
+            {
+              "name": "search",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Case-insensitive substring search across `name`, `description`, and"
+            },
+            {
+              "name": "page",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Page number (minimum `1`)"
+            },
+            {
+              "name": "limit",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Results per page (minimum `1`)"
+            }
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/plans-v2/countries",
+          "summary": "Get all unique countries that have at least one active V2 plan, with the",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "GET",
+          "path": "/plans-v2/last-updated",
+          "summary": "Get the timestamp when any active V2 plan was last modified, plus the total",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "GET",
+          "path": "/plans-v2/changes",
+          "summary": "Get V2 plans that were added, updated, or deactivated since a given",
+          "requires_auth": true,
+          "parameters": [
+            {
+              "name": "limit",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Maximum results per category (`updated` and `removed` capped independently). Clamped between `1` and"
+            }
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/plans-v2/{id}",
+          "summary": "Get a single active V2 eSIM plan by its primary key. Includes the associated",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "GET",
+          "path": "/plans-v2/stats/coverage",
+          "summary": "Get aggregated global statistics across all active V2 plans in a single query:",
+          "requires_auth": true,
+          "parameters": []
+        }
+      ]
+    },
+    {
+      "id": "plan-comparison",
+      "name": "Plan Comparison",
+      "description": "Find the cheapest matching plan and compare a plan against equivalent plans across providers.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/plan-comparison/cheapest",
+          "summary": "Find the cheapest available plan matching exact criteria (country, data size,",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "GET",
+          "path": "/plan-comparison/{plan_id}/compare",
+          "summary": "Compare a specific plan against equivalent plans from all providers. Finds",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "GET",
+          "path": "/plan-comparison/health",
+          "summary": "Health check for the plan comparison feature. Returns current feature flag",
+          "requires_auth": true,
+          "parameters": []
+        }
+      ]
+    },
+    {
+      "id": "orders",
+      "name": "Orders",
+      "description": "Create eSIM orders, list and inspect them, cancel with credit refund, pull live usage, and top up activated eSIMs. V1 and the newer synchronous V2 flow are both documented.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/orders/{order_id}/usage",
+          "summary": "Fetch the current usage data for a specific order from the eSIM Access",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "POST",
+          "path": "/orders/{order_id}/usage/refresh",
+          "summary": "Force-refresh usage data for a specific order by fetching the latest data",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "GET",
+          "path": "/api/v2/order-usage/{order_id}",
+          "summary": "Get combined usage data for a specific order — merges stored `OrderUsage`",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "POST",
+          "path": "/api/v2/order-usage/bulk",
+          "summary": "Fetch usage data for multiple orders in a single request. Results are silently",
+          "requires_auth": true,
+          "parameters": [],
+          "example_body": "{\n  \"order_ids\": \"\"\n}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v2/order-usage/stats/user",
+          "summary": "Get aggregated usage statistics across all active orders for a user. Scoped to",
+          "requires_auth": true,
+          "parameters": [
+            {
+              "name": "start_date",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Filter orders created on or after this date (applied to `created_at`)"
+            },
+            {
+              "name": "end_date",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Filter orders created on or before this date (applied to `created_at`)"
+            }
+          ]
+        },
+        {
+          "method": "POST",
+          "path": "/orders",
+          "summary": "Create a new eSIM order. Validates credit availability first, creates the eSIM",
+          "requires_auth": true,
+          "parameters": [],
+          "example_body": "{\n  \"plan_id\": \"{{plan_id}}\",\n  \"quantity\": 1,\n  \"periodNum\": 1,\n  \"reseller_profile_id\": \"{{reseller_profile_id}}\",\n  \"end_customer_email\": \"customer@example.com\",\n  \"customer_name\": \"John Doe\"\n}"
+        },
+        {
+          "method": "GET",
+          "path": "/orders",
+          "summary": "List all orders for the authenticated user with pagination and optional",
+          "requires_auth": true,
+          "parameters": [
+            {
+              "name": "page",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Page number"
+            },
+            {
+              "name": "limit",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Results per page"
+            },
+            {
+              "name": "status",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Filter by status. Pass `\"all\"` (case-insensitive) to return all statuses"
+            },
+            {
+              "name": "customerId",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Filter by `customer_id`"
+            },
+            {
+              "name": "reseller_id",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Filter by `reseller_id`"
+            }
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/orders/{order_id}",
+          "summary": "Get the full status and eSIM profiles for a specific order. The `order_id`",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "POST",
+          "path": "/orders/{order_id}/cancel",
+          "summary": "Cancel an order. Calls the eSIM provider's cancel API, processes a credit",
+          "requires_auth": true,
+          "parameters": [],
+          "example_body": "{\n  \"reason\": \"\",\n  \"force\": false\n}"
+        },
+        {
+          "method": "GET",
+          "path": "/orders/{order_id}/topup-plans",
+          "summary": "Get available top-up data plans for an activated eSIM. Fetches live from the",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "POST",
+          "path": "/orders/{order_id}/topup",
+          "summary": "Top up an existing eSIM with additional data. Accepts either a `topupId` token",
+          "requires_auth": true,
+          "parameters": [],
+          "example_body": "{\n  \"periodNum\": 1\n}"
+        },
+        {
+          "method": "GET",
+          "path": "/orders/{order_id}/topups",
+          "summary": "Get all top-up orders associated with a specific original order, with a",
+          "requires_auth": true,
+          "parameters": [
+            {
+              "name": "page",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Page number"
+            },
+            {
+              "name": "limit",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Results per page"
+            }
+          ]
+        },
+        {
+          "method": "POST",
+          "path": "/orders-v2",
+          "summary": "Create a new V2 eSIM order. Credits are deducted immediately and synchronously.",
+          "requires_auth": true,
+          "parameters": [],
+          "example_body": "{\n  \"plan_id\": \"{{plan_id}}\",\n  \"quantity\": 1,\n  \"provider_id\": \"{{provider_id}}\",\n  \"end_customer_email\": \"customer@example.com\",\n  \"customer_name\": \"John Doe\"\n}"
+        },
+        {
+          "method": "GET",
+          "path": "/orders-v2",
+          "summary": "List V2 orders for the authenticated user with pagination and optional status",
+          "requires_auth": true,
+          "parameters": [
+            {
+              "name": "page",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Page number (minimum `1`)"
+            },
+            {
+              "name": "limit",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Results per page (minimum `1`)"
+            },
+            {
+              "name": "status",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Filter by status. Pass `\"all\"` to return all statuses"
+            }
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/orders-v2/{order_id}",
+          "summary": "Get a specific V2 order by ID. Supports lookup by multiple identifier types",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "POST",
+          "path": "/orders-v2/{order_id}/cancel",
+          "summary": "Cancel a V2 order and refund credits to the reseller's account. Unlike V1,",
+          "requires_auth": true,
+          "parameters": [],
+          "example_body": "{\n  \"reason\": \"\",\n  \"force\": false\n}"
+        }
+      ]
+    },
+    {
+      "id": "profiles",
+      "name": "Profiles",
+      "description": "Operate directly on an eSIM profile by ICCID / transaction number: usage, suspend, unsuspend, revoke, top up, and send SMS.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/profiles/:identifier",
+          "summary": "Look up eSIM profile data from the provider by ICCID, eSIM transaction number,",
+          "requires_auth": true,
+          "parameters": [
+            {
+              "name": "type",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "How to interpret `identifier`. Valid values: `\"iccid\"`, `\"esimTranNo\"`,"
+            }
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/profiles/:esimTranNo/usage",
+          "summary": "Check live usage data for a specific eSIM profile from the provider.",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "POST",
+          "path": "/profiles/:identifier/suspend",
+          "summary": "Suspend an eSIM profile via the provider API and update the linked order",
+          "requires_auth": true,
+          "parameters": [],
+          "example_body": "{\n  \"provider_id\": \"{{provider_id}}\",\n  \"type\": \"\"\n}"
+        },
+        {
+          "method": "POST",
+          "path": "/profiles/:identifier/unsuspend",
+          "summary": "Unsuspend a previously suspended eSIM profile and update the linked order",
+          "requires_auth": true,
+          "parameters": [],
+          "example_body": "{\n  \"provider_id\": \"{{provider_id}}\",\n  \"type\": \"\"\n}"
+        },
+        {
+          "method": "POST",
+          "path": "/profiles/:identifier/revoke",
+          "summary": "Permanently revoke an eSIM profile and update the linked order status to",
+          "requires_auth": true,
+          "parameters": [],
+          "example_body": "{\n  \"provider_id\": \"{{provider_id}}\",\n  \"type\": \"\"\n}"
+        },
+        {
+          "method": "POST",
+          "path": "/profiles/:identifier/topup",
+          "summary": "Add data to an existing eSIM profile. Creates a linked topup `Order` record,",
+          "requires_auth": true,
+          "parameters": [],
+          "example_body": "{\n  \"provider_id\": \"{{provider_id}}\",\n  \"type\": \"\",\n  \"plan_id\": \"{{plan_id}}\",\n  \"amount\": 50\n}"
+        },
+        {
+          "method": "POST",
+          "path": "/profiles/:identifier/sms",
+          "summary": "Send an SMS message to an eSIM profile via the provider API",
+          "requires_auth": true,
+          "parameters": [],
+          "example_body": "{\n  \"provider_id\": \"{{provider_id}}\",\n  \"message\": \"\",\n  \"type\": \"\"\n}"
+        },
+        {
+          "method": "GET",
+          "path": "/profiles/:identifier/topup-plans",
+          "summary": "Fetch available topup plans for a specific eSIM from the provider. Applies",
+          "requires_auth": true,
+          "parameters": [
+            {
+              "name": "type",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "How to interpret `identifier`. Valid: `\"iccid\"`, `\"esimTranNo\"`"
+            },
+            {
+              "name": "provider_id",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Provider to query. Defaults to `\"1\"` if omitted"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "notifications",
+      "name": "Notifications",
+      "description": "Per-order customer notification history, manual resends, and a reseller-wide notification feed.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/orders/:orderId/notifications",
+          "summary": "Get the full notification history for a specific order, sorted newest first",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "POST",
+          "path": "/orders/:orderId/notifications/resend",
+          "summary": "Manually resend a customer notification email for a specific order. Creates a",
+          "requires_auth": true,
+          "parameters": [],
+          "example_body": "{\n  \"notification_type\": \"\"\n}"
+        },
+        {
+          "method": "GET",
+          "path": "/notifications",
+          "summary": "Get all customer notifications for the authenticated reseller's orders, with",
+          "requires_auth": true,
+          "parameters": [
+            {
+              "name": "page",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Page number"
+            },
+            {
+              "name": "limit",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Results per page"
+            },
+            {
+              "name": "notification_type",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Filter by notification type (e.g. `low_data_20`, `activation`)"
+            },
+            {
+              "name": "status",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Filter by delivery status (e.g. `sent`, `failed`)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "notification-preferences",
+      "name": "Notification Preferences",
+      "description": "Read, update, and reset the per-account notification and order-email preferences.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/notification-preferences",
+          "summary": "Get the authenticated user's notification preferences. For resellers, also",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "PUT",
+          "path": "/notification-preferences",
+          "summary": "Update the authenticated user's notification preferences and/or order email",
+          "requires_auth": true,
+          "parameters": [],
+          "example_body": "{\n  \"preferences\": {},\n  \"order_email_preferences\": {},\n  \"profile_id\": \"{{profile_id}}\"\n}"
+        },
+        {
+          "method": "POST",
+          "path": "/notification-preferences/reset",
+          "summary": "Reset the authenticated user's notification preferences to defaults (all",
+          "requires_auth": true,
+          "parameters": [],
+          "example_body": "{\n  \"include_order_email_preferences\": false\n}"
+        }
+      ]
+    },
+    {
+      "id": "reseller",
+      "name": "Reseller",
+      "description": "The reseller toolkit: profiles, custom pricing, logo + SMTP branding, onboarding status, your end-users, their orders, and an aggregated dashboard.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/reseller/profile",
+          "summary": "Get all reseller profiles for the authenticated reseller, sorted with the",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "POST",
+          "path": "/reseller/profile",
+          "summary": "Create a new reseller profile. All fields are optional — defaults are inferred",
+          "requires_auth": true,
+          "parameters": [],
+          "example_body": "{\n  \"name\": \"Test User\",\n  \"logo_url\": \"\",\n  \"email_sender_name\": \"\",\n  \"is_default\": false\n}"
+        },
+        {
+          "method": "GET",
+          "path": "/reseller/profile/{id}",
+          "summary": "Get a specific reseller profile by ID. Profile must belong to the",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "PUT",
+          "path": "/reseller/profile/{id}",
+          "summary": "Update an existing reseller profile. Profile must belong to the authenticated",
+          "requires_auth": true,
+          "parameters": [],
+          "example_body": "{\n  \"name\": \"Test User\",\n  \"logo_url\": \"\",\n  \"email_sender_name\": \"\",\n  \"is_default\": false,\n  \"email_from\": \"\",\n  \"email_from_name\": \"\",\n  \"email_language\": \"\"\n}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/reseller/profile/{id}",
+          "summary": "Delete a reseller profile. The default profile cannot be deleted. Profile must",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "GET",
+          "path": "/reseller/onboarding-status",
+          "summary": "Get the reseller's onboarding completion status",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "GET",
+          "path": "/reseller/pricing",
+          "summary": "Get pricing information for all active eSIM plans, showing the final price the",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "POST",
+          "path": "/reseller/pricing",
+          "summary": "Create or update a custom pricing entry for a plan. Provide either",
+          "requires_auth": true,
+          "parameters": [],
+          "example_body": "{\n  \"plan_id\": \"{{plan_id}}\"\n}"
+        },
+        {
+          "method": "GET",
+          "path": "/reseller/pricing/{plan_id}",
+          "summary": "Get the reseller's custom pricing entry for a specific plan",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "DELETE",
+          "path": "/reseller/pricing/{plan_id}",
+          "summary": "Delete the reseller's custom pricing entry for a plan (reverts to default",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "POST",
+          "path": "/reseller/upload-logo",
+          "summary": "Upload a logo image for reseller profile(s). Uses `multipart/form-data`",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "GET",
+          "path": "/reseller/users",
+          "summary": "List all `mobile_user` accounts associated with this reseller (users where",
+          "requires_auth": true,
+          "parameters": [
+            {
+              "name": "page",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Page number"
+            },
+            {
+              "name": "limit",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Results per page"
+            }
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/reseller/users/{user_id}",
+          "summary": "Get details for a specific user associated with this reseller, including their",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "GET",
+          "path": "/reseller/orders",
+          "summary": "List all orders from users associated with this reseller. Supports filtering",
+          "requires_auth": true,
+          "parameters": [
+            {
+              "name": "page",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Page number"
+            },
+            {
+              "name": "limit",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Results per page"
+            },
+            {
+              "name": "status",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Filter by order status"
+            },
+            {
+              "name": "user_id",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Filter to a specific user's orders. No ownership verification — any UUID is"
+            },
+            {
+              "name": "start_date",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Filter orders created on or after this date (ISO 8601)"
+            },
+            {
+              "name": "end_date",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Filter orders created on or before this date (ISO 8601)"
+            }
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/reseller/dashboard",
+          "summary": "Get aggregated dashboard statistics for the reseller's associated users and",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "GET",
+          "path": "/reseller/profile/{id}/smtp",
+          "summary": "Get the SMTP configuration for a reseller profile. Password is never",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "PUT",
+          "path": "/reseller/profile/{id}/smtp",
+          "summary": "Update SMTP configuration for a reseller profile. When `use_custom_smtp =",
+          "requires_auth": true,
+          "parameters": [],
+          "example_body": "{\n  \"use_custom_smtp\": false,\n  \"smtp_port\": 1,\n  \"smtp_secure\": false,\n  \"email_from_name\": \"\"\n}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/reseller/profile/{id}/smtp",
+          "summary": "Disable custom SMTP for a reseller profile and clear all stored SMTP",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "POST",
+          "path": "/reseller/profile/{id}/smtp/test",
+          "summary": "Test the SMTP connection for a reseller profile. Profile must have custom SMTP",
+          "requires_auth": true,
+          "parameters": []
+        }
+      ]
+    },
+    {
+      "id": "uploads",
+      "name": "Uploads",
+      "description": "Upload a logo image for use on reseller-branded assets.",
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/uploads/logo",
+          "summary": "Upload a logo image file for the authenticated reseller. The file is saved to",
+          "requires_auth": true,
+          "parameters": []
+        }
+      ]
+    },
+    {
+      "id": "webhook-subscriptions",
+      "name": "Webhook Subscriptions",
+      "description": "Subscribe to platform events, send test deliveries, and inspect delivery logs.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/webhook-subscriptions",
+          "summary": "List all webhook subscriptions belonging to the authenticated user",
+          "requires_auth": true,
+          "parameters": [
+            {
+              "name": "page",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Page number"
+            },
+            {
+              "name": "limit",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Results per page"
+            },
+            {
+              "name": "status",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Filter by subscription status (`\"active\"`, `\"paused\"`, `\"disabled\"`)"
+            }
+          ]
+        },
+        {
+          "method": "POST",
+          "path": "/webhook-subscriptions",
+          "summary": "Create a new webhook subscription. A test webhook (`webhook.health_check`) is",
+          "requires_auth": true,
+          "parameters": [],
+          "example_body": "{\n  \"name\": \"Test User\",\n  \"endpoint_url\": \"\",\n  \"event_types\": \"\",\n  \"secret\": \"\",\n  \"timeout_seconds\": 1,\n  \"retry_count\": 1,\n  \"reseller_profile_id\": \"{{reseller_profile_id}}\"\n}"
+        },
+        {
+          "method": "GET",
+          "path": "/webhook-subscriptions/{id}",
+          "summary": "Get a specific webhook subscription by ID. Only the owner can access it",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "PUT",
+          "path": "/webhook-subscriptions/{id}",
+          "summary": "Update a webhook subscription. All fields are optional — only provided fields",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "DELETE",
+          "path": "/webhook-subscriptions/{id}",
+          "summary": "Permanently delete a webhook subscription",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "POST",
+          "path": "/webhook-subscriptions/{id}/test",
+          "summary": "Send a test `webhook.health_check` event to the subscription's endpoint",
+          "requires_auth": true,
+          "parameters": []
+        },
+        {
+          "method": "GET",
+          "path": "/webhook-subscriptions/{id}/logs",
+          "summary": "Get delivery logs for a specific webhook subscription",
+          "requires_auth": true,
+          "parameters": [
+            {
+              "name": "page",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "Min 1"
+            },
+            {
+              "name": "limit",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "1–100"
+            },
+            {
+              "name": "status",
+              "loc": "query",
+              "required": false,
+              "type": "string",
+              "desc": "`\"sending\"`, `\"delivered\"`, `\"failed\"`, `\"timeout\"`, `\"retrying\"`"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

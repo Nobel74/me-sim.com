@@ -35,6 +35,8 @@ export async function GET(request) {
       'bienvenida': { percent: 15 },
       'summer20': { percent: 20 },
       'vip25': { percent: 25 },
+      'mesim100': { percent: 100 },
+      'vip100': { percent: 100 },
     };
 
     const couponsMap = new Map();

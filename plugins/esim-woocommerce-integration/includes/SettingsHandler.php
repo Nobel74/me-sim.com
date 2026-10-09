@@ -1,10 +1,15 @@
 <?php
+
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 class SettingsHandler {
     private $country_groups = array(
         'Y' => array(
             'name' => 'Group Y - Asia Pacific & Eastern Europe',
             'countries' => array(
-                'AU', 'CN', 'HK', 'ID', 'JP', 'MO', 'MY', 'SG', 'KR', 'TH', 'TR', 
+                'AU', 'CN', 'HK', 'ID', 'JP', 'MO', 'MY', 'SG', 'KR', 'TH', 'TR',
                 'UA', 'RO', 'PL', 'NO', 'FI'
             )
          ),
@@ -22,7 +27,7 @@ class SettingsHandler {
         'B' => array(
             'name' => 'Group B - Europe & Middle East',
             'countries' => array(
-                'DZ', 'CY', 'CN', 'EU', 'HU', 'GE', 'IL', 'IS', 'MT', 'KZ', 'UZ', 
+                'DZ', 'CY', 'CN', 'EU', 'HU', 'GE', 'IL', 'IS', 'MT', 'KZ', 'UZ',
                 'LI', 'MA', 'AL', 'BA', 'CENTRALASIA', 'CN-3'
             )
         ),
@@ -42,7 +47,7 @@ class SettingsHandler {
         'E' => array(
             'name' => 'Group E - Global Mix',
             'countries' => array(
-                'BD', 'GI', 'GP', 'IN', 'IM', 'JE', 'PR', 'RU', 'SA', 
+                'BD', 'GI', 'GP', 'IN', 'IM', 'JE', 'PR', 'RU', 'SA',
                 'RS', 'LK', 'AE', 'BALKANS-5', 'CO', 'GG', 'EU-42'
             )
         ),
@@ -104,7 +109,7 @@ class SettingsHandler {
         ));
 
         register_setting('esim_api_settings', 'esim_api_password', array(
-            'sanitize_callback' => 'sanitize_text_field'
+            'sanitize_callback' => array($this, 'sanitize_api_password')
         ));
 
         // Exchange rate settings
@@ -121,7 +126,7 @@ class SettingsHandler {
         register_setting('esim_api_settings', 'esim_sms_data_usage', array(
             'sanitize_callback' => 'sanitize_text_field'
         ));
-        
+
         register_setting('esim_api_settings', 'esim_sms_validity_usage', array(
             'sanitize_callback' => 'sanitize_text_field'
         ));
@@ -223,14 +228,35 @@ class SettingsHandler {
         return isset($markups[$group_code]) ? $markups[$group_code] : 100;
     }
 
-    public function sanitize_markup_percentage($input) {
-    $input = floatval($input);
-    if ($input < 0) {
-        $input = 0;
+    /**
+     * Keep the stored API password when the field is left blank.
+     *
+     * The settings page prints an empty password field rather than the stored
+     * secret, so an empty submission means "unchanged", not "clear it".
+     */
+    public function sanitize_api_password($input) {
+        $input = is_string($input) ? trim($input) : '';
+
+        if ($input === '') {
+            return (string) get_option('esim_api_password', '');
+        }
+
+        // Invalidate any cached session so the next call logs in with the new
+        // credentials instead of an old token.
+        delete_transient('strongesim_auth_token');
+        delete_transient('strongesim_session_id');
+        delete_transient('strongesim_account_info');
+
+        return $input;
     }
-    error_log("Sanitizing markup percentage: " . $input);
-    return $input;
-}
+
+    public function sanitize_markup_percentage($input) {
+        $input = floatval($input);
+        if ($input < 0) {
+            $input = 0;
+        }
+        return $input;
+    }
 
     public function get_country_groups()
     {

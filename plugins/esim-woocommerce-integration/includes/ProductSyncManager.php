@@ -1,4 +1,9 @@
 <?php
+
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 require_once(plugin_dir_path(__FILE__) . 'Utils/Logger.php');
 require_once(plugin_dir_path(__FILE__) . 'Services/PriceCalculator.php');
 require_once(plugin_dir_path(__FILE__) . 'Services/ProductDescriptionGenerator.php');
@@ -35,12 +40,14 @@ class ProductSyncManager
         $this->price_calculator = new PriceCalculator($settings, $this->logger);
         $this->description_generator = new ProductDescriptionGenerator();
         $this->product_service = new ProductService($this->logger, $this->price_calculator, $this->description_generator);
-        
+
         // Initialize sync results
         $this->sync_results = [
             'created' => 0,
             'updated' => 0,
             'failed' => 0,
+            'deleted' => 0,
+            'skipped' => 0,
         ];
     }
 
@@ -120,14 +127,14 @@ class ProductSyncManager
     private function handleCountryCategories($product_id, $package) {
         if (isset($package['location'])) {
             $countries = explode(',', $package['location']);
-            
+
             // Add package to continent category based on name matching
             $package_name = strtolower($package['name']);
-            
+
             // Check for regional package first
             $is_regional_package = false;
             $assigned_continent = null;
-            
+
             // For packages with regional naming patterns
             if (strpos($package_name, 'europe') !== false) {
                 $this->product_service->assignToContinent($product_id, 'Europe');
@@ -166,17 +173,17 @@ class ProductSyncManager
                 $is_regional_package = true;
                 $assigned_continent = 'Oceania';
             }
-            
+
             // If this is a regional package, we've already assigned it to the correct continent
             // Skip assigning to individual country categories
             if ($is_regional_package) {
                 $this->logger->log("Product {$product_id} is a regional package ({$assigned_continent}). Skipping individual country assignments.");
-                
+
                 // If it's a regional package, make sure it's ONLY assigned to the correct continent category
                 $this->product_service->ensureOnlyContinentCategory($product_id, $assigned_continent);
                 return;
             }
-            
+
             // For non-regional packages, process individual country codes
             foreach ($countries as $country_code) {
                 $country_code = trim($country_code);
@@ -185,20 +192,6 @@ class ProductSyncManager
                 }
             }
         }
-    }
-
-    public function order_profiles($transaction_id, $esim_orders)
-    {
-        // For StrongESIM, this might need different logic if used directly, 
-        // but currently OrderHandler calls createOrder directly on the API client.
-        // This wrapper might be legacy or used by other parts. 
-        // Let's defer to OrderHandler changes.
-        return array('error' => 'Deprecated. Use OrderHandler.');
-    }
-
-    public function add_markup_settings($settings)
-    {
-        return $this->price_calculator->addMarkupSettings($settings);
     }
 
     private function log_message($message)
@@ -217,24 +210,24 @@ class ProductSyncManager
         // Get basic product data to compare
         $product = wc_get_product($product_id);
         if (!$product) return true;
-        
+
         // Compare name, exclude Europe suffix as we modify it in the process
         $name_match = true;
         if (stripos($package['name'], 'europe') === false) {
             $name_match = ($product->get_name() === $package['name']);
         }
-        
+
         // Compare price (original price converted to our format)
         $original_price = $package['price'];
         $country = $package['location'];
         $calculated_price = $this->price_calculator->calculatePrice($original_price, $country);
         $product_price = $product->get_regular_price();
         $price_match = (abs(floatval($calculated_price) - floatval($product_price)) < 0.01);
-        
+
         // Check if slug starts with 'esim-'
         $slug = $product->get_slug();
         $slug_match = (strpos($slug, 'esim-') === 0);
-        
+
         // If either has changed or slug needs update, the product needs updating
         return !($name_match && $price_match && $slug_match);
     }
@@ -250,21 +243,21 @@ class ProductSyncManager
     private function ensureEssentialMeta($product_id, $package) {
         $product = wc_get_product($product_id);
         if (!$product) return;
-        
+
         $changes_made = false;
-        
+
         // Check and set package code
         if (!$product->meta_exists('_esim_package_code') || $product->get_meta('_esim_package_code') !== $package['packageCode']) {
             $product->update_meta_data('_esim_package_code', $package['packageCode']);
             $changes_made = true;
         }
-        
+
         // Check and set plan ID
         if (isset($package['id']) && (!$product->meta_exists('_esim_plan_id') || $product->get_meta('_esim_plan_id') != $package['id'])) {
             $product->update_meta_data('_esim_plan_id', $package['id']);
             $changes_made = true;
         }
-        
+
         // Check and set is_esim_product flag
         if (!$product->meta_exists('_is_esim_product') || $product->get_meta('_is_esim_product') !== 'yes') {
             $product->update_meta_data('_is_esim_product', 'yes');
@@ -276,7 +269,36 @@ class ProductSyncManager
             $product->update_meta_data('_esim_sync_product', 'yes');
             $changes_made = true;
         }
-        
+
+        // Fields the order flow needs. Products created by earlier versions of
+        // this plugin do not have them, and without _esim_validity_days a daily
+        // (unlimited) plan would be provisioned for a single day.
+        $expected_meta = array(
+            '_esim_provider_id' => isset($package['provider_id']) ? $package['provider_id'] : '',
+            '_esim_validity_days' => isset($package['duration']) ? (int) $package['duration'] : 0,
+            '_esim_is_daily_plan' => !empty($package['is_unlimited']) ? 'yes' : 'no',
+            '_esim_data_display' => isset($package['data_display']) ? $package['data_display'] : '',
+            '_esim_data_volume_mb' => isset($package['data_volume_mb']) ? (float) $package['data_volume_mb'] : 0,
+        );
+
+        foreach ($expected_meta as $meta_key => $meta_value) {
+            if ($meta_value === '' && !$product->meta_exists($meta_key)) {
+                continue;
+            }
+            if (!$product->meta_exists($meta_key) || (string) $product->get_meta($meta_key) !== (string) $meta_value) {
+                $product->update_meta_data($meta_key, $meta_value);
+                $changes_made = true;
+            }
+        }
+
+        // An eSIM has to be virtual + downloadable for WooCommerce to skip
+        // shipping and auto-complete a paid order.
+        if (!$product->is_virtual() || !$product->is_downloadable()) {
+            $product->set_virtual(true);
+            $product->set_downloadable(true);
+            $changes_made = true;
+        }
+
         if ($changes_made) {
             $product->save();
             $this->logger->log("Updated missing meta for skipped product: {$package['name']} ({$product_id})");
@@ -464,7 +486,7 @@ class ProductSyncManager
             $sync_response = $this->api_client->syncPlans();
 
             if ($sync_response && isset($sync_response['success']) && $sync_response['success']) {
-                $this->logger->log("Plans sync triggered successfully: " . $sync_response['message']);
+                $this->logger->log('Plans sync triggered successfully: ' . (isset($sync_response['message']) ? $sync_response['message'] : 'ok'));
             } else {
                 $this->logger->log("Warning: Plans sync trigger failed, continuing with existing plans");
             }
@@ -485,29 +507,71 @@ class ProductSyncManager
             }
 
             $package_list = $response['data'];
+            $catalogue_complete = !empty($response['complete']);
 
-            // Map new API fields to expected formats
+            // Map platform plan fields onto the shape the rest of the sync uses.
             $mapped_packages = [];
             foreach ($package_list as $plan) {
                 // Skip if critical fields are missing
                 if (!isset($plan['package_code']) || !isset($plan['id'])) continue;
 
+                // Regional plans carry region_code instead of country_code.
+                // Passing null on to explode() is deprecated in PHP 8.1 and left
+                // those products with no category at all.
+                // The live API returns regionCode in camelCase; the reference
+                // docs call it region_code. Accept both.
+                $location = '';
+                if (!empty($plan['country_code'])) {
+                    $location = (string) $plan['country_code'];
+                } elseif (!empty($plan['region_code'])) {
+                    $location = (string) $plan['region_code'];
+                } elseif (!empty($plan['regionCode'])) {
+                    $location = (string) $plan['regionCode'];
+                }
+
+                // "Unlimited" is a platform-side contract: daily-reset plans
+                // (eSIM Access dataType 2) are flagged with is_unlimited and get
+                // a rewritten name, so the plan type has to come from these
+                // fields and never from the name.
+                // is_unlimited is the platform's own derived flag. dataType /
+                // data_type are the raw values behind it (the live API sends
+                // dataType), and 2 is the eSIM Access code for daily reset.
+                $is_unlimited = !empty($plan['is_unlimited']);
+                if (!$is_unlimited) {
+                    foreach (array('data_type', 'dataType') as $type_field) {
+                        if (isset($plan[$type_field])
+                            && in_array((string) $plan[$type_field], array('daily_reset', '2'), true)) {
+                            $is_unlimited = true;
+                            break;
+                        }
+                    }
+                }
+
                 $mapped = [
                     'id' => $plan['id'],
                     'packageCode' => $plan['package_code'],
-                    'name' => $plan['name'],
-                    // StrongESIM API returns price in dollars, but PriceCalculator expects 1/10000 dollars
-                    // So we multiply by 10000 to convert (e.g., $5.00 -> 50000)
+                    'name' => isset($plan['name']) ? $plan['name'] : $plan['package_code'],
+                    'description' => isset($plan['description']) ? $plan['description'] : '',
+                    // The platform returns the reseller price in dollars;
+                    // PriceCalculator works in 1/10000 dollars.
                     'price' => (floatval($plan['price'] ?? 0)) * 10000,
-                    'location' => $plan['country_code'],
-                    'duration' => $plan['validity_days'],
-                    'durationUnit' => 'Days',
-                    'volume' => ($plan['data_volume_mb'] ?? 0) * 1024 * 1024, // Convert MB to bytes
-                    'speed' => $plan['networkSpeed'] ?? '',
+                    'location' => $location,
+                    'duration' => isset($plan['validity_days']) ? (int) $plan['validity_days'] : 0,
+                    'durationUnit' => 'Day',
+                    'volume' => (floatval($plan['data_volume_mb'] ?? 0)) * 1024 * 1024, // MB -> bytes
+                    'data_volume_mb' => isset($plan['data_volume_mb']) ? (float) $plan['data_volume_mb'] : 0,
+                    'speed' => isset($plan['networkSpeed']) ? $plan['networkSpeed'] : '',
+                    'is_unlimited' => $is_unlimited,
+                    'data_display' => isset($plan['data_display']) && $plan['data_display'] !== null
+                        ? $plan['data_display']
+                        : ($is_unlimited ? 'Unlimited' : null),
+                    'provider_id' => isset($plan['provider_id']) ? $plan['provider_id'] : '',
+                    'operator_list' => isset($plan['operator_list']) && is_array($plan['operator_list']) ? $plan['operator_list'] : array(),
                 ];
                 $mapped_packages[] = $mapped;
             }
             $package_list = $mapped_packages;
+            unset($mapped_packages, $response);
 
             $total_packages = count($package_list);
             $this->logger->log("Retrieved {$total_packages} plans from StrongESIM API");
@@ -576,12 +640,14 @@ class ProductSyncManager
                     $retry_count = 0;
                     $max_retries = 2;
                     $success = false;
+                    // Assigned before the try block so the catch below can always
+                    // record which package failed.
+                    $package_code = $package['packageCode'];
 
                     while (!$success && $retry_count <= $max_retries) {
                         try {
                             $processed++;
 
-                            $package_code = $package['packageCode'];
                             $synced_product_codes[] = $package_code;
 
                             // Skip unchanged products to improve performance
@@ -628,7 +694,7 @@ class ProductSyncManager
                                 $this->logger->log("Progress: {$processed} of {$total_to_process} ({$percent_done}%) - Time: {$elapsed_time}s - Memory: {$memory_usage}MB");
                             }
 
-                        } catch (Exception $e) {
+                        } catch (\Throwable $e) {
                             $retry_count++;
                             if ($retry_count <= $max_retries) {
                                 $this->logger->log("Error processing {$package['packageCode']}, retry {$retry_count}/{$max_retries}: " . $e->getMessage());
@@ -651,8 +717,13 @@ class ProductSyncManager
                 $this->saveSyncProgress($processed_codes, $this->sync_results, $total_packages);
                 $this->updateSyncStatus('running', "Processed {$processed} of {$total_to_process} products");
 
-                // Clear WP object cache periodically to prevent memory issues
-                wp_cache_flush();
+                // Release the per-request caches that grow during a long sync.
+                // wp_cache_flush() used to be called here, which on a site with a
+                // persistent object cache wipes the cache for the entire site.
+                if (function_exists('wp_cache_flush_group')) {
+                    wp_cache_flush_group('post_meta');
+                    wp_cache_flush_group('terms');
+                }
 
                 // Add a small delay between batches to prevent server overload
                 if (count($packages_batches) > 1) {
@@ -660,9 +731,15 @@ class ProductSyncManager
                 }
             }
 
-            // Delete products that exist in WooCommerce but not in StrongEsim
+            // Delete products that exist in WooCommerce but not on the platform.
+            // Only when the whole catalogue was fetched: a partial or empty API
+            // response would otherwise delete the shop's products.
             if (!$specific_package_code && !$is_resume) {
-                $this->deleteOutdatedProducts($existing_map, $api_package_codes);
+                if ($catalogue_complete && count($api_package_codes) > 0) {
+                    $this->deleteOutdatedProducts($existing_map, $api_package_codes);
+                } else {
+                    $this->logger->log('Skipping deletion of outdated products: the plan catalogue was not fetched completely.');
+                }
             }
 
             $total_time = round(microtime(true) - $this->sync_start_time, 2);
@@ -680,7 +757,7 @@ class ProductSyncManager
 
             return $this->sync_results;
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             $total_time = round(microtime(true) - $this->sync_start_time, 2);
             $this->logger->log("=== SYNC FAILED WITH EXCEPTION ===");
             $this->logger->log("Time elapsed: {$total_time} seconds");

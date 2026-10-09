@@ -36,3 +36,7 @@ pricing_strategy.md
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# provider session cache
+.strongesim_session.json
+

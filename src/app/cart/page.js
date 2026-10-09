@@ -26,10 +26,10 @@ export default function CartPage() {
       }
       const dataAmt = (item.dataAmount || '').toLowerCase();
       const titleText = (item.title || '').toLowerCase();
-      if (dataAmt.includes('/ día') || dataAmt.includes('/ dia') || dataAmt.includes('/ day') || titleText.includes('/ día') || titleText.includes('/ dia') || titleText.includes('/ day')) {
-        item.days = 1;
-        if (item.title) {
-          item.title = item.title.replace(/\s*\d+\s*(days|días|días de validez|days validity|d|day)$/i, '');
+      // Solo forzar a 1 día si NO es una compra multidía contratada explícitamente (> 1)
+      if (!item.isUnlimited && (!item.days || item.days <= 1)) {
+        if (dataAmt.includes('/ día') || dataAmt.includes('/ dia') || dataAmt.includes('/ day') || titleText.includes('/ día') || titleText.includes('/ dia') || titleText.includes('/ day')) {
+          item.days = 1;
         }
       }
       return item;

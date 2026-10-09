@@ -56,19 +56,20 @@ export function convertCurrency(priceInEur, targetCurrency, rates) {
   return (numPrice * rate).toFixed(2);
 }
 
+export const CURRENCY_SYMBOLS = {
+  EUR: '€',
+  USD: '$',
+  GBP: '£',
+  AUD: 'A$',
+};
+
 /**
  * Formatea el precio según la regla cultural:
  * - EUR: símbolo a la derecha con espacio (ej: 14.90 €)
  * - USD, GBP, AUD: símbolo a la izquierda con espacio (ej: $ 14.90, £ 14.90, A$ 14.90)
  */
 export function formatCurrency(amount, currency = 'EUR') {
-  const symbols = {
-    EUR: '€',
-    USD: '$',
-    GBP: '£',
-    AUD: 'A$',
-  };
-  const symbol = symbols[currency] || '€';
+  const symbol = CURRENCY_SYMBOLS[currency] || '€';
 
   if (currency === 'EUR') {
     return `${amount} ${symbol}`;

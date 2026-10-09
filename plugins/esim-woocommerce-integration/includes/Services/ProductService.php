@@ -2,6 +2,10 @@
 
 use ESIMWooCommerce\Utils\Logger;
 
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 class ProductService {
     private $logger;
     private $priceCalculator;
@@ -10,6 +14,8 @@ class ProductService {
     // Add caches to reduce database queries
     private $category_term_cache = [];
     private $tag_term_cache = [];
+    // filename (lowercase, no extension) => attachment id
+    private $media_filename_cache = null;
 
     public function __construct($logger, $priceCalculator, $descriptionGenerator) {
         $this->logger = $logger;
@@ -22,26 +28,26 @@ class ProductService {
      */
     public function preloadTaxonomyTerms() {
         $this->logger->log("Preloading taxonomy terms for performance optimization");
-        
+
         // Get all product categories
         $categories = get_terms([
             'taxonomy' => 'product_cat',
             'hide_empty' => false,
         ]);
-        
+
         if (!is_wp_error($categories)) {
             foreach ($categories as $term) {
                 $this->category_term_cache[$term->name] = $term->term_id;
             }
             $this->logger->log("Preloaded " . count($this->category_term_cache) . " product categories");
         }
-        
+
         // Get all product tags
         $tags = get_terms([
             'taxonomy' => 'product_tag',
             'hide_empty' => false,
         ]);
-        
+
         if (!is_wp_error($tags)) {
             foreach ($tags as $term) {
                 $this->tag_term_cache[$term->name] = $term->term_id;
@@ -53,14 +59,15 @@ class ProductService {
     public function createOrUpdateProduct($package, $current_product_id = null) {
         // Try to reuse product object if we already know it exists
         $product_id = $current_product_id ?: $this->getProductIdByPackageCode($package['packageCode']);
-        
+
         // If not found by code, try to find by name to prevent duplicates
         if (!$product_id) {
             $found_id = $this->getProductIdByName($package['name']);
             if ($found_id) {
                 // Check if this found product already has a package code
-                $existing_code = get_post_meta($found_id, '_esim_package_code', true);
-                
+                $found_product = wc_get_product($found_id);
+                $existing_code = $found_product ? $found_product->get_meta('_esim_package_code', true) : '';
+
                 // If it has a code and it's different, it's a collision (same name, different product)
                 // In this case, we should NOT update it, but create a new one
                 if ($existing_code && $existing_code !== $package['packageCode']) {
@@ -73,12 +80,20 @@ class ProductService {
         }
 
         // Create or update the product object
-        if (!$product_id) {
-            $product = new WC_Product_Simple();
-            $status = 'created';
-        } else {
+        $product = null;
+        $status = 'created';
+
+        if ($product_id) {
             $product = wc_get_product($product_id);
             $status = 'updated';
+        }
+
+        // The product can have been deleted between building the product map and
+        // reaching it; calling setters on false is a fatal error.
+        if (!$product) {
+            $product = new WC_Product_Simple();
+            $status = 'created';
+            $product_id = null;
         }
 
         $this->logger->log("Processing package: " . json_encode($package));
@@ -87,7 +102,8 @@ class ProductService {
         $is_europe = stripos($package['name'], 'europe') !== false;
 
         if ($is_europe) {
-            if (!str_contains($package['name'], '(30+ areas)')) {
+            // str_contains() is PHP 8.0+; this plugin still declares PHP 7.4.
+            if (strpos($package['name'], '(30+ areas)') === false) {
                 // Append "(35+ areas)" if it's not already there
                 $package['name'] = trim($package['name']) . ' (35+ areas)';
             }
@@ -95,16 +111,35 @@ class ProductService {
 
         // Set the product name
         $product->set_name($package['name']);
-        
+
         // Optimize SEO: Prefix slug with 'esim-'
         $slug = 'esim-' . sanitize_title($package['name']);
         $product->set_slug($slug);
 
         $product->set_status('publish');
+
+        // An eSIM is delivered electronically. WooCommerce only auto-completes
+        // an order (and only then skips asking for a shipping address) when every
+        // item is both virtual and downloadable, so without these two flags paid
+        // orders sit in "processing" and no eSIM is ever delivered.
+        $product->set_virtual(true);
+        $product->set_downloadable(true);
+        $product->set_manage_stock(false);
+        $product->set_stock_status('instock');
+        $product->set_sold_individually(false);
+
         $product->update_meta_data('_esim_package_code', $package['packageCode']);
         $product->update_meta_data('_esim_plan_id', $package['id']);
         $product->update_meta_data('_is_esim_product', 'yes');
         $product->update_meta_data('_esim_sync_product', 'yes');
+
+        // Needed at order time: the provider (for SMS) and, for daily/unlimited
+        // plans, the number of days to send as periodNum.
+        $product->update_meta_data('_esim_provider_id', isset($package['provider_id']) ? $package['provider_id'] : '');
+        $product->update_meta_data('_esim_validity_days', isset($package['duration']) ? (int) $package['duration'] : 0);
+        $product->update_meta_data('_esim_is_daily_plan', !empty($package['is_unlimited']) ? 'yes' : 'no');
+        $product->update_meta_data('_esim_data_display', isset($package['data_display']) ? $package['data_display'] : '');
+        $product->update_meta_data('_esim_data_volume_mb', isset($package['data_volume_mb']) ? (float) $package['data_volume_mb'] : 0);
 
         // Generate SKU
         $sku = $this->generateSku($package);
@@ -132,23 +167,23 @@ class ProductService {
 
         // Add minor optimization: disable WordPress post revision system temporarily
         add_filter('wp_revisions_to_keep', '__return_zero', 100, 2);
-        
+
         // Assign product image
         $this->assignProductImage($product, $package);
-        
+
         try {
             $product_id = $product->save();
-            
+
             // Re-enable revisions
             remove_filter('wp_revisions_to_keep', '__return_zero', 100);
-            
+
             if (!$product_id) {
                 throw new Exception('Failed to save product');
             }
-            
+
             $this->logger->log("Product saved successfully. ID: {$product_id}, Name: {$package['name']}, Price: {$final_price}, SKU: {$sku}");
             return array('status' => $status, 'product_id' => $product_id);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             // Re-enable revisions in case of error
             remove_filter('wp_revisions_to_keep', '__return_zero', 100);
             $this->logger->log('Error saving product: ' . $e->getMessage());
@@ -178,7 +213,8 @@ class ProductService {
         $existing_product_id = wc_get_product_id_by_sku($sku);
         if ($existing_product_id) {
             // Check if the existing product is the same package (same package code)
-            $existing_package_code = get_post_meta($existing_product_id, '_esim_package_code', true);
+            $existing_product = wc_get_product($existing_product_id);
+            $existing_package_code = $existing_product ? $existing_product->get_meta('_esim_package_code', true) : '';
 
             if ($existing_package_code === $package['packageCode']) {
                 // Same package, reuse the SKU
@@ -217,7 +253,7 @@ class ProductService {
 
     private function getOrCreateTagIds($tags) {
         $tag_ids = [];
-        
+
         // Use cache for better performance
         foreach ($tags as $tag) {
             if (isset($this->tag_term_cache[$tag])) {
@@ -236,13 +272,13 @@ class ProductService {
                 }
             }
         }
-        
+
         return $tag_ids;
     }
 
     private function getOrCreateCategoryIds($categories) {
         $category_ids = [];
-        
+
         // Use cache for better performance
         foreach ($categories as $category) {
             if (isset($this->category_term_cache[$category])) {
@@ -261,7 +297,7 @@ class ProductService {
                 }
             }
         }
-        
+
         return $category_ids;
     }
 
@@ -305,7 +341,7 @@ class ProductService {
                 return $result;
             }
             return false;
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             $this->logger->log("Error deleting product: " . $e->getMessage());
             return false;
         }
@@ -319,7 +355,7 @@ class ProductService {
      */
     public function addProductToCountryCategory($product_id, $country_code) {
         require_once(plugin_dir_path(__FILE__) . '../Utils/CountryHelper.php');
-        
+
         // Skip for empty or invalid country codes
         if (empty($country_code) || $country_code === '!GL') {
             // For global products with !GL code, assign to Global category
@@ -338,7 +374,7 @@ class ProductService {
         // Get if this is a region/global product or a single country
         $is_region = $this->isRegionCode($country_code);
         $country_name = CountryHelper::getFullCountryName($country_code);
-        
+
         $this->logger->log("Adding product {$product_id} to category: {$country_name} (is region: " . ($is_region ? 'Yes' : 'No') . ")");
 
         // Get or create the specific category for this country/region
@@ -357,15 +393,15 @@ class ProductService {
             'taxonomy' => 'product_cat',
             'hide_empty' => false,
         ]);
-        
+
         // Define categories to keep (always keep eSIM and Single categories)
         $categories_to_keep = ['eSIM', 'Single'];
         $categories_to_keep[] = $country_name;
-        
+
         // Get current product categories
         $current_categories = wp_get_post_terms($product_id, 'product_cat', ['fields' => 'all']);
         $new_category_ids = [];
-        
+
         // Keep only the desired categories
         foreach ($current_categories as $term) {
             if (in_array($term->name, $categories_to_keep) || $term->term_id == $category_id) {
@@ -380,20 +416,20 @@ class ProductService {
                 }
             }
         }
-        
+
         // Add the specific country/region category if not already included
         if (!in_array($category_id, $new_category_ids)) {
             $new_category_ids[] = $category_id;
         }
-        
+
         // Set the new categories
         wp_set_object_terms($product_id, $new_category_ids, 'product_cat');
         $this->logger->log("Updated product {$product_id} categories, assigned to: {$country_name} (ID: {$category_id})");
     }
-    
+
     /**
      * Assign a product to a continent category
-     * 
+     *
      * @param int $product_id Product ID
      * @param string $continent Continent name
      */
@@ -402,19 +438,19 @@ class ProductService {
         if (empty($continent)) {
             return;
         }
-        
+
         $this->logger->log("Assigning product {$product_id} to continent: {$continent}");
-        
+
         // Get or create the continent category
         $continent_cat_id = $this->getOrCreateCategory($continent);
         if (!$continent_cat_id) {
             $this->logger->log("Failed to create/get category for continent: {$continent}");
             return;
         }
-        
+
         // Get current categories for the product
         $current_cat_ids = wp_get_object_terms($product_id, 'product_cat', ['fields' => 'ids']);
-        
+
         // Add continent category if not already assigned
         if (!in_array($continent_cat_id, $current_cat_ids)) {
             $current_cat_ids[] = $continent_cat_id;
@@ -422,31 +458,31 @@ class ProductService {
             $this->logger->log("Added product {$product_id} to continent category: {$continent}");
         }
     }
-    
+
     /**
      * Ensure a regional product is only assigned to its specific continent category
      * and remove it from any individual country categories
-     * 
+     *
      * @param int $product_id Product ID
      * @param string $continent Continent name
      * @return void
      */
     public function ensureOnlyContinentCategory($product_id, $continent) {
         $this->logger->log("Ensuring product {$product_id} is only assigned to continent: {$continent}");
-        
+
         // Standard categories to keep
         $categories_to_keep = ['eSIM', 'Single', $continent];
-        
+
         // Get all category terms
         $category_terms = get_terms([
             'taxonomy' => 'product_cat',
             'hide_empty' => false,
         ]);
-        
+
         // Get current product categories
         $current_categories = wp_get_post_terms($product_id, 'product_cat', ['fields' => 'all']);
         $new_category_ids = [];
-        
+
         // Get continent category ID
         $continent_cat_id = 0;
         foreach ($current_categories as $term) {
@@ -455,12 +491,12 @@ class ProductService {
                 break;
             }
         }
-        
+
         // If we couldn't find the continent category, create it
         if (!$continent_cat_id) {
             $continent_cat_id = $this->getOrCreateCategory($continent);
         }
-        
+
         // Keep only the base categories and continent category
         foreach ($current_categories as $term) {
             if (in_array($term->name, $categories_to_keep)) {
@@ -475,17 +511,17 @@ class ProductService {
                 }
             }
         }
-        
+
         // Add the continent category if not already included
         if (!in_array($continent_cat_id, $new_category_ids)) {
             $new_category_ids[] = $continent_cat_id;
         }
-        
+
         // Set the new categories
         wp_set_object_terms($product_id, $new_category_ids, 'product_cat');
         $this->logger->log("Updated product {$product_id} categories, assigned only to: {$continent}");
     }
-    
+
     /**
      * Check if a given code is for a region rather than a single country
      *
@@ -494,10 +530,10 @@ class ProductService {
      */
     private function isRegionCode($code) {
         // Check if the code matches common region patterns
-        return 
+        return
             strpos($code, '-') !== false || // Contains hyphen (e.g., EU-30, AS-7)
             strpos($code, 'GL') === 0 ||    // Global codes
-            strpos($code, 'EU') === 0 ||    // Europe codes 
+            strpos($code, 'EU') === 0 ||    // Europe codes
             strpos($code, 'AS') === 0 ||    // Asia codes
             strpos($code, 'ME') === 0 ||    // Middle East codes
             strpos($code, 'AF') === 0 ||    // Africa codes
@@ -509,10 +545,10 @@ class ProductService {
             $code === 'SGMYTH' ||           // Singapore, Malaysia, Thailand
             $code === 'AUNZ';               // Australia & New Zealand
     }
-    
+
     /**
      * Check if a term name represents a country or region category
-     * 
+     *
      * @param string $term_name The term name to check
      * @param array $all_terms All available terms
      * @return bool True if it's a country/region category
@@ -520,19 +556,19 @@ class ProductService {
     private function isCountryRegionCategory($term_name, $all_terms) {
         // Standard categories that are not country/region specific
         $standard_categories = ['eSIM', 'Single', 'Featured', 'Popular', 'Best Sellers', 'New Arrivals'];
-        
+
         if (in_array($term_name, $standard_categories)) {
             return false;
         }
-        
+
         // Continent/region categories we should consider as region categories
-        $continent_categories = ['Europe', 'Asia', 'Africa', 'North America', 'South America', 
+        $continent_categories = ['Europe', 'Asia', 'Africa', 'North America', 'South America',
                                 'Caribbean', 'Middle East', 'Global', 'Oceania'];
-        
+
         if (in_array($term_name, $continent_categories)) {
             return true;
         }
-        
+
         // Check if the term name matches any country name from WC_Countries
         $wc_countries = new WC_Countries();
         foreach ($wc_countries->countries as $country_code => $country_name) {
@@ -540,16 +576,16 @@ class ProductService {
                 return true;
             }
         }
-        
+
         // Check if the term name contains region keywords
-        $region_keywords = ['Europe', 'Asia', 'Africa', 'America', 'Caribbean', 'Global', 
+        $region_keywords = ['Europe', 'Asia', 'Africa', 'America', 'Caribbean', 'Global',
                            'Middle East', 'Gulf', 'Pacific', 'Islands'];
         foreach ($region_keywords as $keyword) {
             if (strpos($term_name, $keyword) !== false) {
                 return true;
             }
         }
-        
+
         return false;
     }
 
@@ -561,28 +597,28 @@ class ProductService {
      */
     private function getOrCreateCategory($category_name) {
         $term = get_term_by('name', $category_name, 'product_cat');
-        
+
         if ($term) {
             return $term->term_id;
         }
-        
+
         // Create the category
         $result = wp_insert_term($category_name, 'product_cat', [
             'description' => "eSIM data for {$category_name}",
             'slug' => sanitize_title($category_name)
         ]);
-        
+
         if (is_wp_error($result)) {
             $this->logger->log("Error creating category: " . $result->get_error_message());
             return false;
         }
-        
+
         // If it's a continent category, create custom sorting order
         if (in_array($category_name, ['Europe', 'Asia', 'Africa', 'North America', 'South America', 'Caribbean', 'Middle East', 'Global', 'Oceania'])) {
             // Set menu order for continents to appear at top
             update_term_meta($result['term_id'], 'order', 1);
         }
-        
+
         return $result['term_id'];
     }
 
@@ -596,24 +632,29 @@ class ProductService {
     private function setProductAttributes($product, $package) {
         $attributes = array();
 
-        if (isset($package['duration']) && isset($package['durationUnit'])) {
+        if (!empty($package['duration'])) {
+            $unit = !empty($package['durationUnit']) ? $package['durationUnit'] : 'Day';
+            $days = (int) $package['duration'];
             $attr_duration = new WC_Product_Attribute();
             $attr_duration->set_name('Duration');
-            $attr_duration->set_options(array($package['duration'] . ' ' . $package['durationUnit']));
+            $attr_duration->set_options(array($days . ' ' . $unit . ($days === 1 ? '' : 's')));
             $attr_duration->set_visible(true);
             $attributes['duration'] = $attr_duration;
         }
 
-        if (isset($package['volume'])) {
-            $volume_in_gb = number_format($package['volume'] / (1024 * 1024 * 1024), 2) . ' GB';
+        // On a daily/unlimited plan the megabyte figure is the daily fair-use
+        // allowance, not a total, so showing "1.00 GB" would contradict the
+        // product. Render the platform's data_display instead.
+        $volume_label = self::dataLabel($package);
+        if ($volume_label !== '') {
             $attr_volume = new WC_Product_Attribute();
             $attr_volume->set_name('Data Volume');
-            $attr_volume->set_options(array($volume_in_gb));
+            $attr_volume->set_options(array($volume_label));
             $attr_volume->set_visible(true);
             $attributes['data_volume'] = $attr_volume;
         }
 
-        if (isset($package['speed'])) {
+        if (!empty($package['speed'])) {
             $attr_speed = new WC_Product_Attribute();
             $attr_speed->set_name('Speed');
             $attr_speed->set_options(array($package['speed']));
@@ -636,57 +677,19 @@ class ProductService {
     /**
      * Get product ID by product name
      * Used to prevent duplicates when package code changes but name stays same
-     * 
+     *
      * @param string $name Product name
      * @return int|false Product ID or false
      */
     public function getProductIdByName($name) {
-        $product =  wc_get_product_id_by_sku($name); // Often SKU is not name, so we need a query
-        
         // Use a direct query for exact title match to be safe and fast
         global $wpdb;
         $product_id = $wpdb->get_var($wpdb->prepare(
             "SELECT ID FROM $wpdb->posts WHERE post_type = 'product' AND post_title = %s AND post_status IN ('publish', 'private') LIMIT 1",
             $name
         ));
-        
+
         return $product_id ?: false;
-    }
-
-    public function batchUpdateProducts($batch_data) {
-        $url = get_home_url() . '/wp-json/wc/v3/products/batch';
-        $consumer_key = get_option('woocommerce_api_consumer_key');
-        $consumer_secret = get_option('woocommerce_api_consumer_secret');
-
-        // Check if consumer_key and consumer_secret are available
-        if (!$consumer_key || !$consumer_secret) {
-            $this->logger->log('WooCommerce API credentials are missing. Please make sure to set the Consumer Key and Consumer Secret in WooCommerce settings.');
-            return array('error' => 'WooCommerce API credentials are missing.');
-        }
-
-        $args = array(
-            'body' => json_encode($batch_data),
-            'headers' => array(
-                'Content-Type' => 'application/json',
-                'Authorization' => 'Basic ' . base64_encode($consumer_key . ':' . $consumer_secret),
-            ),
-            'method' => 'POST',
-        );
-
-        // Check if the URL is valid
-        if (empty($url)) {
-            $this->logger->log('WooCommerce API Error: No valid URL specified.');
-            return array('error' => 'No valid URL specified for WooCommerce API.');
-        }
-
-        $response = wp_remote_post($url, $args);
-        if (is_wp_error($response)) {
-            $this->logger->log('WooCommerce API Batch Error: ' . $response->get_error_message());
-            return array('error' => $response->get_error_message());
-        }
-
-        $body = wp_remote_retrieve_body($response);
-        return json_decode($body, true);
     }
 
     /**
@@ -698,13 +701,13 @@ class ProductService {
     private function detectRegionsFromPackage($package) {
         $regions = [];
         $name = strtolower($package['name']);
-        
+
         // Check for continent/region names in the package title
         $region_keywords = [
             'europe' => 'Europe',
             'asia' => 'Asia',
             'africa' => 'Africa',
-            'north america' => 'North America', 
+            'north america' => 'North America',
             'south america' => 'South America',
             'caribbean' => 'Caribbean',
             'middle east' => 'Middle East',
@@ -718,13 +721,13 @@ class ProductService {
             'thailand' => 'Asia',
             'gulf region' => 'Middle East'
         ];
-        
+
         foreach ($region_keywords as $keyword => $region) {
             if (strpos($name, $keyword) !== false) {
                 $regions[] = $region;
             }
         }
-        
+
         return $regions;
     }
 
@@ -853,64 +856,105 @@ class ProductService {
      * @return int|null Attachment ID if found, null otherwise
      */
     private function searchMediaLibrary($search_terms) {
-        // Get all images from media library
-        $args = [
-            'post_type' => 'attachment',
-            'post_mime_type' => 'image',
-            'post_status' => 'inherit',
-            'posts_per_page' => -1,
-            'fields' => 'ids',
-        ];
+        $map = $this->mediaFilenameMap();
 
-        $attachments = get_posts($args);
-
-        if (empty($attachments)) {
-            $this->log("No images found in Media Library");
+        if (empty($map)) {
             return null;
         }
 
-        // Define allowed image extensions
-        $allowed_extensions = ['png', 'webp', 'jpg', 'jpeg'];
-
-        // Search for exact matches
+        // EXACT MATCH RULES:
+        // 1. Exact match: "germany" matches "germany.png"
+        // 2. With -esim suffix: "germany" matches "germany-esim.png"
+        // 3. Never a partial match such as "germany-travel.png"
         foreach ($search_terms as $term) {
             $term_lower = strtolower($term);
 
-            foreach ($attachments as $attachment_id) {
-                $file_path = get_attached_file($attachment_id);
-
-                if (!$file_path) {
-                    continue;
-                }
-
-                $filename = basename($file_path);
-                $filename_lower = strtolower($filename);
-                $file_parts = pathinfo($filename_lower);
-                $name_without_ext = $file_parts['filename'];
-                $extension = isset($file_parts['extension']) ? $file_parts['extension'] : '';
-
-                // Check if extension is allowed
-                if (!in_array($extension, $allowed_extensions)) {
-                    continue;
-                }
-
-                // EXACT MATCH RULES:
-                // 1. Exact match: "germany" matches "germany.png"
-                // 2. With -esim suffix: "germany" matches "germany-esim.png"
-                // 3. Should NOT match: "germany-travel.png" or "germany-countries.jpg"
-
-                $is_exact_match = ($name_without_ext === $term_lower);
-                $is_esim_suffix_match = ($name_without_ext === $term_lower . '-esim');
-
-                if ($is_exact_match || $is_esim_suffix_match) {
-                    $this->log("Found EXACT match in Media Library: '{$filename}' (ID: {$attachment_id}) for search term: '{$term}'");
-                    return $attachment_id;
+            foreach (array($term_lower, $term_lower . '-esim') as $candidate) {
+                if (isset($map[$candidate])) {
+                    $this->log("Found exact Media Library match '{$candidate}' (ID: {$map[$candidate]}) for term '{$term}'");
+                    return $map[$candidate];
                 }
             }
         }
 
-        $this->log("No exact filename matches found in Media Library for search terms: " . implode(', ', $search_terms));
         return null;
+    }
+
+    /**
+     * Map of "filename without extension" => attachment id, built once per request.
+     *
+     * The previous implementation loaded every attachment id and then called
+     * get_attached_file() on each one, for every product in the sync. On a media
+     * library of a few thousand images that was the slowest part of the sync.
+     */
+    private function mediaFilenameMap() {
+        if ($this->media_filename_cache !== null) {
+            return $this->media_filename_cache;
+        }
+
+        global $wpdb;
+        $this->media_filename_cache = array();
+
+        // One query returning both columns: two separate queries would not be
+        // guaranteed to come back in the same row order.
+        $rows = $wpdb->get_results(
+            "SELECT pm.post_id, pm.meta_value FROM {$wpdb->postmeta} pm
+               INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+              WHERE pm.meta_key = '_wp_attached_file'
+                AND p.post_mime_type LIKE 'image/%'
+              ORDER BY pm.post_id ASC"
+        );
+
+        $allowed_extensions = array('png', 'webp', 'jpg', 'jpeg');
+
+        foreach ($rows as $row) {
+            if (empty($row->meta_value)) {
+                continue;
+            }
+            $parts = pathinfo(strtolower(basename($row->meta_value)));
+            $extension = isset($parts['extension']) ? $parts['extension'] : '';
+            if (!in_array($extension, $allowed_extensions, true)) {
+                continue;
+            }
+            // First match wins, matching the old first-found behaviour.
+            if (!isset($this->media_filename_cache[$parts['filename']])) {
+                $this->media_filename_cache[$parts['filename']] = (int) $row->post_id;
+            }
+        }
+
+        $this->log('Indexed ' . count($this->media_filename_cache) . ' media library images for matching.');
+
+        return $this->media_filename_cache;
+    }
+
+    /**
+     * Human data label for a package: the platform's data_display when present
+     * (so unlimited plans read "Unlimited"), otherwise the volume in GB/MB.
+     */
+    public static function dataLabel($package) {
+        if (!empty($package['data_display'])) {
+            return (string) $package['data_display'];
+        }
+        if (!empty($package['is_unlimited'])) {
+            return 'Unlimited';
+        }
+
+        $mb = 0;
+        if (isset($package['data_volume_mb'])) {
+            $mb = (float) $package['data_volume_mb'];
+        } elseif (isset($package['volume'])) {
+            $mb = ((float) $package['volume']) / (1024 * 1024);
+        }
+
+        if ($mb <= 0) {
+            return '';
+        }
+        if ($mb < 1024) {
+            return round($mb) . ' MB';
+        }
+
+        $gb = $mb / 1024;
+        return (floor($gb) == $gb ? (string) (int) $gb : number_format($gb, 1)) . ' GB';
     }
 
     /**
@@ -961,8 +1005,8 @@ class ProductService {
         // Check if image already exists in media library by filename
         global $wpdb;
         $attachment_id = $wpdb->get_var($wpdb->prepare(
-            "SELECT post_id FROM $wpdb->postmeta WHERE meta_key = '_wp_attached_file' AND meta_value LIKE %s",
-            '%' . $filename
+            "SELECT post_id FROM $wpdb->postmeta WHERE meta_key = '_wp_attached_file' AND meta_value LIKE %s LIMIT 1",
+            '%' . $wpdb->esc_like($filename)
         ));
 
         if ($attachment_id) {
@@ -971,13 +1015,26 @@ class ProductService {
 
         // It needs to be uploaded
         $upload_dir = wp_upload_dir();
-        $image_data = file_get_contents($image_path);
-        
+        if (!empty($upload_dir['error'])) {
+            $this->log('Cannot upload product image: ' . $upload_dir['error']);
+            return false;
+        }
+
+        $image_data = @file_get_contents($image_path);
+        if ($image_data === false) {
+            $this->log("Cannot read image file: {$image_path}");
+            return false;
+        }
+
         // Generate unique name for upload dir
         $unique_filename = wp_unique_filename($upload_dir['path'], $filename);
         $file = $upload_dir['path'] . '/' . $unique_filename;
-        
-        file_put_contents($file, $image_data);
+
+        if (file_put_contents($file, $image_data) === false) {
+            $this->log("Cannot write image file: {$file}");
+            return false;
+        }
+        unset($image_data);
 
         // Check image file type
         $wp_filetype = wp_check_filetype($filename, null);
@@ -993,6 +1050,10 @@ class ProductService {
 
         // Insert attachment
         $attach_id = wp_insert_attachment($attachment, $file);
+        if (is_wp_error($attach_id) || !$attach_id) {
+            $this->log('Failed to create the attachment record for ' . $filename);
+            return false;
+        }
 
         // Make sure image.php is loaded
         require_once(ABSPATH . 'wp-admin/includes/image.php');

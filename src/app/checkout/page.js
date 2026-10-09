@@ -77,10 +77,10 @@ function CheckoutFormContent() {
     const sanitizedCart = savedCart.map(item => {
       const dataAmt = (item.dataAmount || '').toLowerCase();
       const titleText = (item.title || '').toLowerCase();
-      if (dataAmt.includes('/ día') || dataAmt.includes('/ dia') || dataAmt.includes('/ day') || titleText.includes('/ día') || titleText.includes('/ dia') || titleText.includes('/ day')) {
-        item.days = 1;
-        if (item.title) {
-          item.title = item.title.replace(/\s*\d+\s*(days|días|días de validez|days validity|d|day)$/i, '');
+      // Solo forzar a 1 día si NO es una compra multidía contratada explícitamente (> 1)
+      if (!item.isUnlimited && (!item.days || item.days <= 1)) {
+        if (dataAmt.includes('/ día') || dataAmt.includes('/ dia') || dataAmt.includes('/ day') || titleText.includes('/ día') || titleText.includes('/ dia') || titleText.includes('/ day')) {
+          item.days = 1;
         }
       }
       return item;
@@ -137,7 +137,7 @@ function CheckoutFormContent() {
     setLoading(true);
 
     try {
-      let paymentIntentId = 'free_coupon';
+      let paymentIntentId = 'free_coupon_' + Date.now();
 
       if (parseFloat(totalAmount) > 0) {
         // 1. Generate unconfirmed PaymentIntent from server (NO raw card data sent to our server!)
@@ -222,6 +222,7 @@ function CheckoutFormContent() {
           discountAmount: discountAmount.toFixed(2),
           price: totalAmount,
           currency: currency,
+          priceEur: cart[0]?.priceEur || (currency === 'EUR' ? parseFloat(totalAmount) : undefined),
           title: cart[0]?.title || cart[0]?.planName || 'España 10GB 30Days',
           country: cart[0]?.countryName || cart[0]?.country || 'España',
           iso: cart[0]?.iso || 'es',

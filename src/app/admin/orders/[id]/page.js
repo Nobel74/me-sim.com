@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { formatCurrency } from '../../../../lib/currency';
+import { formatCurrency, CURRENCY_SYMBOLS } from '../../../../lib/currency';
 import { getEsimStatusInfo } from '../../../../lib/esimStatus';
 import { extractTotalMbFromOrder } from '../../../../lib/universalTelemetry';
 
@@ -198,9 +198,9 @@ export default function AdminOrderDetailPage() {
   const isEn = lang === 'en';
   const isDark = theme === 'dark';
 
-  const formatPrice = (amt, curr = 'GBP') => {
+  const formatPrice = (amt, curr = 'EUR') => {
     const num = parseFloat(amt || 0).toFixed(2);
-    return formatCurrency(num, curr || 'GBP');
+    return formatCurrency(num, curr || 'EUR');
   };
 
   if (loading) {
@@ -949,7 +949,7 @@ export default function AdminOrderDetailPage() {
                       {isEn ? 'Payment Currency:' : 'Moneda de Compra:'}
                     </span>
                     <span className={`font-mono font-bold ${isDark ? 'text-zinc-200' : 'text-zinc-950'}`}>
-                      {order.currency || 'GBP'} ({order.currencySymbol || (order.currency === 'GBP' ? '£' : '€')})
+                      {order.currency || 'EUR'} ({CURRENCY_SYMBOLS[order.currency] || '$'})
                     </span>
                   </div>
 
@@ -972,8 +972,8 @@ export default function AdminOrderDetailPage() {
                       {(() => {
                         const wholesaleUsd = parseFloat(order.wholesaleCostUsd || 2.34);
                         const paidAmt = parseFloat(order.amount || 0);
-                        const curr = order.currency || 'GBP';
-                        const rateToUsd = curr === 'GBP' ? 1.28 : (curr === 'EUR' ? 1.09 : 1.0);
+                        const curr = order.currency || 'EUR';
+                        const rateToUsd = curr === 'GBP' ? 1.28 : (curr === 'EUR' ? 1.09 : (curr === 'AUD' ? 0.65 : 1.0));
                         const revenueUsd = paidAmt * rateToUsd;
                         const profitUsd = Math.max(0, revenueUsd - wholesaleUsd);
                         const profitInCurr = rateToUsd > 0 ? profitUsd / rateToUsd : profitUsd;

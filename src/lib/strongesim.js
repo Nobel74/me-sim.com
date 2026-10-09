@@ -1,3 +1,6 @@
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
 import { addDiagnosticLog } from './logger.js';
 import { ALL_WORLD_COUNTRIES } from './i18n.js';
 import { isPlanInRegion } from './regionMapping.js';
@@ -8,40 +11,143 @@ export function getLastAuthError() {
   return lastAuthError;
 }
 
-function loadCachedSession() {
-  if (typeof globalThis !== 'undefined' && globalThis.__strongesimAuth && Date.now() < globalThis.__strongesimAuth.tokenExpiresAt) {
+export const DEFAULT_RESELLER_PROFILE_ID = process.env.STRONGESIM_RESELLER_PROFILE_ID || '8459a3f8-fdc1-4127-83e7-7023aec05df9';
+
+function getSessionPaths() {
+  if (typeof window !== 'undefined') return [];
+  try {
+    const cwd = typeof process !== 'undefined' && process.cwd ? process.cwd() : '';
+    const tmp = os && typeof os.tmpdir === 'function' ? os.tmpdir() : '/tmp';
+    const sFile = path && typeof path.join === 'function' && cwd ? path.join(cwd, '.strongesim_session.json') : null;
+    const tFile = path && typeof path.join === 'function' ? path.join(tmp, 'strongesim_session.json') : null;
+    return [sFile, tFile].filter(Boolean);
+  } catch (e) {
+    return [];
+  }
+}
+
+function readStoredSession() {
+  if (typeof globalThis !== 'undefined' && globalThis.__strongesimAuth) {
     return globalThis.__strongesimAuth;
+  }
+  if (typeof window !== 'undefined' || !fs) return null;
+
+  const candidatePaths = getSessionPaths();
+  for (const p of candidatePaths) {
+    try {
+      if (p && fs.existsSync && fs.existsSync(p)) {
+        const raw = fs.readFileSync(p, 'utf-8');
+        const parsed = JSON.parse(raw);
+        if (parsed && (parsed.authToken || parsed.accessToken)) {
+          if (typeof globalThis !== 'undefined') {
+            globalThis.__strongesimAuth = parsed;
+          }
+          return parsed;
+        }
+      }
+    } catch (e) {}
   }
   return null;
 }
 
-function saveCachedSession(token, session, ttlMs = 900000) {
-  const sessionData = {
-    authToken: token,
-    sessionId: session,
-    tokenExpiresAt: Date.now() + ttlMs,
-  };
+function writeStoredSession(sessionData) {
   if (typeof globalThis !== 'undefined') {
     globalThis.__strongesimAuth = sessionData;
   }
+  if (typeof window !== 'undefined' || !fs) return;
+
+  const candidatePaths = getSessionPaths();
+  for (const p of candidatePaths) {
+    try {
+      if (p && fs.writeFileSync) {
+        fs.writeFileSync(p, JSON.stringify(sessionData, null, 2), 'utf-8');
+      }
+    } catch (e) {}
+  }
 }
 
-function clearCachedSession() {
+function clearStoredSession() {
   if (typeof globalThis !== 'undefined') {
     globalThis.__strongesimAuth = null;
   }
+  if (typeof window !== 'undefined' || !fs) return;
+
+  const candidatePaths = getSessionPaths();
+  for (const p of candidatePaths) {
+    try {
+      if (p && fs.existsSync && fs.existsSync(p) && fs.unlinkSync) {
+        fs.unlinkSync(p);
+      }
+    } catch (e) {}
+  }
 }
 
+/**
+ * Obtiene o refresca el token de acceso oficial de StrongeSIM.
+ * Protegido contra el límite estricto de 5 intentos de login cada 15 minutos por IP
+ * mediante almacenamiento persistente multi-capa (memoria + disco) y uso prioritario
+ * del refresh token vía POST /auth/refresh-token.
+ */
 export async function getStrongeSIMAuth() {
-  const cached = loadCachedSession();
-  if (cached) {
-    return { accessToken: cached.authToken, sessionId: cached.sessionId };
-  }
-
   const baseUrl = process.env.STRONGESIM_BASE_URL || process.env.STRONGESIM_API_URL || 'https://api.strongesim.com/api/v1';
   const username = process.env.STRONGESIM_USERNAME || process.env.STRONGESIM_EMAIL;
   const password = process.env.STRONGESIM_PASSWORD;
 
+  const stored = readStoredSession();
+  const token = stored?.accessToken || stored?.authToken;
+  const sessionId = stored?.sessionId || 'session_active';
+  const refreshToken = stored?.refreshToken;
+  const expiresAt = stored?.tokenExpiresAt || 0;
+
+  // 1. Reutilizar sesión activa si el token es válido (con margen de seguridad de 60 segundos)
+  if (token && Date.now() < expiresAt - 60000) {
+    return { accessToken: token, sessionId };
+  }
+
+  // 2. Si el token está próximo a caducar o ha caducado, intentar refresh token primero
+  // POST /auth/refresh-token no consume intentos del cupo de 5 logins cada 15 minutos
+  if (refreshToken) {
+    try {
+      addDiagnosticLog('STRONGESIM_AUTH', 'ATTEMPT_REFRESH', { hasRefreshToken: true });
+      const refRes = await fetch(`${baseUrl}/auth/refresh-token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({ refreshToken }),
+        cache: 'no-store',
+      });
+
+      if (refRes.ok) {
+        const refData = await refRes.json();
+        if (refData.success) {
+          const newToken = refData.data?.accessToken || refData.data?.token || refData.accessToken;
+          const newRefresh = refData.data?.refreshToken || refData.data?.refresh_token || refreshToken;
+          const newSess = refData.data?.sessionId || refData.data?.session_id || sessionId;
+
+          if (newToken) {
+            const updatedSession = {
+              accessToken: newToken,
+              authToken: newToken,
+              refreshToken: newRefresh,
+              sessionId: newSess,
+              tokenExpiresAt: Date.now() + 45 * 60 * 1000, // 45 minutos de validez
+              updatedAt: Date.now(),
+            };
+            writeStoredSession(updatedSession);
+            lastAuthError = '';
+            addDiagnosticLog('STRONGESIM_AUTH', 'REFRESH_SUCCESS');
+            return { accessToken: newToken, sessionId: newSess };
+          }
+        }
+      }
+    } catch (refErr) {
+      console.warn('[StrongeSIM Auth] Refresh token attempt failed:', refErr.message);
+    }
+  }
+
+  // 3. Fallback a login completo si no hay token previo o el refresh falló
   if (!username || !password) {
     lastAuthError = 'Credenciales STRONGESIM_USERNAME o STRONGESIM_PASSWORD no configuradas en entorno';
     addDiagnosticLog('STRONGESIM_AUTH', 'MISSING_CREDENTIALS', { username: !!username, password: !!password });
@@ -49,6 +155,7 @@ export async function getStrongeSIMAuth() {
   }
 
   try {
+    addDiagnosticLog('STRONGESIM_AUTH', 'ATTEMPT_LOGIN', { username, baseUrl });
     const response = await fetch(`${baseUrl}/auth/login`, {
       method: 'POST',
       headers: {
@@ -59,6 +166,7 @@ export async function getStrongeSIMAuth() {
         email: username,
         username: username,
         password: password,
+        role: 'reseller',
       }),
       cache: 'no-store',
     });
@@ -78,13 +186,22 @@ export async function getStrongeSIMAuth() {
     });
 
     if (response.ok && responseData.success) {
-      const token = responseData.data?.accessToken || responseData.data?.token || responseData.accessToken;
-      const sess = responseData.data?.sessionId || responseData.data?.session_id || 'session_active';
+      const newToken = responseData.data?.accessToken || responseData.data?.token || responseData.accessToken;
+      const newRefresh = responseData.data?.refreshToken || responseData.data?.refresh_token || '';
+      const newSess = responseData.data?.sessionId || responseData.data?.session_id || 'session_active';
 
-      if (token) {
-        saveCachedSession(token, sess, 900 * 1000);
+      if (newToken) {
+        const sessionObj = {
+          accessToken: newToken,
+          authToken: newToken,
+          refreshToken: newRefresh,
+          sessionId: newSess,
+          tokenExpiresAt: Date.now() + 45 * 60 * 1000, // 45 minutos de validez
+          createdAt: Date.now(),
+        };
+        writeStoredSession(sessionObj);
         lastAuthError = '';
-        return { accessToken: token, sessionId: sess };
+        return { accessToken: newToken, sessionId: newSess };
       }
     }
 
@@ -129,7 +246,7 @@ export async function strongesimFetch(endpoint, options = {}) {
 
   // Si el servidor responde 401 (token expirado o sesión cerrada), invalidar token y reintentar inmediatamente con login fresco
   if (response.status === 401) {
-    clearCachedSession();
+    clearStoredSession();
     const freshAuth = await getStrongeSIMAuth();
     if (freshAuth.accessToken) {
       response = await fetch(finalUrl, {
@@ -161,14 +278,14 @@ const REGION_KEYWORDS = {
 };
 
 /**
- * Resuelve el plan_id numérico real de StrongeSIM usando /plans?limit=10000
- * Garantiza coincidencia estricta y algoritmo de scoring multi-factor para TODOS los 198 países y regiones del mundo.
- * Evita totalmente cualquier coincidencia errónea (como asignar 100MB a compras de 1GB).
+ * Resuelve todos los detalles de un plan de StrongeSIM usando /plans?limit=10000.
+ * Devuelve { planId, isDaily, periodNum, plan, score, validityDays, dataVolumeMb }.
+ * - Para compras ilimitadas o diarias ("Unlimited", "daily_reset"): calcula periodNum = targetDays
+ *   para aprovisionar exactamente la duración contratada con reseteo diario (evitando que StrongeSIM
+ *   asigne por defecto 1 solo día).
+ * - Para compras de volumen fijo (1GB, 3GB, 10GB): mantiene periodNum = null.
  */
-export async function resolveStrongeSimPlanId({ sku, iso = 'es', dataAmount = '', days = 30 }) {
-  if (typeof sku === 'number') return sku;
-  if (typeof sku === 'string' && /^\d+$/.test(sku.trim())) return parseInt(sku.trim(), 10);
-
+export async function resolveStrongeSimPlanDetails({ sku, iso = 'es', dataAmount = '', days = 30 }) {
   let targetIso = (iso || '').toUpperCase().trim();
   if (!targetIso && typeof sku === 'string') {
     const parts = sku.split('-');
@@ -267,6 +384,10 @@ export async function resolveStrongeSimPlanId({ sku, iso = 'es', dataAmount = ''
             const pId = p.id || p.plan_id || p.package_id || p.code;
             const pCode = String(p.package_code || p.packageCode || p.code || p.sku || '').toUpperCase().trim();
             const pName = String(p.name || p.title || p.package_name || '').toUpperCase().trim();
+            const pIso = String(p.country_code || p.iso || p.isoCode || p.location || '').toUpperCase().trim();
+            const pDataType = String(p.dataType || p.data_type || '').toLowerCase();
+            const pIsUnlimited = (pName + ' ' + pCode).includes('UNLIMITED') || pName.includes('ILIMITAD') || p.is_unlimited === true || pDataType === 'daily_reset';
+            const pIsDailyReset = pDataType === 'daily_reset' || pIsUnlimited;
             
             // Extract plan validity days
             let pDays = parseInt(p.validity_days || p.duration || p.days || p.validity || 0, 10);
@@ -293,29 +414,36 @@ export async function resolveStrongeSimPlanId({ sku, iso = 'es', dataAmount = ''
               }
             }
 
-            const pIsUnlimited = (pName + ' ' + pCode).includes('UNLIMITED') || pName.includes('ILIMITAD');
-            const pIsDaily = (pName + ' ' + pCode).includes('DAILY') || pName.includes('DÍA') || pDays === 1;
-
             let score = 0;
 
             // A) Exact Code / ID match
             if (String(pId) === String(sku) || (pCode && pCode === String(sku).toUpperCase())) {
-              return { plan: p, score: 1000000, pMb, pDays };
+              return { plan: p, score: 1000000, pMb, pDays, pIsDailyReset };
             }
 
-            // B) Unlimited Matching
+            // B) Unlimited Matching:
+            // StrongeSIM utiliza periodNum = targetDays para provisionar planes diarios multidía
             if (isUnlimited) {
               if (pIsUnlimited) {
-                score = 50000 - Math.abs(pDays - targetDays) * 100;
+                // Mayor puntuación para planes con cuota generosa (ej. 2GB/día > 500MB/día)
+                score = 60000 + (pMb ? Math.min(pMb, 2048) * 10 : 0);
+                if (pIso === targetIso) score += 5000;
               } else {
-                score = 0;
+                // Si el país no tiene paquete ilimitado nativo, buscar paquete de alta capacidad multidía
+                const targetFupMb = targetDays * 2048;
+                if (pMb !== null && pDays >= targetDays) {
+                  const diff = Math.abs(pMb - targetFupMb);
+                  score = 40000 - Math.min(diff, 30000) - Math.abs(pDays - targetDays) * 10;
+                  if (pIso === targetIso) score += 2000;
+                } else {
+                  score = 0;
+                }
               }
-              return { plan: p, score, pMb, pDays };
+              return { plan: p, score, pMb, pDays, pIsDailyReset };
             }
 
             // C) Data Volume (MB) Matching
             if (targetMb !== null && pMb !== null) {
-              // Is exact data volume (e.g. 1GB vs 1024MB or 1000MB)
               const isExactData = (pMb === targetMb) ||
                 (Math.abs(pMb - targetMb) / targetMb < 0.05) ||
                 (targetMb >= 1000 && Math.abs(Math.round(pMb / 1000) - Math.round(targetMb / 1000)) === 0 && Math.abs(pMb - targetMb) < 500);
@@ -333,7 +461,6 @@ export async function resolveStrongeSimPlanId({ sku, iso = 'es', dataAmount = ''
                 const diffMb = Math.abs(pMb - targetMb);
                 const relativeDiff = diffMb / Math.max(targetMb, 1);
                 if (relativeDiff > 0.4) {
-                  // Huge penalty: 100MB will NEVER match when target is 1024MB (diff is ~0.9)
                   score = Math.max(0, 1000 - Math.round(relativeDiff * 1000));
                 } else {
                   score = Math.max(0, 20000 - Math.round(relativeDiff * 15000) - Math.abs(pDays - targetDays) * 100);
@@ -342,11 +469,11 @@ export async function resolveStrongeSimPlanId({ sku, iso = 'es', dataAmount = ''
             }
 
             // D) Daily plan boost if requested
-            if (isDailyPlan && pIsDaily) {
+            if (isDailyPlan && (pIsDailyReset || pDays === 1)) {
               score += 5000;
             }
 
-            return { plan: p, score, pMb, pDays };
+            return { plan: p, score, pMb, pDays, pIsDailyReset };
           });
 
           // Sort descending by score
@@ -354,28 +481,53 @@ export async function resolveStrongeSimPlanId({ sku, iso = 'es', dataAmount = ''
 
           const bestCandidate = scoredCandidates[0];
           if (bestCandidate && bestCandidate.score > 0) {
-            const resolvedId = bestCandidate.plan.id || bestCandidate.plan.plan_id || bestCandidate.plan.package_id || bestCandidate.plan.code;
-            if (resolvedId && (typeof resolvedId === 'number' || /^\d+$/.test(String(resolvedId)))) {
-              addDiagnosticLog('STRONGESIM', 'PLAN_RESOLVED', {
-                input: { sku, iso: targetIso, dataAmount, days: targetDays, targetMb },
-                resolved: {
-                  id: parseInt(String(resolvedId), 10),
-                  name: bestCandidate.plan.name || bestCandidate.plan.title,
-                  data_volume_mb: bestCandidate.pMb,
-                  validity_days: bestCandidate.pDays,
-                  score: bestCandidate.score,
-                },
-              });
-              return parseInt(String(resolvedId), 10);
-            }
+            const rawId = bestCandidate.plan.id || bestCandidate.plan.plan_id || bestCandidate.plan.package_id || bestCandidate.plan.code;
+            const planId = parseInt(String(rawId), 10);
+            const isDaily = bestCandidate.pIsDailyReset || isUnlimited || (bestCandidate.pDays === 1 && targetDays > 1);
+            const periodNum = isDaily ? Math.min(365, Math.max(1, targetDays)) : null;
+
+            addDiagnosticLog('STRONGESIM', 'PLAN_RESOLVED', {
+              input: { sku, iso: targetIso, dataAmount, days: targetDays, targetMb },
+              resolved: {
+                id: planId,
+                name: bestCandidate.plan.name || bestCandidate.plan.title,
+                isDaily,
+                periodNum,
+                data_volume_mb: bestCandidate.pMb,
+                validity_days: bestCandidate.pDays,
+                score: bestCandidate.score,
+              },
+            });
+
+            const baseUnitPrice = parseFloat(bestCandidate.plan?.price || bestCandidate.plan?.costUsd || 0);
+            const calculatedWholesaleUsd = parseFloat((baseUnitPrice * (periodNum || 1)).toFixed(2));
+
+            return {
+              planId,
+              isDaily,
+              periodNum,
+              wholesaleCostUsd: calculatedWholesaleUsd,
+              plan: bestCandidate.plan,
+              score: bestCandidate.score,
+              validityDays: bestCandidate.pDays,
+              dataVolumeMb: bestCandidate.pMb,
+            };
           }
 
           // Fallback to the first plan ONLY if no match with score > 0 was found
           const fallbackPlan = pool[0];
-          const fallbackId = fallbackPlan.id || fallbackPlan.plan_id || fallbackPlan.package_id || fallbackPlan.code;
-          if (fallbackId && (typeof fallbackId === 'number' || /^\d+$/.test(String(fallbackId)))) {
-            return parseInt(String(fallbackId), 10);
-          }
+          const fallbackId = parseInt(String(fallbackPlan.id || fallbackPlan.plan_id || fallbackPlan.package_id || fallbackPlan.code), 10);
+          const fallbackUnitPrice = parseFloat(fallbackPlan?.price || fallbackPlan?.costUsd || 0);
+          return {
+            planId: fallbackId,
+            isDaily: isUnlimited,
+            periodNum: isUnlimited ? Math.min(365, Math.max(1, targetDays)) : null,
+            wholesaleCostUsd: parseFloat((fallbackUnitPrice * (isUnlimited ? targetDays : 1)).toFixed(2)),
+            plan: fallbackPlan,
+            score: 0,
+            validityDays: parseInt(fallbackPlan.validity_days || 30, 10),
+            dataVolumeMb: null,
+          };
         }
       }
     }
@@ -384,6 +536,106 @@ export async function resolveStrongeSimPlanId({ sku, iso = 'es', dataAmount = ''
   }
 
   return null;
+}
+
+/**
+ * Resuelve el plan_id numérico de StrongeSIM (mantiene compatibilidad retroactiva)
+ */
+export async function resolveStrongeSimPlanId(params) {
+  if (typeof params === 'number') return params;
+  if (typeof params === 'string' && /^\d+$/.test(params.trim())) return parseInt(params.trim(), 10);
+  if (typeof params?.sku === 'number') return params.sku;
+  if (typeof params?.sku === 'string' && /^\d+$/.test(params.sku.trim())) return parseInt(params.sku.trim(), 10);
+
+  const details = await resolveStrongeSimPlanDetails(params || {});
+  return details ? details.planId : null;
+}
+
+/**
+ * Crea una orden oficial en StrongeSIM con idempotencia, periodNum para planes ilimitados/diarios
+ * y perfil de revendedor ME-SIM.
+ */
+export async function createStrongeSimOrder({
+  planId,
+  quantity = 1,
+  periodNum = null,
+  customerEmail,
+  customerName = 'Valued Customer',
+  idempotencyKey = '',
+  resellerProfileId = DEFAULT_RESELLER_PROFILE_ID,
+}) {
+  const payload = {
+    plan_id: planId,
+    quantity: parseInt(quantity, 10) || 1,
+    reseller_profile_id: resellerProfileId,
+    end_customer_email: customerEmail,
+    customer_email: customerEmail,
+    email: customerEmail,
+    user_email: customerEmail,
+    customer_name: customerName,
+    send_email: true,
+    sendEmail: true,
+    send_email_to_customer: true,
+    notify_customer: true,
+    send_qr_email: true,
+    deliver_qr: true,
+  };
+
+  if (periodNum !== null && periodNum !== undefined) {
+    payload.periodNum = parseInt(periodNum, 10);
+    payload.period_num = parseInt(periodNum, 10);
+  }
+
+  const extraHeaders = {};
+  if (idempotencyKey) {
+    extraHeaders['Idempotency-Key'] = String(idempotencyKey);
+  }
+
+  addDiagnosticLog('STRONGESIM', 'CREATE_ORDER_CALL', {
+    planId,
+    periodNum: payload.periodNum,
+    idempotencyKey,
+    resellerProfileId,
+    customerEmail,
+  });
+
+  return strongesimFetch('/orders', {
+    method: 'POST',
+    headers: extraHeaders,
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * Cancela una orden en StrongeSIM (reembolsa el saldo en el monedero prepago de ME-SIM)
+ */
+export async function cancelStrongeSimOrder(orderId, reason = 'Cancelled by ME-SIM') {
+  if (!orderId) throw new Error('orderId is required to cancel StrongeSIM order');
+  const response = await strongesimFetch(`/orders/${encodeURIComponent(orderId)}/cancel`, {
+    method: 'POST',
+    body: JSON.stringify({
+      reason,
+      force: false,
+    }),
+  });
+
+  let responseData = {};
+  try {
+    responseData = await response.json();
+  } catch (e) {}
+
+  addDiagnosticLog('STRONGESIM', 'CANCEL_ORDER', {
+    orderId,
+    status: response.status,
+    ok: response.ok,
+    responseData,
+  });
+
+  return {
+    ok: response.ok,
+    status: response.status,
+    data: responseData,
+  };
 }
 
 /**

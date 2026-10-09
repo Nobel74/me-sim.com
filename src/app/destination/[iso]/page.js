@@ -12,6 +12,7 @@ import SeoMeta from '../../../components/SeoMeta';
 import LoadingProgressBar from '../../../components/LoadingProgressBar';
 import UnlimitedPlanInfo from '../../../components/UnlimitedPlanInfo';
 import { getDestinationStartingPrice } from '../../../lib/regionMapping';
+import { computeUnlimitedDurationPriceEur } from '../../../lib/pricingRules';
 
 const DESTINATION_IMAGES = {
   es: 'https://images.unsplash.com/photo-1543783207-ec64e4d95325?q=80&w=1000&auto=format&fit=crop',
@@ -197,19 +198,14 @@ export default function DestinationPage() {
 
   const travelDays = calculateTravelDays();
 
-  const calculateUnlimitedPriceEur = (days) => {
-    if (days <= 1) return 4.90;
-    if (days <= 3) return 11.90;
-    if (days <= 5) return 17.90;
-    if (days <= 7) return 22.90;
-    if (days <= 10) return 29.90;
-    if (days <= 15) return 39.90;
-    if (days <= 20) return 49.90;
-    if (days <= 30) return 59.90;
-    return 59.90 + (days - 30) * 1.50;
-  };
-
-  const unlimitedPriceEur = calculateUnlimitedPriceEur(travelDays);
+  const unlimitedPlan = plans.find((p) => p.isUnlimited);
+  const unlimitedDailyCostUsd = unlimitedPlan?.costUsd || 1.20;
+  const unlimitedPriceEur = computeUnlimitedDurationPriceEur(
+    travelDays,
+    unlimitedDailyCostUsd,
+    plans[0]?.region || 'global',
+    unlimitedPlan?.priceEur
+  );
 
   const fixedPlans = plans.filter((p) => !p.isUnlimited);
   const countryName = getCountryName(isoCode, lang, plans[0]?.country || getRegionName(isoCode, lang));
@@ -251,6 +247,7 @@ export default function DestinationPage() {
       dataAmount: t.unlimitedData,
       days: travelDays,
       priceEur: unlimitedPriceEur,
+      wholesaleCostUsd: parseFloat((unlimitedDailyCostUsd * travelDays).toFixed(2)),
       convertedPrice: convertCurrency(unlimitedPriceEur, currency, rates),
       currency: currency,
       isUnlimited: true,

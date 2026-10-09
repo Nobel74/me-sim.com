@@ -1,6 +1,112 @@
 # 📝 Memoria del Proyecto y Bitácora de Sesiones - ME-SIM.COM
 
-## 📅 Última Actualización: 7 de Octubre de 2026 - 15:40 CEST
+## 📅 Última Actualización: 9 de Octubre de 2026 - 14:48 CEST
+
+---
+
+### 📌 Resumen de la Sesión Actual: Copia Administrativa Automática de Emails Transaccionales con Códigos QR a `info@me-sim.com`
+En esta sesión se implementó el sistema de copia de respaldo administrativa para todos los correos electrónicos con códigos QR e instrucciones de eSIM entregados a clientes finales:
+1. **Requerimiento del Usuario:**
+   - Paco indicó que todos los correos de respaldo con los códigos QR e información de activación entregados a los clientes deben enviarse a la cuenta corporativa oficial: **`info@me-sim.com`**.
+2. **Arquitectura y Blindaje Implementado:**
+   - En [`src/lib/email.js`](file:///c:/Users/Paco/Documents/me-sim/src/lib/email.js), se configuró la constante oficial `ADMIN_NOTIFICATION_EMAIL = (process.env.ADMIN_ORDERS_CC_EMAIL || 'info@me-sim.com').trim().toLowerCase()`.
+   - Se desacopló la rutina de envío físico en `deliverSingleEmail(...)` para garantizar el despacho a través de la API oficial de WordPress (`/wp-json/mesim/v1/send-email`) y el fallback SMTP.
+   - En `sendEmail(...)`, tras procesar el envío prioritario al cliente, el sistema detecta de forma automática si el correo corresponde a una entrega de eSIM (`type === 'order_confirmation'` o presencia de `qrCodeUrl`, `lpaCode`, `esimTranNo` o tokens de QR).
+   - Si el destinatario no es el propio buzón corporativo (`to !== ADMIN_NOTIFICATION_EMAIL`), se despacha automáticamente una copia exacta a `info@me-sim.com` con:
+     * Asunto claro e indexable: `[Copia Admin #${orderId}] ${subject} (Cliente: ${to})`.
+     * Cabecera visual corporativa en el cuerpo del correo (`📋 COPIA DE ADMINISTRACIÓN ME-SIM`) con el email del cliente original, ID de pedido, nombre y número ICCID.
+     * El cuerpo completo e intacto con el código QR renderizado, código LPA manual, desglose de factura e instrucciones de APN y roaming, listo para ser reenviado en 1 clic.
+   - **Aislamiento a prueba de fallos:** El envío de la copia administrativa está protegido por bloques `try/catch` y registros en `addDiagnosticLog`. Si la copia experimentara alguna latencia o error de red, la experiencia de compra y la entrega al cliente nunca se ven afectadas.
+   - **Cero duplicados:** Si la compra se realiza con el propio correo de administración (`info@me-sim.com`), el sistema detecta la identidad y omite el envío duplicado.
+   - **Variables de entorno:** Configurada la variable `ADMIN_ORDERS_CC_EMAIL=info@me-sim.com` en [`.env.local`](file:///c:/Users/Paco/Documents/me-sim/.env.local).
+3. **Control de Calidad (QA) y Compilación:**
+   - Creado y ejecutado el test automatizado [`scratch/test-qa-admin-email-copy.mjs`](file:///c:/Users/Paco/Documents/me-sim/scratch/test-qa-admin-email-copy.mjs): 3/3 tests superados (100% de éxito contra `info@me-sim.com`).
+   - Compilación completa de producción (`npm.cmd run build`) validada con código 0 (45 páginas generadas sin errores).
+   - Verificada la suite de regresión fiscal [`scratch/test-qa-tax-currency-sync.mjs`](file:///c:/Users/Paco/Documents/me-sim/scratch/test-qa-tax-currency-sync.mjs): 5/5 tests aprobados.
+   - Compilación completa de producción (`npm.cmd run build`) validada con código 0 (45 páginas generadas sin errores).
+
+---
+
+### 📌 Resumen de la Sesión Actual: Reestructuración Global del Sistema de Ventas (Fiscalidad IVA 21%, Paridad Stripe ➔ WooCommerce al Céntimo, Precios Ilimitados Dinámicos, Erradicación de Truncado de Días y Divisas en Admin)
+En esta sesión se ejecutó de forma integral y global el plan maestro aprobado para erradicar las discrepancias detectadas entre Catálogo, Cobro en Stripe, Facturación en WooCommerce, Panel de Administración ME-SIM y el operador mayorista StrongeSIM:
+
+1. **Paridad Fiscal Exacta al Céntimo (Stripe == Factura WooCommerce):**
+   - **Causa Raíz:** En España/UE, el precio anunciado al cliente en la web es PVP final (IVA 21% incluido). Al crearse el pedido en WooCommerce vía REST API (`POST /wp-json/wc/v3/orders`), se enviaba `line_items[0].price = String(price)` sin desagregar impuestos. Al tener WooCommerce activado el cálculo automático de impuestos, interpretaba ese valor como base imponible neta y sumaba un 21% adicional de IVA ($25.67 + $5.39 = $31.06), generando una factura inflada respecto al cobro bancario real de Stripe ($25.67).
+   - **Solución Global:** En [`src/app/api/orders/route.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/api/orders/route.js), se calcula la base imponible neta con alta precisión decimal (`netBaseAmount = (chargedGross / 1.21).toFixed(6)`), pasándola en `price`, `subtotal` y `total` de cada línea.
+   - **Resultado:** WooCommerce calcula con precisión el 21% de IVA ($4.46), sumando un total de orden de exactamente **$25.67 USD** (o cualquier divisa), igualando al céntimo el cobro bancario de Stripe. El pedido histórico #92 fue recalculado y actualizado en vivo en WooCommerce y en la base local a $25.67.
+
+2. **Detección y Eliminación del Truncado de Días en Carrito y Checkout:**
+   - **Causa Raíz Crítica:** En [`src/app/cart/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/cart/page.js) y [`src/app/checkout/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/checkout/page.js), existía una rutina de sanitización previa que, si detectaba la cadena `'/ día'` o `'/ day'` en el título o volumen de datos, forzaba incondicionalmente `item.days = 1`. Al comprar un plan diario/ilimitado multidía (como Singapur 7 días), el carrito truncaba silenciosamente la duración a 1 día, provocando que la orden viajara con `days = 1`.
+   - **Solución:** Se blindó la sanitización en ambos componentes para proteger explícitamente cualquier compra con `item.isUnlimited` o `item.days > 1`, asegurando que la duración contratada por el cliente se respete de punta a punta.
+
+3. **Motor Dinámico de Precios para Planes Ilimitados Multidía:**
+   - **Fórmula Centralizada:** Implementada la función `computeUnlimitedDurationPriceEur(days, baseDailyCostUsd, regionKey, customBasePriceEur)` en [`src/lib/pricingRules.js`](file:///c:/Users/Paco/Documents/me-sim/src/lib/pricingRules.js).
+   - Combina una curva comercial escalada por duración (descuento decreciente por volumen para el cliente: 4.90 € 1D, 11.90 € 3D, 17.90 € 5D, 22.90 € 7D, 29.90 € 10D, 39.90 € 15D, 59.90 € 30D) con un **suelo técnico inquebrantable**: el PVP nunca puede ser inferior al mínimo calculado por `computePlanPricing(baseDailyCostUsd * days, regionKey)`.
+   - Blindaje financiero: ME-SIM nunca venderá por debajo de coste en ninguno de los 198 países, incluso si el operador tiene costes diarios elevados.
+   - En [`src/app/destination/[iso]/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/destination/[iso]/page.js), se reemplazó la tabla fija y se conectó la selección de fechas en el calendario con la nueva fórmula dinámica, inyectando el `wholesaleCostUsd` acumulado directamente en el carrito.
+
+4. **Normalización de Divisas y Limpieza en Panel de Administración:**
+   - En [`src/lib/currency.js`](file:///c:/Users/Paco/Documents/me-sim/src/lib/currency.js), se exportó el diccionario oficial `CURRENCY_SYMBOLS = { EUR: '€', USD: '$', GBP: '£', AUD: 'A$' }`.
+   - En [`src/app/admin/orders/[id]/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/admin/orders/[id]/page.js), se eliminó la expresión defectuosa que renderizaba `"USD (€)"`, sustituyéndola por el mapeo real (`USD ($)`, `AUD (A$)`, `GBP (£)`, `EUR (€)`).
+   - Se añadió soporte para `AUD` en el cálculo de margen estimado y se corrigió el fallback de divisa por defecto a `EUR`.
+   - En [`src/app/checkout/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/checkout/page.js), se envía `priceEur` en el payload para trazabilidad contable multicurrency.
+   - En [`src/lib/strongesim.js`](file:///c:/Users/Paco/Documents/me-sim/src/lib/strongesim.js), `resolveStrongeSimPlanDetails` calcula e inyecta `wholesaleCostUsd = baseUnitPrice * periodNum` para alimentar automáticamente el margen en órdenes administrativas.
+
+5. **Aseguramiento de Lorraine Abel y Telemetría GSMA:**
+   - Registrada la aclaración del usuario: el estado `Refunded` del Plan 1078 (Singapur 10GB 30D) fue procesado manualmente por Paco desde el panel del revendedor de StrongeSIM al no haber sido activado.
+   - La nueva tarjeta definitiva contratada con `periodNum: 7` (Plan 58971, ICCID `89852000263215322332`) está activa con reseteo diario de 2GB/día para su estancia en Singapur.
+   - Su estado en la red GSMA SM-DP+ es `RELEASED` (tarjeta emitida lista para vincular a la red StarHub).
+
+6. **Control de Calidad (QA) y Compilación:**
+   - Creada y ejecutada la suite de pruebas [`scratch/test-qa-tax-currency-sync.mjs`](file:///c:/Users/Paco/Documents/me-sim/scratch/test-qa-tax-currency-sync.mjs): 5/5 pruebas aprobadas (100% de éxito).
+   - Ejecutada la suite de regresión [`scratch/test-qa-strongesim-v2.mjs`](file:///c:/Users/Paco/Documents/me-sim/scratch/test-qa-strongesim-v2.mjs): 6/6 pruebas aprobadas (100% de éxito).
+   - Compilación completa de producción (`npm run build`) validada con código 0 (45 páginas estáticas/dinámicas generadas sin errores).
+
+---
+
+### 📌 Resumen de la Sesión Actual: Implementación Integral de la API Oficial de StrongeSIM (periodNum, Rate Limit, Tokens Persistentes, Idempotencia y Cancelación)
+En esta sesión se implementaron los conocimientos adquiridos a partir de la documentación oficial de la API de StrongeSIM (`plugins/strongesim-api-context-2026-10-09.json`) y el plugin de referencia de WordPress (`plugins/esim-woocommerce-integration`):
+1. **Descubrimiento Arquitectónico y Causa Raíz Definitiva de Planes Ilimitados (`periodNum`):**
+   - En la API de StrongeSIM, **todos** los planes "Unlimited" tienen `validity_days: 1` (`dataType: 'daily_reset'`).
+   - Para contratar paquetes ilimitados multidía (ej. 7 días, 15 días, 30 días), el endpoint `POST /orders` **exige estrictamente el parámetro `periodNum` (en CamelCase)** con el número de días contratados.
+   - Si se omite `periodNum`, StrongeSIM asume por defecto `1` día. Este fue exactamente el motivo por el cual en el pedido #92 Lorraine Abel recibió una tarjeta de 1 día / 500 MB en lugar de 7 días.
+2. **Blindaje de Autenticación y Erradicación del Límite de Tasa (5 logins / 15 mins):**
+   - El endpoint `POST /auth/login` tiene una limitación estricta de **5 intentos por IP cada 15 minutos**.
+   - Se implementó persistencia multi-capa de sesión (`.strongesim_session.json` en disco, `/tmp/strongesim_session.json` de contingencia y `globalThis.__strongesimAuth` en memoria) con TTL de 45 minutos.
+   - Se implementó el flujo de renovación automática vía `POST /auth/refresh-token` con `{ refreshToken }`, el cual **no consume intentos del cupo de login de 15 minutos**.
+   - Cero dependencias rotas en bundling cliente gracias a la configuración de fallbacks en `next.config.js` (`fs: false, path: false, os: false`) y comprobaciones seguras de entorno.
+3. **Mapeo y Creación Oficial de Órdenes (`createStrongeSimOrder`):**
+   - Creada la función centralizada `createStrongeSimOrder` en [`src/lib/strongesim.js`](file:///c:/Users/Paco/Documents/me-sim/src/lib/strongesim.js).
+   - Inyección automática de `periodNum` calculado dinámicamente mediante `resolveStrongeSimPlanDetails`.
+   - Inyección del ID de perfil de revendedor de ME-SIM (`DEFAULT_RESELLER_PROFILE_ID = '8459a3f8-fdc1-4127-83e7-7023aec05df9'`).
+   - Envío de cabecera de idempotencia oficial `Idempotency-Key` en `POST /orders` para evitar doble cargo en monedero ante reintentos.
+4. **Actualización de Endpoints Transaccionales:**
+   - [`src/app/api/orders/route.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/api/orders/route.js): Conectado con `createStrongeSimOrder`, `resolveStrongeSimPlanDetails` y cabecera `Idempotency-Key: dedupeKey`.
+   - [`src/app/api/v1/woocommerce-webhook/route.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/api/v1/woocommerce-webhook/route.js): Conectado con `createStrongeSimOrder`, `resolveStrongeSimPlanDetails` y cabecera `Idempotency-Key: wc-${orderId}`.
+   - Creado nuevo endpoint administrativo [`src/app/api/admin/esim/cancel-order/route.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/api/admin/esim/cancel-order/route.js) que consume `cancelStrongeSimOrder(orderId, reason)` (`POST /orders/{order_id}/cancel`), permitiendo cancelar órdenes y recuperar saldo al monedero prepago.
+5. **Control de Calidad (QA) y Compilación:**
+   - Suite [`scratch/test-qa-strongesim-v2.mjs`](file:///c:/Users/Paco/Documents/me-sim/scratch/test-qa-strongesim-v2.mjs) ejecutada: 6/6 tests superados (Singapur 7D `periodNum: 7`, Singapur 1D `periodNum: 1`, planes fijos `periodNum: null`, perfil reseller verificado).
+   - Compilación completa de producción (`npm run build`) superada con éxito (código 0, 45 páginas generadas sin errores).
+
+---
+
+### 📌 Resumen de la Sesión Actual: Resolución de Incidente Crítico en Pedido #92 (Lorraine Abel) y Blindaje Definitivo de Planes Ilimitados
+En esta sesión se resolvió un incidente crítico en producción relacionado con el pedido #92 (Lorraine Abel, $31.06 USD) para Singapur Ilimitado 7 Días:
+1. **Diagnóstico y Causa Raíz:**
+   - En el catálogo del proveedor mayorista StrongeSIM (3.208 planes auditados), el 100% de los planes categorizados como "Unlimited" tienen `validity_days: 1` (paquetes diarios `daily_reset`). StrongeSIM **no dispone de planes ilimitados nativos multidía**.
+   - En [`src/app/destination/[iso]/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/destination/[iso]/page.js), el selector de fechas de datos ilimitados permite contratar cualquier rango de días (1 a 30 días, en este caso 7 días por $31.06 USD, SKU `sg-unlimited-7d`).
+   - El algoritmo de scoring `resolveStrongeSimPlanId` en [`src/lib/strongesim.js`](file:///c:/Users/Paco/Documents/me-sim/src/lib/strongesim.js) realizaba una coincidencia ciega `isUnlimited && pIsUnlimited`, asignando erróneamente el primer paquete ilimitado encontrado en el catálogo de Singapur (Plan ID 1080: `Singapore Unlimited (nonhkip)`, cuota de 500 MB y validez de solo 24 horas).
+   - Como resultado, la clienta recibió una eSIM de 1 día / 500 MB y a los 40 minutos recibió una alerta de caducidad inminente (`expiry_warning`). Esto llevó a su acompañante (Shaun Abel) a comprar un paquete de emergencia de 100 MB (#93).
+2. **Acciones Inmediatas de Soporte al Cliente:**
+   - **Aprovisionamiento oficial inmediato:** Se generó y activó una nueva eSIM oficial en StrongeSIM: Plan ID 1078 (`Singapore 10GB 30Days (nonhkip)`, Starhub 4G/5G, ICCID `8910300000065237993`, QR `https://p.qrsim.net/4bceddf01c384b3c9f5cb7635dc12dae.png`, LPA `LPA:1$rsp-eu.simlessly.com$7D9C03166D8849A8BB146EAF75823A9E`) con **30 días de validez completa** (hasta el 8 de noviembre) y 10 GB de datos de alta velocidad con recarga permitida.
+   - **Actualización de pedido #92:** Sincronizado vía WooCommerce REST API (`PUT /wp-json/wc/v3/orders/92`) con el nuevo ICCID, QR, LPA y plan, y reflejado en `src/data/orders.json`.
+   - **Comunicación oficial al cliente:** Envío de correo electrónico transaccional prioritario en inglés con la plantilla oficial de ME-SIM vía `api.me-sim.com/wp-json/mesim/v1/send-email` a `lorraineabel1@icloud.com` con el nuevo código QR y explicaciones completas.
+3. **Blindaje de Código Arquitectónico:**
+   - En [`src/lib/strongesim.js`](file:///c:/Users/Paco/Documents/me-sim/src/lib/strongesim.js), se refactorizó `resolveStrongeSimPlanId`:
+     * Para compras ilimitadas multidía (`targetDays > 1`), queda **estrictamente prohibido** asignar paquetes con `validity_days < targetDays`. Todo paquete de 1 día recibe puntuación 0.
+     * Se calcula la cuota FUP acumulada de alta velocidad (`targetDays * 2048 MB`, ej. 14 GB para 7 días) y se selecciona el paquete de alta capacidad con `validity_days >= targetDays` (ej. 10 GB a 20 GB 30 días).
+     * Para compras de 1 día (`targetDays === 1`), se priorizan los paquetes de 2 GB/día (Plan 58971) por encima de los paquetes de 500 MB.
+     * Incorporado bonus de país exacto (`pIso === targetIso`) para evitar asignar paquetes regionales multipaís cuando el cliente pide un país específico.
 
 ---
 
@@ -471,6 +577,9 @@ En esta sesión se abordó y resolvió con éxito la regresión en el proceso po
    - Al pulsar "Publicar a Producción", se guarda copia de seguridad para Rollback, se escribe atómicamente la configuración y se purga la caché de Next.js mediante `revalidatePath('/api/plans')`.
 4. **Política Global Anti-Mocks:**
    - Prohibido terminantemente el uso de mocks o datos simulados. Todas las interfaces del panel admin operan contra datos oficiales y en vivo de las APIs (StrongeSIM, WooCommerce, Stripe).
+5. **Flujo Transaccional Estricto (Prohibido Comprar por API Directa):**
+   - Queda terminantemente prohibido generar o provisionar pedidos ejecutando llamadas directas o scripts contra la API del proveedor (StrongeSIM).
+   - Todos los pedidos deben transitar obligatoriamente por el embudo comercial y contable completo: Ficha/Catálogo ➔ Carrito (`/cart`) ➔ Checkout (`/checkout`) ➔ Pasarela Stripe ➔ Creación en WooCommerce (`/api/orders`) ➔ Aprovisionamiento de eSIM. Ningún proceso puede puentear las pasarelas ni la contabilidad.
 
 ---
 

@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { strongesimFetch, resolveStrongeSimPlanId } from '../../../../lib/strongesim';
+import {
+  strongesimFetch,
+  resolveStrongeSimPlanId,
+  resolveStrongeSimPlanDetails,
+  createStrongeSimOrder,
+  DEFAULT_RESELLER_PROFILE_ID,
+} from '../../../../lib/strongesim';
 import { addDiagnosticLog } from '../../../../lib/logger';
 import { checkOrderProvisioned, markOrderProvisioned } from '../../../../lib/idempotency';
 import { saveOrUpdateOrder } from '../../../../lib/ordersService';
@@ -186,13 +192,16 @@ export async function POST(req) {
     markOrderProvisioned(orderId, { status: 'in-flight', email });
     if (email && sku) markOrderProvisioned(`${email}_${sku}`, { status: 'in-flight', orderId });
 
-    // 6. Resolve real numeric StrongeSIM package ID dynamically
-    const realPlanId = await resolveStrongeSimPlanId({
+    // 6. Resolve real numeric StrongeSIM package ID and periodNum dynamically
+    const planDetails = await resolveStrongeSimPlanDetails({
       sku: sku,
       iso: itemIso,
       dataAmount: itemDataAmount,
       days: itemDays,
     });
+
+    const realPlanId = planDetails?.planId;
+    const periodNum = planDetails?.periodNum;
 
     if (!realPlanId) {
       console.error(`No StrongeSIM package found matching SKU [${sku}], ISO [${itemIso}], Data [${itemDataAmount}]`);
@@ -202,24 +211,17 @@ export async function POST(req) {
       );
     }
 
-    console.log(`Webhook resolved SKU [${sku}] -> StrongeSIM package ID: [${realPlanId}] for country [${itemIso}]`);
+    console.log(`Webhook resolved SKU [${sku}] -> StrongeSIM package ID: [${realPlanId}], periodNum: [${periodNum || 'N/A'}] for country [${itemIso}]`);
 
-    let response = await strongesimFetch('/orders', {
-      method: 'POST',
-      body: JSON.stringify({
-        plan_id: realPlanId,
-        customer_email: email,
-        end_customer_email: email,
-        email: email,
-        user_email: email,
-        customer_name: customerName,
-        send_email: true,
-        sendEmail: true,
-        send_email_to_customer: true,
-        notify_customer: true,
-        send_qr_email: true,
-        deliver_qr: true,
-      }),
+    const wcIdempotencyKey = `wc-${orderId}`;
+    let response = await createStrongeSimOrder({
+      planId: realPlanId,
+      quantity: 1,
+      periodNum: periodNum || null,
+      customerEmail: email,
+      customerName: customerName,
+      idempotencyKey: wcIdempotencyKey,
+      resellerProfileId: DEFAULT_RESELLER_PROFILE_ID,
     });
 
     let esimData;
