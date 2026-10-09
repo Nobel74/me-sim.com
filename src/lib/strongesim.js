@@ -647,21 +647,21 @@ export async function fetchEsimProfileTelemetry(esimTranNo, orderId = null, stro
   if (!esimTranNo && !orderId && !strongesimOrderId) return null;
 
   try {
-    let targetIccid = esimTranNo && !esimTranNo.includes('-') && /^\d+$/.test(String(esimTranNo).trim()) ? String(esimTranNo).trim() : (esimTranNo || '');
+    let targetIccid = esimTranNo && !String(esimTranNo).includes('-') && /^\d+$/.test(String(esimTranNo).trim()) ? String(esimTranNo).trim() : (esimTranNo ? String(esimTranNo) : '');
     let orderQrCodeUrl = null;
     let orderLpaString = null;
     let orderEid = null;
 
     // Determinar candidatos a identificador de orden en StrongeSIM (UUID o ID)
     const orderCandidates = [
-      strongesimOrderId,
+      strongesimOrderId ? String(strongesimOrderId) : null,
       (typeof esimTranNo === 'string' && esimTranNo.includes('-')) ? esimTranNo : null,
       (typeof orderId === 'string' && orderId.includes('-')) ? orderId : null,
-      orderId,
+      orderId ? String(orderId) : null,
     ].filter(Boolean);
 
     // Si aún no tenemos targetIccid o esimTranNo es UUID, buscar primero en /orders/{targetOrderId}
-    if ((!targetIccid || targetIccid.includes('-')) && orderCandidates.length > 0) {
+    if ((!targetIccid || String(targetIccid).includes('-')) && orderCandidates.length > 0) {
       for (const targetOrderId of orderCandidates) {
         try {
           const orderRes = await strongesimFetch(`/orders/${encodeURIComponent(targetOrderId)}`, { cache: 'no-store' });
@@ -704,7 +704,7 @@ export async function fetchEsimProfileTelemetry(esimTranNo, orderId = null, stro
     // 2. Consulta por orden StrongeSIM (v2 order-usage o v1 orders/:id/usage)
     let v2UsageData = null;
     for (const targetOrderId of orderCandidates) {
-      if (!targetOrderId || !targetOrderId.includes('-')) continue;
+      if (!targetOrderId || !String(targetOrderId).includes('-')) continue;
 
       try {
         const resV2 = await strongesimFetch(`/api/v2/order-usage/${encodeURIComponent(targetOrderId)}`, { cache: 'no-store' });

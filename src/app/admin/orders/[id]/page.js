@@ -531,7 +531,8 @@ export default function AdminOrderDetailPage() {
                 percentageUsed: 0,
               };
               const totalMb = t.totalMb || extractTotalMbFromOrder(order);
-              const usedMb = Number(t.usedMb || 0);
+              const usedBytes = Number(t.usedBytes || 0);
+              const usedMb = Number(t.usedMb || (usedBytes > 0 ? usedBytes / (1024 * 1024) : 0));
               const pct = totalMb > 0 ? Math.min(100, Math.max(0, parseFloat(((usedMb / totalMb) * 100).toFixed(1)))) : 0;
               return (
                 <div className="space-y-2 pt-1">
@@ -540,8 +541,10 @@ export default function AdminOrderDetailPage() {
                       {isEn ? 'Data Consumed in Real-Time:' : 'Consumo en Tiempo Real:'}
                     </span>
                     <span className={`font-black font-mono ${isDark ? 'text-white' : 'text-zinc-950'}`}>
-                      {totalMb < 1000
-                        ? `${usedMb.toFixed(1)} MB ${isEn ? 'of' : 'de'} ${Math.round(totalMb)} MB (${pct}%)`
+                      {usedBytes > 0 && usedBytes < 1024 * 1024
+                        ? `${(usedBytes / 1024).toFixed(1)} KB ${isEn ? 'of' : 'de'} ${totalMb < 1000 ? Math.round(totalMb) + ' MB' : (totalMb / 1024).toFixed(1) + ' GB'} (${usedBytes > 0 && pct === 0 ? '<0.1%' : pct + '%'})`
+                        : totalMb < 1000
+                        ? `${usedMb.toFixed(usedMb < 1 && usedMb > 0 ? 2 : 1)} MB ${isEn ? 'of' : 'de'} ${Math.round(totalMb)} MB (${pct}%)`
                         : usedMb > 0 && usedMb < 10
                         ? `${usedMb.toFixed(2)} MB ${isEn ? 'of' : 'de'} ${(totalMb / 1024).toFixed(1)} GB (${pct}%)`
                         : `${(usedMb / 1024).toFixed(2)} GB ${isEn ? 'of' : 'de'} ${(totalMb / 1024).toFixed(1)} GB (${pct}%)`}

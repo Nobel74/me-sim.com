@@ -271,6 +271,24 @@ export default function AdminDashboardPage() {
         label: isEn ? 'Processing' : 'En proceso',
       };
     }
+    if (norm === 'refunded') {
+      return {
+        classes: isDark
+          ? 'bg-zinc-800 text-zinc-300 border border-zinc-700'
+          : 'bg-zinc-100 text-zinc-700 border border-zinc-300',
+        dotClass: 'bg-zinc-400',
+        label: isEn ? 'Refunded' : 'Reembolsado',
+      };
+    }
+    if (norm === 'expired') {
+      return {
+        classes: isDark
+          ? 'bg-red-950/60 text-red-400 border border-red-800/60'
+          : 'bg-red-50 text-red-700 border border-red-200',
+        dotClass: 'bg-red-500',
+        label: isEn ? 'Expired' : 'Expirado',
+      };
+    }
     if (norm === 'cancelled' || norm === 'failed') {
       return {
         classes: isDark
@@ -624,12 +642,13 @@ export default function AdminDashboardPage() {
     localStorage.setItem('mesim_admin_currency', curr);
   };
 
-  // Base metrics from active store orders (Ian Rudrum & Mark Forrest: 4 completed purchases in GBP of £8.17):
-  const totalOrderCount = orders.length || 4;
+  // Base metrics from active store orders (customer purchases):
+  const storeOrders = orders.filter((o) => o.source !== 'strongesim_provider' || parseFloat(o.amount) > 0);
+  const totalOrderCount = storeOrders.length || 4;
   const baseGrossRevenueGbp = orders
     .filter((o) => o.currency === 'GBP')
     .reduce((acc, o) => acc + (parseFloat(o.amount) || 0), 0) || 32.68;
-  const baseWholesaleUsd = orders.reduce((acc, o) => acc + (parseFloat(o.wholesaleCostUsd) || 2.34), 0) || 9.36;
+  const baseWholesaleUsd = storeOrders.reduce((acc, o) => acc + (parseFloat(o.wholesaleCostUsd) || 2.34), 0) || 9.36;
   const baseGatewayFeesGbp = 2.16; // Stripe UK ~£ 2.16
   const baseCreditBalanceUsd = metrics?.creditBalance !== undefined && metrics?.creditBalance !== null ? metrics.creditBalance : 20.15;
 
@@ -1045,7 +1064,8 @@ export default function AdminDashboardPage() {
                     percentageUsed: 0,
                   };
                   const totalMb = telem.totalMb || extractTotalMbFromOrder(order);
-                  const usedMb = Number(telem.usedMb || 0);
+                  const usedBytes = Number(telem.usedBytes || 0);
+                  const usedMb = Number(telem.usedMb || (usedBytes > 0 ? usedBytes / (1024 * 1024) : 0));
                   const pct = totalMb > 0 ? Math.min(100, Math.max(0, parseFloat(((usedMb / totalMb) * 100).toFixed(1)))) : 0;
 
                   return (
@@ -1102,8 +1122,10 @@ export default function AdminDashboardPage() {
                             {order.plan || order.title}
                           </span>
                           <span className={`font-mono text-[11px] flex-shrink-0 font-bold ${isDark ? 'text-white' : 'text-zinc-900'}`}>
-                            {totalMb < 1000
-                              ? `${usedMb.toFixed(1)} / ${Math.round(totalMb)} MB (${pct}%)`
+                            {usedBytes > 0 && usedBytes < 1024 * 1024
+                              ? `${(usedBytes / 1024).toFixed(1)} KB / ${totalMb < 1000 ? Math.round(totalMb) + ' MB' : (totalMb / 1024).toFixed(1) + ' GB'} (${usedBytes > 0 && pct === 0 ? '<0.1%' : pct + '%'})`
+                              : totalMb < 1000
+                              ? `${usedMb.toFixed(usedMb < 1 && usedMb > 0 ? 2 : 1)} / ${Math.round(totalMb)} MB (${pct}%)`
                               : `${(usedMb / 1024).toFixed(2)} / ${(totalMb / 1024).toFixed(1)} GB (${pct}%)`}
                           </span>
                         </div>
@@ -1192,7 +1214,8 @@ export default function AdminDashboardPage() {
                         percentageUsed: 0,
                       };
                       const totalMb = telem.totalMb || extractTotalMbFromOrder(order);
-                      const usedMb = Number(telem.usedMb || 0);
+                      const usedBytes = Number(telem.usedBytes || 0);
+                      const usedMb = Number(telem.usedMb || (usedBytes > 0 ? usedBytes / (1024 * 1024) : 0));
                       const pct = totalMb > 0 ? Math.min(100, Math.max(0, parseFloat(((usedMb / totalMb) * 100).toFixed(1)))) : 0;
                       const orderBadge = getOrderStatusBadge(order.status);
 
@@ -1248,14 +1271,16 @@ export default function AdminDashboardPage() {
                                 </div>
                                 <span className="text-[11px] font-mono whitespace-nowrap">
                                   <span className={isDark ? 'text-zinc-300' : 'text-zinc-700'}>
-                                    {totalMb < 1000
-                                      ? `${usedMb.toFixed(1)} / ${Math.round(totalMb)} MB`
+                                    {usedBytes > 0 && usedBytes < 1024 * 1024
+                                      ? `${(usedBytes / 1024).toFixed(1)} KB / ${totalMb < 1000 ? Math.round(totalMb) + ' MB' : (totalMb / 1024).toFixed(1) + ' GB'}`
+                                      : totalMb < 1000
+                                      ? `${usedMb.toFixed(usedMb < 1 && usedMb > 0 ? 2 : 1)} / ${Math.round(totalMb)} MB`
                                       : usedMb > 0 && usedMb < 10
                                       ? `${usedMb.toFixed(2)} MB / ${(totalMb / 1024).toFixed(1)} GB`
                                       : `${(usedMb / 1024).toFixed(2)} / ${(totalMb / 1024).toFixed(1)} GB`}
                                   </span>
-                                  <span className={`font-bold ml-1 ${pct >= 90 ? 'text-red-500' : pct >= 70 ? 'text-amber-500' : pct > 0 ? 'text-emerald-500' : (isDark ? 'text-zinc-500' : 'text-zinc-400')}`}>
-                                    ({pct}%)
+                                  <span className={`font-bold ml-1 ${pct >= 90 ? 'text-red-500' : pct >= 70 ? 'text-amber-500' : (pct > 0 || usedBytes > 0) ? 'text-emerald-500' : (isDark ? 'text-zinc-500' : 'text-zinc-400')}`}>
+                                    ({usedBytes > 0 && pct === 0 ? '<0.1%' : `${pct}%`})
                                   </span>
                                 </span>
                               </div>

@@ -42,39 +42,43 @@ export function getEsimStatusInfo(telemetry, order = null, isEn = false) {
     } catch {}
   }
 
-  const isCancelled = order?.status?.toLowerCase() === 'cancelled' || order?.status?.toLowerCase() === 'refunded';
+  const isCancelled = order?.status?.toLowerCase() === 'cancelled' || order?.status?.toLowerCase() === 'refunded' || esim.includes('CANCEL');
 
-  const isFinished =
-    isCancelled ||
-    smdp.includes('DELETED') ||
-    smdp.includes('EXPIRED') ||
-    smdp.includes('TERMINATED') ||
-    esim.includes('DELETED') ||
-    esim.includes('EXPIRED') ||
-    esim.includes('FINISHED') ||
-    esim.includes('CANCEL') ||
-    percentageUsed >= 100 ||
-    isExpiredByDate;
-
-  // 1. ROJO: "Finalizado"
-  if (isFinished) {
-    const rawParts = [esim, smdp].filter(Boolean);
+  // 1. GRIS: "Reembolsada" (CANCEL en StrongeSIM o reembolsada en tienda)
+  if (isCancelled || esim.includes('CANCEL')) {
+    const rawParts = [esim || 'CANCEL', smdp || 'RELEASED'].filter(Boolean);
     return {
-      statusKey: 'finished',
-      label: isEn ? 'Finished' : 'Finalizado',
-      colorName: 'red',
-      dotClass: 'bg-red-500',
-      textClass: 'text-red-600 dark:text-red-400',
-      badgeClass: 'bg-red-500/15 text-red-700 dark:text-red-400 border border-red-500/30',
-      rawTechnical: rawParts.length > 0 ? rawParts.join(' / ') : 'DELETED',
+      statusKey: 'refunded',
+      label: isEn ? 'Refunded' : 'Reembolsada',
+      colorName: 'zinc',
+      dotClass: 'bg-zinc-400',
+      textClass: 'text-zinc-400',
+      badgeClass: 'bg-zinc-800 text-zinc-300 border border-zinc-700',
+      rawTechnical: rawParts.join(' / '),
     };
   }
 
-  // 2. VERDE: "Activa"
-  // Si la tarjeta está consumiendo datos en la red (> 0 MB) y no ha finalizado
-  const hasTraffic = usedBytes > 0 || usedMb > 0 || percentageUsed > 0;
+  // 2. ROJO: "Expirada" (Fin de ciclo de validez o fecha expirada)
+  const isExpired = isExpiredByDate || smdp.includes('EXPIRED') || esim.includes('EXPIRED') || smdp.includes('DELETED') || smdp.includes('TERMINATED') || percentageUsed >= 100;
+  if (isExpired) {
+    const rawParts = [esim || 'EXPIRED', smdp || 'EXPIRED'].filter(Boolean);
+    return {
+      statusKey: 'expired',
+      label: isEn ? 'Expired' : 'Expirada',
+      colorName: 'red',
+      dotClass: 'bg-red-500',
+      textClass: 'text-red-500 dark:text-red-400',
+      badgeClass: 'bg-red-500/15 text-red-700 dark:text-red-400 border border-red-500/30',
+      rawTechnical: rawParts.length > 0 ? rawParts.join(' / ') : 'EXPIRED',
+    };
+  }
 
-  if (hasTraffic) {
+  // 3. VERDE: "Activa"
+  // Si la tarjeta está consumiendo datos en la red (> 0 MB) o está ENABLED / IN_USE en la red
+  const hasTraffic = usedBytes > 0 || usedMb > 0 || percentageUsed > 0;
+  const isOperatorActive = esim.includes('IN_USE') || smdp.includes('ENABLED') || esim.includes('ACTIVATED') || esim.includes('ACTIVE');
+
+  if (hasTraffic || isOperatorActive) {
     const rawParts = [esim || 'ACTIVE', smdp || 'IN_USE'].filter(Boolean);
     return {
       statusKey: 'active',

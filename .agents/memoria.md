@@ -1,6 +1,43 @@
 # 📝 Memoria del Proyecto y Bitácora de Sesiones - ME-SIM.COM
 
-## 📅 Última Actualización: 9 de Octubre de 2026 - 14:48 CEST
+## 📅 Última Actualización: 9 de Octubre de 2026 - 16:38 CEST
+
+---
+
+### 📌 Resumen de la Sesión Actual: Paridad 100% con Panel StrongeSIM, Reconciliación de Pedidos #92/#93 y Resolución de Expiración y Telemetría en Pedidos #89/#90
+En esta sesión se resolvió la discrepancia entre el panel de proveedor (StrongeSIM) y el Panel de Administrador de ME-SIM, logrando un reflejo fiel al 100% de la realidad del operador:
+1. **Requerimiento y Directiva Estricta del Usuario:**
+   - La realidad del panel de administración de ME-SIM debe ser un reflejo exacto y al 100% de lo que existe en el panel del proveedor StrongeSIM (incluyendo todas las 61 órdenes: activas, finalizadas, reembolsadas, caducadas y órdenes directas).
+   - **Regla Estricta (Red Flag):** Prohibido terminantemente realizar pedidos por API directa de espaldas al flujo comercial; todos los pedidos deben pasar sin excepción por el carrito, WooCommerce y Stripe.
+   - En los pedidos **#89 (Ian Rudrum)** y **#90 (Mark Forrest)**, resolver por qué no mostraban telemetría y figuraban en estado erróneo cuando en StrongeSIM están expirados con consumos reales confirmados.
+   - En el pedido #92 (Lorraine Abel), reconciliar la eSIM activa que la clienta tiene instalada en su iPhone (`8910300000065231133`), separándola de la devuelta/cancelada (`89852000263215322332`).
+   - En el pedido #93 (Shaun Abel), mostrar la telemetría viva con consumo real de datos con máxima precisión (KB si es menor de 1 MB) e indicador de estado activo.
+2. **Causa Raíz de los Pedidos #89 y #90 (Diagnóstico):**
+   - En `src/lib/strongesim.js` (`fetchEsimProfileTelemetry`), la búsqueda por ID recibía `orderId` numérico de WooCommerce (`90`). Al ejecutar `targetOrderId.includes('-')` arrojaba `TypeError: targetOrderId.includes is not a function`, abortando silenciosamente la consulta de telemetría y dejando las órdenes con fallback a 0 MB y estado "Instalada (Sin Activar)".
+   - Además, en `src/app/api/admin/orders/route.js`, al mapear `strongesimOrders` faltaba la condición `else if (sOrd.status === 'expired')`, provocando que las órdenes expiradas en el proveedor no heredasen el estado `USED_EXPIRED`.
+   - **Corrección:** Se blindó la conversión de identificadores a cadena segura (`String(targetOrderId)`) y se integró el estado `expired`.
+   - **Datos Reales de Operador Sincronizados:**
+     * **Pedido #89 (Ian Rudrum):** 576.55 MB consumidos de 1024 MB (56.3%), estado **Expirada** (Rojo), desactivada en SM-DP+ (`DELETED`), expirada el 2 de octubre.
+     * **Pedido #90 (Mark Forrest):** 700.19 MB consumidos de 1024 MB (68.4%), estado **Expirada** (Rojo), desactivada en SM-DP+ (`DISABLED`), expirada el 2 de octubre.
+     * **Pedido #84 y #85:** Sincronizados y confirmados con sus consumos reales históricos (39.2% y 42.3%) y estado Expirada.
+2. **Sincronización Total con StrongeSIM (`src/app/api/admin/orders/route.js`):**
+   - Integración de `strongesimFetch('/orders?status=all&limit=100')` para recuperar las 61 órdenes del proveedor.
+   - Cruzado bidireccional contra WooCommerce y la base local por `iccid` y `strongesimOrderId`.
+   - Las órdenes directas, históricas o devueltas en StrongeSIM sin pedido de WooCommerce asociado se inyectan limpiamente en la tabla con su referencia (`#030052B4`, `#17AEDC11`, `#BEBC85E0`, etc.), plan, coste mayorista, estado oficial (`Refunded`, `Expired`, `Completed`, `Failed`) y credenciales.
+   - Blindaje de métricas financieras de tienda: ingresos, comisiones de pasarela y costes mayoristas se calculan sobre las ventas de tienda para evitar distorsiones de margen.
+3. **Reconciliación Real del Pedido #92 (Lorraine Abel):**
+   - Actualización en WooCommerce (`PUT /wp-json/wc/v3/orders/92`) y en `src/data/orders.json` asociando la tarjeta que Lorraine instaló y activó en su iPhone: ICCID `8910300000065231133`, QR `https://p.qrsim.net/f9bdbec8ccc448f7b90c4a2519c80b72.png`, LPA `LPA:1$rsp-eu.simlessly.com$01A88F893EC64C0289C0BBBB82D9B779`.
+   - Estado: `Completed` / Activa (`IN_USE`, `ENABLED`).
+   - La orden cancelada `030052B4` (`89852000263215322332`) figura de forma independiente en el panel con estado `Refunded` / Reembolsado.
+4. **Telemetría Viva y Formato de Alta Precisión (`src/app/admin/page.js` y `src/app/admin/orders/[id]/page.js`):**
+   - En el pedido #93 (Shaun Abel), el operador devuelve `usedBytes: 18816` (0.018 MB). El sistema anterior aplicaba `toFixed(1)` sobre 0.02 MB mostrando `0.0 MB (0%)`.
+   - Se implementó formateo de alta precisión: consumos menores a 1 MB se representan en KB (`18.4 KB / 100 MB (<0.1%)`).
+   - Se añadió soporte en `getOrderStatusBadge` y `getEsimStatusInfo` (`src/lib/esimStatus.js`) para distinguir tarjetas `Active` (verde), `Refunded` (gris) y `Expired` (rojo).
+5. **Verificación y Pruebas (QA):**
+   - Ejecutado script de verificación contra la API autenticada: 61/61 pedidos sincronizados.
+   - Pedido #92 verificado como Activo (`8910300000065231133`).
+   - Pedido #93 verificado con telemetría en vivo (`usedBytes: 18816`).
+   - Compilación completa de producción (`npm run build`) superada con 0 errores.
 
 ---
 

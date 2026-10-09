@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server.js';
 import { getAdminSessionFromRequest } from '../../../../lib/adminAuth.js';
-import { fetchEsimProfileTelemetry, fetchStrongeSimBalance } from '../../../../lib/strongesim.js';
+import { fetchEsimProfileTelemetry, fetchStrongeSimBalance, strongesimFetch } from '../../../../lib/strongesim.js';
 import { getLocalOrders } from '../../../../lib/ordersService.js';
 import { extractTotalMbFromOrder, resolveUniversalTelemetry, getOrderTelemetryWithCache } from '../../../../lib/universalTelemetry.js';
 
@@ -223,52 +223,171 @@ export async function GET(request) {
       }
     }
 
-    // Ordenar de forma descendente por número de pedido o fecha de creación
+    // =========================================================================
+    // INTEGRACIÓN 100% CON STRONGESIM: Obtener todos los pedidos del operador
+    // =========================================================================
+    try {
+      const sRes = await strongesimFetch('/orders?status=all&limit=100');
+      if (sRes.ok) {
+        const sData = await sRes.json();
+        const strongesimOrders = Array.isArray(sData?.data) ? sData.data : [];
+
+        // Mapear órdenes existentes de WooCommerce / Tienda por ICCID y por strongesimOrderId
+        const existingByIccid = new Map();
+        const existingByStrongesimId = new Map();
+        for (const ord of ordersList) {
+          if (ord.realIccid) existingByIccid.set(String(ord.realIccid).trim(), ord);
+          if (ord.esimTranNo) existingByIccid.set(String(ord.esimTranNo).trim(), ord);
+          if (ord.strongesimOrderId) existingByStrongesimId.set(String(ord.strongesimOrderId).trim(), ord);
+        }
+
+        for (const sOrd of strongesimOrders) {
+          const sIccid = String(sOrd.iccid || '').trim();
+          const sId = String(sOrd.id || '').trim();
+          const matched = (sIccid && existingByIccid.get(sIccid)) || (sId && existingByStrongesimId.get(sId));
+
+          if (matched) {
+            // Enriquecer el pedido oficial existente con los datos reales del operador
+            if (!matched.strongesimOrderId && sId) matched.strongesimOrderId = sId;
+            if (sOrd.price_charged) matched.wholesaleCostUsd = parseFloat(sOrd.price_charged);
+            if (sOrd.qr_code_url && (!matched.qrCodeUrl || matched.qrCodeUrl.includes('api.qrserver.com'))) {
+              matched.qrCodeUrl = sOrd.qr_code_url;
+            }
+            if (sOrd.activation_code && (!matched.lpaString || !matched.lpaString.startsWith('LPA:1$rsp-'))) {
+              matched.lpaString = sOrd.activation_code;
+            }
+            if (sOrd.status === 'cancelled') {
+              matched.status = 'Refunded';
+              matched.telemetry = {
+                ...(matched.telemetry || {}),
+                esimStatus: 'CANCEL',
+                smdpStatus: 'RELEASED',
+              };
+            } else if (sOrd.status === 'expired') {
+              matched.telemetry = {
+                ...(matched.telemetry || {}),
+                esimStatus: 'USED_EXPIRED',
+                expiredTime: matched.telemetry?.expiredTime || sOrd.updated_at || sOrd.created_at,
+              };
+            } else if (sOrd.status === 'activated') {
+              matched.telemetry = {
+                ...(matched.telemetry || {}),
+                esimStatus: 'IN_USE',
+                smdpStatus: 'ENABLED',
+              };
+            }
+          } else {
+            // Orden presente en StrongeSIM pero sin pedido WooCommerce directo (ej. reembolsadas o históricas)
+            const shortRef = sId ? sId.slice(0, 8).toUpperCase() : 'ESIM';
+            const sStatus = sOrd.status || '';
+
+            let mappedStatus = 'Completed';
+            let esimStatus = 'GOT_RESOURCE';
+            let smdpStatus = 'RELEASED';
+            if (sStatus === 'activated') {
+              mappedStatus = 'Completed';
+              esimStatus = 'IN_USE';
+              smdpStatus = 'ENABLED';
+            } else if (sStatus === 'cancelled') {
+              mappedStatus = 'Refunded';
+              esimStatus = 'CANCEL';
+              smdpStatus = 'RELEASED';
+            } else if (sStatus === 'expired') {
+              mappedStatus = 'Completed';
+              esimStatus = 'EXPIRED';
+              smdpStatus = 'EXPIRED';
+            } else if (sStatus === 'failed') {
+              mappedStatus = 'Failed';
+              esimStatus = 'FAILED';
+              smdpStatus = 'NOT_ISSUED';
+            }
+
+            const totalMb = sOrd.plan?.data_volume_mb || 1024;
+            const createdDate = sOrd.created_at || sOrd.createdAt || new Date().toISOString();
+
+            ordersList.push({
+              orderId: shortRef,
+              customerName: sOrd.customer_name || (sOrd.end_customer_email ? sOrd.end_customer_email.split('@')[0] : 'Cliente StrongeSIM'),
+              customerEmail: sOrd.end_customer_email || '',
+              title: sOrd.plan?.name || `eSIM Plan (${totalMb}MB)`,
+              plan: sOrd.plan?.name || `eSIM Plan (${totalMb}MB)`,
+              amount: parseFloat(sOrd.price_charged || 0),
+              originalAmount: parseFloat(sOrd.price_charged || 0),
+              priceEur: parseFloat(sOrd.price_charged || 0),
+              currency: (sOrd.currency || 'USD').toUpperCase(),
+              status: mappedStatus,
+              date: createdDate.slice(0, 10),
+              createdAt: createdDate,
+              paymentMethod: 'StrongeSIM Direct',
+              esimTranNo: sIccid,
+              realIccid: sIccid,
+              strongesimOrderId: sId,
+              qrCodeUrl: sOrd.qr_code_url || '',
+              lpaString: sOrd.activation_code || '',
+              wholesaleCostUsd: parseFloat(sOrd.price_charged || 0),
+              country: sOrd.plan?.country_code || '',
+              source: 'strongesim_provider',
+              telemetry: {
+                totalBytes: totalMb * 1024 * 1024,
+                usedBytes: 0,
+                totalMb,
+                usedMb: 0,
+                percentageUsed: 0,
+                esimStatus,
+                smdpStatus,
+                activateTime: null,
+                installationTime: null,
+                expiredTime: null,
+                source: 'strongesim_provisioned',
+              },
+            });
+          }
+        }
+      }
+    } catch (strongesimErr) {
+      console.warn('StrongeSIM orders fetch error:', strongesimErr.message);
+    }
+
+    // Ordenar de forma descendente por fecha de creación o número de pedido
     ordersList.sort((a, b) => {
+      const dateA = new Date(a.createdAt || a.date).getTime() || 0;
+      const dateB = new Date(b.createdAt || b.date).getTime() || 0;
+      if (dateB !== dateA) return dateB - dateA;
       const numA = parseInt(a.orderId, 10);
       const numB = parseInt(b.orderId, 10);
       if (!isNaN(numA) && !isNaN(numB)) return numB - numA;
-      return new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date);
+      return String(b.orderId).localeCompare(String(a.orderId));
     });
 
-    // Enriquecer cada pedido con telemetría viva y datos de operador sincronizados de StrongeSIM
+    // Enriquecer pedidos activos con telemetría viva de operador en tiempo real
     await Promise.allSettled(
       ordersList.map(async (order) => {
-        const needsOperatorSync = !order.qrCodeUrl ||
-          order.qrCodeUrl.includes('api.qrserver.com') ||
-          !order.lpaString ||
-          (order.esimTranNo && order.esimTranNo.includes('-'));
+        const targetIccid = order.realIccid || order.esimTranNo;
+        const isInactive = order.status === 'Refunded' || order.status === 'Failed' || order?.telemetry?.esimStatus === 'CANCEL';
 
-        if (needsOperatorSync && (order.realIccid || order.esimTranNo || order.strongesimOrderId || order.orderId)) {
+        // Para órdenes activas, consultar telemetría con caché (TTL 3 min) para refrescar el consumo real
+        if (!isInactive && targetIccid) {
           try {
-            const live = await fetchEsimProfileTelemetry(order.realIccid || order.esimTranNo, order.orderId, order.strongesimOrderId);
-            if (live) {
-              order.telemetry = resolveUniversalTelemetry(order, live);
-              if (live.qrCodeUrl && (!order.qrCodeUrl || order.qrCodeUrl.includes('api.qrserver.com'))) {
-                order.qrCodeUrl = live.qrCodeUrl;
-              }
-              if (live.lpaString && (!order.lpaString || !order.lpaString.startsWith('LPA:1$rsp-'))) {
-                order.lpaString = live.lpaString;
-              }
-              if (live.realIccid && (/^\d+$/.test(live.realIccid) || !order.esimTranNo || order.esimTranNo.includes('-'))) {
-                order.realIccid = live.realIccid;
-                order.esimTranNo = live.realIccid;
-              }
-              return;
+            const telem = await getOrderTelemetryWithCache(order);
+            if (telem) {
+              order.telemetry = telem;
             }
           } catch {}
         }
-
-        // Consultar telemetría sincronizada con caché (TTL 3 min) para que las tarjetas activas se actualicen sin saturar la red
-        order.telemetry = await getOrderTelemetryWithCache(order);
       })
     );
 
-    // Si se solicita un pedido específico por ID
+    // Si se solicita un pedido específico por ID (acepta ID de WooCommerce, referencia de StrongeSIM o ICCID)
     const { searchParams } = new URL(request.url);
     const orderIdQuery = searchParams.get('id') || searchParams.get('orderId');
     if (orderIdQuery) {
-      const found = ordersList.find((o) => String(o.orderId).toLowerCase() === String(orderIdQuery).toLowerCase());
+      const qLower = String(orderIdQuery).toLowerCase().trim();
+      const found = ordersList.find((o) =>
+        String(o.orderId).toLowerCase().trim() === qLower ||
+        String(o.strongesimOrderId || '').toLowerCase().trim() === qLower ||
+        String(o.realIccid || '').toLowerCase().trim() === qLower ||
+        String(o.esimTranNo || '').toLowerCase().trim() === qLower
+      );
       if (found) {
         try {
           const live = await fetchEsimProfileTelemetry(found.realIccid || found.esimTranNo, found.orderId, found.strongesimOrderId);
@@ -281,7 +400,7 @@ export async function GET(request) {
               found.esimTranNo = live.realIccid;
             }
           } else {
-            found.telemetry = await getOrderTelemetryWithCache(found);
+            found.telemetry = await getOrderTelemetryWithCache(found, true);
           }
         } catch {
           found.telemetry = await getOrderTelemetryWithCache(found);
@@ -311,10 +430,12 @@ export async function GET(request) {
         return acc + amt;
       }, 0);
 
-    const totalWholesaleUsd = ordersList
-      .filter((o) => o.status === 'Completed' || o.status === 'Processing')
-      .reduce((acc, o) => acc + (parseFloat(o.wholesaleCostUsd) || 2.34), 0);
-    const gatewayFeesUsd = grossRevenueUsd * 0.029 + completedOrders * 0.35;
+    const storeOrdersList = ordersList.filter(
+      (o) => (o.status === 'Completed' || o.status === 'Processing') && (parseFloat(o.amount || 0) > 0 || o.source !== 'strongesim_provider')
+    );
+    const totalWholesaleUsd = storeOrdersList.reduce((acc, o) => acc + (parseFloat(o.wholesaleCostUsd) || 2.34), 0);
+    const storeCompletedCount = storeOrdersList.filter((o) => o.status === 'Completed').length;
+    const gatewayFeesUsd = grossRevenueUsd * 0.029 + storeCompletedCount * 0.35;
     const netProfitUsd = Math.max(0, grossRevenueUsd - totalWholesaleUsd - gatewayFeesUsd);
     const netMarginPercent = grossRevenueUsd > 0 ? Math.round((netProfitUsd / grossRevenueUsd) * 100) : 72;
 
