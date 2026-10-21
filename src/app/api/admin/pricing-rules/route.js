@@ -14,7 +14,7 @@ import {
   mapIsoToRegion,
 } from '../../../../lib/pricingRules.js';
 import { ALL_WORLD_COUNTRIES } from '../../../../lib/i18n.js';
-import { strongesimFetch } from '../../../../lib/strongesim.js';
+import { strongesimFetch, selectStandardUnlimitedPlan } from '../../../../lib/strongesim.js';
 import { REGION_MAPPING, isPlanInRegion, getRegionDefinition } from '../../../../lib/regionMapping.js';
 import { getExchangeRates } from '../../../../lib/currency.js';
 
@@ -46,13 +46,33 @@ async function getMasterLivePlans() {
       if (rawPlans && rawPlans.length > 0) {
         function mapSinglePlan(p, targetIso = null, targetRegion = null, isRegion = false, countryName = null) {
           const pIso = (p.country_code || p.iso || p.isoCode || p.location || '').toLowerCase().trim();
-          const pDays = parseInt(p.validity_days || p.duration || p.days || p.validity || 30, 10);
+          const pName = (p.name || p.title || '').toLowerCase();
+          const pType = (p.dataType || p.data_type || '').toLowerCase();
+          const pCode = (p.package_code || p.code || p.sku || '').toLowerCase();
+          const isUnlimited = pName.includes('unlimited') || pName.includes('ilimitad') || pCode.includes('unlimited') || pType === 'daily_reset' || p.is_unlimited === true;
+
+          let pDays = parseInt(p.validity_days || p.duration || p.days || p.validity || (isUnlimited ? 1 : 30), 10);
+          if (isUnlimited) pDays = 1;
+
           let pDataAmount = p.dataAmount || p.data || '';
-          if (!pDataAmount && p.data_volume_mb) {
-            const mb = parseInt(p.data_volume_mb, 10);
-            pDataAmount = mb >= 1024
-              ? `${(mb / 1024).toFixed(mb % 1024 === 0 ? 0 : 1)} GB Total`
-              : `${mb} MB Total`;
+          let mb = null;
+          if (p.data_volume_mb) {
+            mb = parseInt(p.data_volume_mb, 10);
+          } else if (p.volume) {
+            mb = Math.round(parseInt(p.volume, 10) / (1024 * 1024));
+          }
+
+          if (!pDataAmount && mb) {
+            if (isUnlimited) {
+              pDataAmount = `${mb >= 1024 ? Math.round(mb / 1024) : mb} ${mb >= 1024 ? 'GB' : 'MB'} / Día (Ilimitado)`;
+            } else {
+              pDataAmount = mb >= 1024
+                ? `${(mb / 1024).toFixed(mb % 1024 === 0 ? 0 : 1)} GB Total`
+                : `${mb} MB Total`;
+            }
+          }
+          if (isUnlimited && !pDataAmount) {
+            pDataAmount = '2 GB / Día (Ilimitado)';
           }
           const costUsd = parseFloat(p.price || 0);
 
@@ -67,7 +87,8 @@ async function getMasterLivePlans() {
             days: pDays,
             costUsd: costUsd,
             is_region: isRegion,
-            isUnlimited: (p.name || '').toLowerCase().includes('unlimited') || (p.name || '').toLowerCase().includes('ilimitad'),
+            isUnlimited: isUnlimited,
+            dailyQuotaMb: mb || (isUnlimited ? 2048 : null),
           };
         }
 
@@ -80,12 +101,27 @@ async function getMasterLivePlans() {
           });
         }
 
-        // Deduplicate keeping best wholesale cost per ISO + dataAmount + days
+        // Deduplicate: planes fijos por iso+dataAmount+days; planes ilimitados seleccionan el plan estándar oficial 2GB/día
         const uniqueMap = new Map();
         mappedPlans.forEach((p) => {
-          const key = `${p.iso}-${p.dataAmount}-${p.days}`;
-          if (!uniqueMap.has(key) || p.costUsd < uniqueMap.get(key).costUsd) {
-            uniqueMap.set(key, p);
+          if (p.isUnlimited) {
+            // Guardar el plan ilimitado de 2 GB/día estándar por ISO
+            const key = `${p.iso}-unlimited`;
+            const current = uniqueMap.get(key);
+            if (!current) {
+              uniqueMap.set(key, p);
+            } else {
+              const currentDist = Math.abs((current.dailyQuotaMb || 0) - 2048);
+              const newDist = Math.abs((p.dailyQuotaMb || 0) - 2048);
+              if (newDist < currentDist || (newDist === currentDist && p.costUsd < current.costUsd)) {
+                uniqueMap.set(key, p);
+              }
+            }
+          } else {
+            const key = `${p.iso}-${p.dataAmount}-${p.days}`;
+            if (!uniqueMap.has(key) || p.costUsd < uniqueMap.get(key).costUsd) {
+              uniqueMap.set(key, p);
+            }
           }
         });
 

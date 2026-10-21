@@ -1,9 +1,220 @@
 # 📝 Memoria del Proyecto y Bitácora de Sesiones - ME-SIM.COM
 
-## 📅 Última Actualización: 9 de Octubre de 2026 - 16:38 CEST
+## 📅 Última Actualización: 21 de Octubre de 2026 - 14:35 CEST
 
 ---
 
+### 📌 Resumen de la Sesión Actual: Paridad Exacta de Tarifas Ilimitadas (78.90 € en México 14D), Erradicación de Venta a Pérdidas, Omisión de Luxury y Corrección de Desfase por DST en Calendario
+En respuesta al requerimiento prioritario de Paco tras compartir las 3 capturas comparativas (Front de ME-SIM con 15 días a 39.90 €, Front azul de proveedor con 14 días a 78.90 €, y Backend de revendedor con coste mayorista de $59.81 USD por 14 días para la tarifa Standard de 2 GB/día), se resolvió la pérdida económica y la inconsistencia en los cálculos de tarifas ilimitadas sin alucinaciones:
+
+1. **Diagnóstico y Causas Raíz Técnicas Identificadas:**
+   - **Desfase de Días en el Calendario (15 Días vs 14 Días):**
+     * En [`src/app/destination/[iso]/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/destination/[iso]/page.js), `calculateTravelDays` utilizaba `Math.ceil(diffMs / 86400000) + 1` en tiempo local.
+     * Al cruzar el cambio de horario de invierno/verano europeo a finales de octubre (donde un día tiene 25 horas por el retraso de reloj), `diffMs` arrojaba 313 horas para el rango 23/10 -> 05/11.
+     * `313 / 24 = 13.0416`, `Math.ceil(13.0416)` = 14, y con el `+ 1` resultaba en **15 días** en lugar de los **14 días exactos** que mostraba el proveedor.
+   - **Colisión y Anulación del Plan Estándar de México en `/api/plans`:**
+     * En [`src/app/api/plans/route.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/api/plans/route.js), el paquete regional de Norteamérica de 1536 MB (Plan ID 730 a $3.84/día) se formateaba con `Math.round(1536 / 1024) = 2 GB / Día`.
+     * Al tener menor coste que el plan nacional oficial de México de 2048 MB (Plan ID 58945 `Mexico Unlimited FUP1Mbps` a $4.272/día), el mapa de deduplicación descartaba el plan oficial de México.
+     * Además, al no asignar la región correcta, heredaba el fallback `'europe'`.
+   - **Curva Comercial con Pérdidas en Destinos de Alto Coste:**
+     * En [`src/lib/pricingRules.js`](file:///c:/Users/Paco/Documents/me-sim/src/lib/pricingRules.js), para 15 días se forzaba la tarifa estática de 39.90 € concebida para Europa (donde el coste diario es de $1.20 USD).
+     * En México, con un coste de $4.272 USD/día ($59.81 USD por 14 días y $64.08 USD por 15 días), vender a 39.90 € (~$43.50 USD) generaba una pérdida neta directa de -$20.58 USD por cada pedido.
+   - **Mandato sobre Tarifa Luxury:**
+     * Se descartó de forma estricta la tarifa "Luxury" (Plan ID 18952, 10 GB/día a $12.44/día, $174.22 USD por 14 días), enfocando el 100% de la oferta ilimitada en la tarifa "Standard" (2 GB/día con reseteo a medianoche).
+
+2. **Soluciones Implementadas:**
+   - **Cálculo de Días Inmune a DST en [`src/app/destination/[iso]/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/destination/[iso]/page.js):**
+     * `calculateTravelDays` ahora normaliza las fechas seleccionadas a medianoche UTC (`Date.UTC(...)`) y ejecuta `Math.round((utcEnd - utcStart) / 86400000) + 1`.
+     * Para el rango 23/10/2026 -> 05/11/2026, el resultado es exactamente **14 Días Ilimitados**, en perfecta paridad con el proveedor.
+   - **Formateo y Deduplicación Rigurosa en [`src/app/api/plans/route.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/api/plans/route.js):**
+     * Formateo exacto de cuota diaria: cuotas fraccionadas como 1536 MB se etiquetan como `1.5 GB / Día` y solo 2048 MB como `2 GB / Día`.
+     * Prioridad absoluta al plan nacional exacto (`iso === queryTarget`) sobre paquetes regionales. Plan ID 58945 ($4.272/día, 2048 MB) queda blindado como el plan oficial de México.
+     * Mapeo de región geográfica oficial: México se vincula con precisión a `'north-america'`.
+   - **Motor Dinámico de Precios Multidía en [`src/lib/pricingRules.js`](file:///c:/Users/Paco/Documents/me-sim/src/lib/pricingRules.js) (`computeUnlimitedDurationPriceEur`):**
+     * **Suelo Técnico Absoluto:** `minTechnicalFloor = Math.ceil(((totalCostEur + minProfitTarget + 0.25) / 0.811446) * 100) / 100`. Garantiza cero pérdidas considerando IVA 21%, Stripe (1.5% + 0.25€) y beneficio limpio mínimo.
+     * **Multiplicador por Duración:** Escala decreciente por volumen (1D: 1.85x, 3D: 1.68x, 7D: 1.50x, 14D: 1.425x, 30D: 1.38x).
+     * **Destinos Económicos (Coste diario <= $2.00 USD, ej. España, Reino Unido, EE.UU., Japón):** Preservan los tiers comerciales limpios de mercado (4.90 € 1D, 11.90 € 3D, 17.90 € 5D, 22.90 € 7D, 29.90 € 10D, 37.90 € 14D, 39.90 € 15D, 59.90 € 30D) con amplios márgenes netos.
+     * **Destinos de Alto Coste Mayorista (ej. México a $4.272 USD/día):**
+       - 14 Días: **78.90 €** (Coste: $59.81 USD / 55.38 €, Beneficio neto ME-SIM: **+8.39 €**). Paridad 100% con los 78.90 € del proveedor.
+       - 15 Días: **84.90 €** (Coste: $64.08 USD / 59.34 €, Beneficio neto ME-SIM: **+9.30 €**).
+       - 7 Días: **41.90 €** (Beneficio neto ME-SIM: **+6.06 €**).
+       - 1 Día: **7.90 €** (Beneficio neto ME-SIM: **+2.20 €**).
+
+3. **Control de Calidad (QA) y Verificación en Vivo:**
+   - Creado y ejecutado test automatizado [`scratch/test-qa-unlimited-audit.mjs`](file:///c:/Users/Paco/Documents/me-sim/scratch/test-qa-unlimited-audit.mjs): 5/5 pruebas superadas con éxito (100% de aprobación).
+   - Compilación completa de producción (`npm run build`) validada con código 0 (45 páginas generadas sin errores).
+   - Cero pedidos automáticos ejecutados (respetada la directiva RED FLAG).
+
+---
+
+### 📌 Resumen de la Sesión Actual: Auditoría y Corrección de Métricas Financieras, Tarjetas de Beneficio y Gráfico en Panel `/admin`
+En respuesta a la auditoría estricta solicitada por Paco tras compartir la captura de pantalla de "Financial Performance" (donde Net Profit Margin figuraba a $0.00 / 0% de margen y el gráfico de barras reflejaba 0% de beneficio y un 291% anómalo de coste mayorista), se identificó la causa raíz matemática en el cliente y se resolvió de forma integral:
+
+1. **Causa Raíz Matemática Identificada (Sin Suposiciones):**
+   - En [`src/app/admin/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/admin/page.js), el frontend recibía correctamente desde el backend `/api/admin/orders` el objeto `metrics` con los datos consolidados reales ($87.07 USD ingresos, $31.72 USD costes, $48.28 USD beneficio neto, 55% margen).
+   - Sin embargo, las variables de presentación (`displayGrossRevenue`, `displayWholesale`, `displayNetProfit`, `netMarginPercent`, `wholesalePercent`) ignoraban el objeto `metrics` del servidor y ejecutaban fórmulas locales defectuosas:
+     * `baseGrossRevenueGbp`: Filtraba únicamente órdenes en GBP (`o.currency === 'GBP'`), ignorando todas las compras en EUR, AUD o USD. Esto arrojaba apenas £46.52 GBP ($62.17 USD en pantalla).
+     * `storeOrders`: El filtro `(o.source !== 'strongesim_provider' || parseFloat(o.amount) > 0)` evaluaba `true` para las 52 órdenes del proveedor (ya que su coste `o.amount` es mayor que 0).
+     * `baseWholesaleUsd`: Sumaba los costes mayoristas de **TODAS las 68 órdenes del historial de StrongeSIM**, resultando en **$181.22 USD**.
+     * `displayNetProfit`: Al restar $181.22 USD de coste mayorista total a solo $62.17 USD de ingresos en GBP, el cálculo arrojaba un número negativo, que mediante `Math.max(0, ...)` se aplastaba incondicionalmente a **$0.00**.
+     * `netMarginPercent`: Quedaba en **0%**, dejando la barra verde de beneficio vacía en 0%.
+     * `wholesalePercent`: Calculaba `($181.22 / $62.17) * 100 = 291%`, desbordando la barra amarilla/naranja.
+     * `displayAvgOrder`: Dividía $62.17 entre las 68 órdenes del proveedor, mostrando un promedio ficticio de `$0.91`.
+
+2. **Corrección Implementada en [`src/app/admin/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/admin/page.js):**
+   - Se conectó la presentación directamente con el objeto `metrics` oficial del backend:
+     * `baseGrossRevenueUsd = metrics?.grossRevenue` ($87.07 USD de ventas de tienda en todas las divisas).
+     * `baseWholesaleUsd = metrics?.esimCosts` ($31.72 USD de coste mayorista real de las tarjetas vendidas).
+     * `baseGatewayFeesUsd = metrics?.gatewayFees` ($7.08 USD de comisiones reales de Stripe).
+     * `baseNetProfitUsd = metrics?.netProfit` ($48.28 USD de beneficio neto limpio).
+     * `baseCreditBalanceUsd = metrics?.creditBalance` ($38.57 USD de saldo prepago en vivo).
+     * `netMarginPercent = metrics?.netMarginPercent` (**55%**).
+     * `wholesalePercent`: 36%.
+     * `feesPercent`: 8%.
+   - Conversión dinámica multi-divisa a través de `convertVal(..., 'USD', dashboardCurrency)`:
+     * En **USD**: Ingresos: `$87.07`, Costes: `$31.72`, Pasarela: `$7.08`, Beneficio Neto: **`$48.28`** (**55% Margen**).
+     * En **EUR**: Ingresos: `79.88 €`, Costes: `29.10 €`, Pasarela: `6.50 €`, Beneficio Neto: **`44.29 €`** (**55% Margen**).
+     * En **GBP**: Ingresos: `£67.90`, Beneficio Neto: **`£37.65`** (**55% Margen**).
+   - En la tarjeta 2: Badge actualizado a `{storeOrderCount} Ventas` (16 ventas de clientes). Promedio por pedido real: `$5.44 USD`.
+   - En el gráfico de barras:
+     * Margen de Beneficio Neto Real: **55%** (Barra verde llena al 55%).
+     * Costo Mayorista de eSIM: **36%** (Barra amarilla al 36%).
+     * Comisiones de Pasarela (Stripe): **8%** (Barra morada al 8%).
+     * Suma exacta: 55% + 36% + 8% = 99% ~ 100%.
+
+3. **Control de Calidad (QA):**
+   - Compilación completa de producción (`npm run build`) superada con éxito (código 0, 45 páginas generadas sin errores).
+
+### 📌 Resumen de la Sesión Actual: Resolución de Caída de Servidor, Restauración de Pedido #105 (Mark Forrest), Corrección de Cantidades en Admin y Notificaciones Multi-Buzón (`info@me-sim.com` + `paxfer@gmail.com`)
+En esta sesión se abordaron los dos problemas reportados por Paco: los correos de compra de clientes que no estaban llegando y las discrepancias en las cantidades/importes en el panel de administración tras la caída y suspensión temporal del servidor `api.me-sim.com`:
+
+1. **Investigación de Causa Raíz (Cero Suposiciones / Telemetría y Pasarelas Reales):**
+   - **Caída del Servidor `api.me-sim.com`:** Durante la caída del hosting (`Account Suspended`), la API REST de WooCommerce y el puente de correo (`/wp-json/mesim/v1/send-email`) respondían HTTP 200 con una página HTML de suspensión.
+   - **El Pedido Afectado de Mark Forrest (20-10-2026 21:51:10 UTC):**
+     * Stripe confirmó el cobro exitoso de **£6.42 GBP** (`pi_3USkw6E55qmb8D8E0ndiGAup`) para `mark.s.forrest@btinternet.com`.
+     * StrongeSIM aprovisionó la tarjeta eSIM de forma inmediata: Pedido `84d62625-4f5b-4e32-938d-edc39068f828`, plan `GCC 1GB 7Days` (ID 36864), ICCID `8948010010053307632`, coste mayorista `$4.788 USD`. Mark Forrest incluso la descargó en su terminal a las 21:52:58 UTC.
+     * Sin embargo, al estar caído `api.me-sim.com`, la llamada de Next.js para crear la orden en WooCommerce falló silenciosamente. La orden nunca se guardó en WooCommerce ni se dispararon los correos oficiales de ME-SIM con el QR y la factura.
+   - **Distorsión de Cantidades en el Panel Admin:**
+     * Al no existir el pedido en WooCommerce, el panel admin recuperaba la orden directamente desde la API de StrongeSIM como orden huérfana de proveedor (`#84D62625`).
+     * Se mostraba con importe de **$4.79 USD** (el coste mayorista que StrongeSIM cobró a Paco) en lugar de las **£6.42 GBP** pagadas por el cliente.
+     * Los campos `dataAmount` y `days` figuraban como `undefined`.
+     * Las métricas de ingresos brutos (`grossRevenue`) calculaban erróneamente sobre órdenes del operador en lugar de delimitarse estrictamente a las ventas de tienda (`storeOrdersList`).
+   - **Entrega de Correos Administrativos:**
+     * La variable `ADMIN_ORDERS_CC_EMAIL` sólo enviaba a `info@me-sim.com`. Al estar el buzón corporativo en el hosting suspendido, Paco no recibía copia. Además, `src/lib/email.js` no permitía múltiples destinatarios administrativos simultáneos.
+
+2. **Acciones y Correcciones Implementadas:**
+   - **Creación Oficial del Pedido #105 en WooCommerce:**
+     * Conectado con la API oficial de WooCommerce (`POST /wp-json/wc/v3/orders`, HTTP 201). Creado el pedido oficial **`#105`** para Mark Forrest (`mark.s.forrest@btinternet.com`): Total exacto **£6.42 GBP** (Base imponible: £5.31 + IVA 21%: £1.11), ICCID `8948010010053307632`, QR, LPA y StrongeSIM Order vinculados al 100%.
+   - **Actualización y Limpieza de Almacenamiento Local (`src/data/orders.json`):**
+     * Incorporados de forma estructurada el Pedido **#105** (Mark Forrest, £6.42 GBP) y el Pedido **#103** (Ian Rudrum, £6.43 GBP).
+     * Eliminado el registro residual corrupto `A0C168AD` que tenía campos nulos tras un intento fallido antiguo.
+   - **Corrección de Mapeo y Cantidades en Panel de Administración ([`src/app/api/admin/orders/route.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/api/admin/orders/route.js)):**
+     * Para órdenes de WooCommerce: se extrae `data_amount` y `days` tanto de `order.meta_data` como de `line_items[0].meta_data`, garantizando volumen y duración completos.
+     * Para órdenes directas del proveedor: se mapean automáticamente `dataAmount` (`sOrd.plan.data_display` o GB/MB) y `days` (`sOrd.plan.validity_days`), erradicando cualquier valor `undefined`.
+     * Blindaje de métricas financieras de tienda: `grossRevenueUsd` y `grossRevenueGbp` se calculan ahora con máxima rigurosidad contable sobre `storeOrdersList`, garantizando paridad exacta entre facturación, márgenes y pasarela de pago.
+   - **Blindaje Multi-Buzón de Correos Administrativos ([`src/lib/email.js`](file:///c:/Users/Paco/Documents/me-sim/src/lib/email.js) y [`.env.local`](file:///c:/Users/Paco/Documents/me-sim/.env.local)):**
+     * En `.env.local`: configurado `ADMIN_ORDERS_CC_EMAIL=info@me-sim.com,paxfer@gmail.com`.
+     * En `src/lib/email.js`: `sendEmail` ahora parsea listas de correos administrativos separadas por comas o punto y coma y despacha copias independientes con tarjeta administrativa para que Paco reciba la notificación tanto en su correo corporativo como en su buzón personal Gmail.
+     * Despachados con 200 OK vía WordPress WP-Mail los correos de confirmación oficiales para el Pedido **#105** (Mark Forrest + copias a `info@me-sim.com` y `paxfer@gmail.com`) y el Pedido **#103** (copias de administración a Paco).
+
+3. **Control de Calidad (QA) y Verificación en Vivo:**
+   - Auditoría API autenticada `/api/admin/orders`: 68/68 pedidos cuadrados al 100%.
+   - Pedido #105 figura en primera posición: £6.42 GBP, 1 GB Total, 7 Días, ICCID `8948010010053307632`, estado Completado y telemetría viva conectada.
+   - Pedido #103 verificado con £6.43 GBP y telemetría en vivo.
+   - Métricas financieras de tienda exactas: Ingresos Tienda: $87.07 USD (£46.52 GBP), Costes: $31.72 USD, Beneficio Neto: $48.28 USD (Margen neto: 55%), Saldo proveedor en vivo: $38.57 USD.
+   - Compilación completa de producción (`npm run build`) validada con código 0 (45/45 páginas generadas sin errores).
+
+### 📌 Resumen de la Sesión Actual: Paridad Global de Costes en Planes Ilimitados (Estándar 2 GB/Día), Erradicación de Venta a Pérdidas y Reflejo en `/admin/precios`
+En esta sesión se erradicó la inconsistencia crítica de precios en planes ilimitados donde en México la web vendía 15 días a $44.79 USD cuando el proveedor StrongeSIM cobra $64.08 USD ($59.81 USD por 14 días), generando una pérdida directa de -$27 USD. La solución se implantó de forma transversal para todos los países y se integró de forma completa en el panel de control de precios de `/admin/precios`, delimitando los cambios exclusivamente a los planes ilimitados:
+
+1. **Causa Raíz Identificada:**
+   - En StrongeSIM, los planes ilimitados operan como paquetes diarios (`dataType: 'daily_reset'`, validez base: 1 día). Para México, existen tiers de 500 MB ($1.68/día), 1 GB ($2.24/día), **2 GB ("Standard", $4.272/día)** y 10 GB ("Luxury", $12.44/día).
+   - En [`src/app/destination/[iso]/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/destination/[iso]/page.js), la búsqueda `plans.find(p => p.isUnlimited)` tomaba el primer plan encontrado (500 MB a $1.68) o caía en el fallback por defecto de $1.20 USD.
+   - Con ese coste erróneo de $1.20, en [`src/lib/pricingRules.js`](file:///c:/Users/Paco/Documents/me-sim/src/lib/pricingRules.js) la curva comercial fija de 15 días aplicaba incondicionalmente 39.90 € ($44.79 USD).
+   - Sin embargo, al emitir el pedido en StrongeSIM, [`src/lib/strongesim.js`](file:///c:/Users/Paco/Documents/me-sim/src/lib/strongesim.js) seleccionaba el paquete de 2 GB/día (Plan 58945 / 1126 a $4.272 / $4.68 USD/día) con `periodNum: 15`, cobrando a Paco $64.08 USD.
+
+2. **Implementación Global y Delimitada a Planes Ilimitados:**
+   - **`src/lib/strongesim.js`**:
+     * Creada y exportada la función canónica `selectStandardUnlimitedPlan(plans, targetIso = null)` que extrae de forma oficial el plan de 2 GB/día (2048 MB) estándar de StrongeSIM para cualquier país o región (Plan 58945 para MX a $4.272 USD, Plan 946 para ES a $1.20 USD, Plan 127551 para US a $1.76 USD, Plan 722 para GB a $1.44 USD, etc.).
+     * En `resolveStrongeSimPlanDetails`: scoring ajustado para apuntar prioritariamente al estándar de 2048 MB.
+   - **`src/lib/pricingRules.js`**:
+     * `computeUnlimitedDurationPriceEur(days, baseDailyCostUsd, regionKey, customBasePriceEur, customRules, customRates)`:
+       Calcula el PVP diario base mediante `computePlanPricing` respetando las reglas de la zona (`customRules`).
+       Si el coste diario base es elevado (ej. México a $4.272 USD/día), la curva comercial no aplasta el precio: el PVP final es el máximo entre la curva comercial y el suelo técnico obligatorio (`minRequiredPvp`). Para México 15 días, el precio pasa de los $44.79 deficitarios a ~103.84 € (~$116.50 USD), asegurando beneficio neto positivo, IVA 21% y comisión de Stripe.
+       Para países económicos (ej. España a $1.20 USD/día), se preserva la tarifa comercial competitiva de 39.90 €.
+       Ajustada la fórmula técnica en `computePlanPricing` con `Math.ceil` para garantizar que el redondeo al céntimo cumpla estrictamente `profitNetEur >= minProfitNetEur`.
+   - **`src/app/api/plans/route.js`**:
+     * Mapeo de planes ilimitados con formato explícito: `dataAmount: 'X GB / Día'`, `dailyQuotaMb: X`, `days: 1`, `isUnlimited: true`.
+     * Deduplicación con clave `${p.iso}-unlimited-${p.dataAmount}`, erradicando colisiones con planes fijos de datos.
+   - **`src/app/destination/[iso]/page.js`**:
+     * Selección del plan ilimitado estándar de 2 GB/día (`p.dailyQuotaMb === 2048 || p.dataAmount.includes('2 GB')`).
+     * Inyección del `wholesaleCostUsd` exacto acumulado (`dailyCost * days`), `planId` oficial y cuota en el carrito de compras.
+
+3. **Integración Completa en el Panel de Administración ([`/admin/precios`](file:///c:/Users/Paco/Documents/me-sim/src/app/admin/precios/page.js)):**
+   - En [`src/app/api/admin/pricing-rules/route.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/api/admin/pricing-rules/route.js):
+     * En `getMasterLivePlans()`, se extrae e inyecta para cada país y región canónica su plan ilimitado oficial de 2 GB/día estándar (`isUnlimited: true`, `dataAmount: '2 GB / Día (Ilimitado)'`, `costUsd: chosen.price`).
+     * Deduplicación protegida por clave `${p.iso}-unlimited`.
+   - En [`src/app/admin/precios/page.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/admin/precios/page.js):
+     * Incorporado el filtro rápido **"Planes Ilimitados"** (`quickFilter === 'unlimited'`) en la barra superior junto a "Todos", "Floor Price Aplicado" y "Variación >20%", con su badge contador en vivo.
+     * En la tabla de auditoría, los planes ilimitados se identifican con una insignia distintiva: `⚡ ILIMITADO (2 GB/DÍA)`.
+     * El Provider Cost refleja el coste diario real del operador (ej. `$4.27 USD` para México, `$1.44 USD` para Reino Unido, `$0.96 USD` para Turquía).
+     * Los cambios en los multiplicadores regionales ajustan de inmediato el PVP Web y los márgenes de los planes ilimitados correspondientes tanto en la simulación como al publicar en producción.
+
+4. **Control de Calidad (QA) y Compilación:**
+   - Ejecutada suite de validación unitaria e integración: 4/4 pruebas aprobadas (selección de 2 GB/día en StrongeSIM, blindaje financiero para México 14d y 15d, preservación de tarifas competitivas en destinos económicos y simulación matemática de márgenes en `/admin/precios`).
+   - Compilación de producción validada: `npm run build` completado exitosamente con código 0 (45/45 páginas generadas sin errores).
+   - Delimitación estricta: los planes fijos de datos se mantienen al 100% intactos con sus claves y multiplicadores existentes.
+
+---
+
+### 📌 Resumen de la Sesión Actual: Política Estricta de Cero Pedidos por IA (RED FLAG) y Restricción de Compras a Administrador y Usuarios
+En respuesta y ratificación de la directiva de Paco ("Manager, eso es, las pruebas se realizan para trabajar con la API, pero las compras estan restringidas a mi como administrador y a los usuarios. Las compras de la IA, están completamente prohibidas, son una red flag. Solo se ejecutarán cuando yo como administrador lo pida como excepción"), se blindó la política en todos los manuales y definiciones de agentes:
+
+1. **Directiva y Alcance de la Prohibición (RED FLAG):**
+   - **Pruebas de la IA Exclusivas para Trabajo con la API:** Todas las pruebas técnicas, scripts o análisis ejecutados por la IA se realizan única y exclusivamente para trabajar con la API (lectura de datos, validación de endpoints, contratos, cálculos puros y telemetría sin efectos secundarios transaccionales).
+   - **Restricción de Compras a Administrador y Usuarios:** Las compras, cobros y emisiones de eSIM están estrictamente restringidas a Paco como administrador y a los usuarios finales de la plataforma.
+   - **Compras de la IA como RED FLAG:** Las compras automáticas o autónomas por cualquier agente de IA están completamente prohibidas y catalogadas formalmente como una **RED FLAG** (vetado el modo test, cupones 100%, scripts de checkout o llamadas de aprovisionamiento a StrongeSIM, WooCommerce o Stripe).
+   - **Cláusula Única de Excepción:** Las compras por parte de la IA **SOLO se ejecutarán cuando el administrador (Paco) lo pida de forma explícita e inequívoca como excepción**.
+
+2. **Ficheros y Reglamentos Actualizados:**
+   - [`.agents/AGENTS.md`](file:///c:/Users/Paco/Documents/me-sim/.agents/AGENTS.md): Regla *"Prohibición Absoluta de Compras por Agentes (RED FLAG / Restricción de Compras a Administrador y Usuarios)"*.
+   - [`.agents/rules.md`](file:///c:/Users/Paco/Documents/me-sim/.agents/rules.md): Regla *"PROHIBICIÓN ABSOLUTA DE COMPRAS POR AGENTES (RED FLAG)"*.
+   - [`.agents/manager.agent.md`](file:///c:/Users/Paco/Documents/me-sim/.agents/manager.agent.md): Regla #6 de Prohibición Absoluta de Compras por Agentes (RED FLAG).
+   - [`.agents/qa.agent.md`](file:///c:/Users/Paco/Documents/me-sim/.agents/qa.agent.md): Directiva *"Prohibición Absoluta de Compras por QA (RED FLAG)"*.
+   - [`.agents/backend.agent.md`](file:///c:/Users/Paco/Documents/me-sim/.agents/backend.agent.md): Directiva *"Prohibición Absoluta de Compras por Backend (RED FLAG)"*.
+   - [`.agents/frontend.agent.md`](file:///c:/Users/Paco/Documents/me-sim/.agents/frontend.agent.md): Directiva *"Prohibición Absoluta de Compras por Frontend (RED FLAG)"*.
+
+---
+
+### 📌 Resumen de la Sesión Actual: Resolución de Pedidos con Cupones 100% en WooCommerce, Restauración de Pedido #92 y Creación Oficial del Nuevo Pedido #102 para Lorraine Abel
+En esta sesión se resolvió la causa por la que la compra realizada por Paco con cupón 100% de cortesía no se registró como nuevo pedido en WooCommerce ni despachó correos electrónicos:
+
+1. **Diagnóstico y Causa Raíz de Cupones en WooCommerce REST API:**
+   - **El Error HTTP 400 (`woocommerce_rest_invalid_coupon`):** En [`src/app/api/orders/route.js`](file:///c:/Users/Paco/Documents/me-sim/src/app/api/orders/route.js), al invocar `POST /wp-json/wc/v3/orders`, se enviaba `coupon_lines: [{ code: couponCode }]`. Debido a la arquitectura Headless sin catálogo interno en WooCommerce (las líneas de pedido dinámicas no tienen `product_id` de catálogo local), WooCommerce ejecutaba la validación interna `WC_Coupon::is_valid_for_product()` y rechazaba la creación del pedido con código 400: *"Lo siento, el cupón «mesim100» no se puede aplicar a los productos seleccionados"*.
+   - **Consecuencias:** Al fallar la llamada a WooCommerce, la orden nunca se creaba en WooCommerce, no se generaba número oficial ni se disparaban las notificaciones por correo electrónico de la plataforma.
+   - **Corrección en `src/app/api/orders/route.js`:**
+     * Eliminado el envío de `coupon_lines` a WooCommerce para pedidos headless.
+     * Los detalles del cupón (`_coupon_code`, `coupon_code`, `_coupon_percent`, `_original_amount`, `_discount_amount`) se persisten con máxima precisión en `meta_data`.
+     * Si el importe cobrado es 0 (`chargedGross === 0`), se asigna `payment_method = 'free'` y `payment_method_title = 'Cupón Cortesía ME-SIM'`.
+     * En el Bloque 4, el envío de emails se desacopló del fetch loopback HTTP (`/api/email/send`) y ahora llama directamente a `sendEmail(...)` y `generateOrderConfirmationHtml(...)` de forma inmediata en proceso, garantizando la entrega al cliente y el respaldo automático a `info@me-sim.com`.
+
+2. **Restauración y Creación de Pedidos Oficiales:**
+   - **Restauración del Pedido #92 (Original):**
+     * En WooCommerce (`PUT /wp-json/wc/v3/orders/92`) y en `src/data/orders.json`, el pedido #92 queda restablecido en su estado original: `eSIM Singapore Unlimited Data 7 Days` ($25.67 USD), tarjeta ICCID `8910300000065231133` (StrongeSIM `16313cf9-73fc-46bd-884f-d39282443dbf`) y estado **`Refunded` / Reembolsado** (acorde a la cancelación efectuada por Paco).
+   - **Creación del NUEVO Pedido Oficial en WooCommerce (#102):**
+     * Creado el pedido **`#102`** en WooCommerce (`POST /wp-json/wc/v3/orders`, HTTP 201) para la nueva tarjeta de 20GB:
+       - **Cliente:** Lorraine Abel (`lorraineabel1@icloud.com`)
+       - **Plan:** `eSIM Singapore 20 GB Total 30Days` (Plan ID `412`)
+       - **Importe:** `$0.00 USD` (100% descuento con cupón `mesim100`, original $31.06)
+       - **ICCID Oficial:** `89852000263215330236`
+       - **Orden StrongeSIM:** `eb45aba2-b6d9-4e3e-9d4a-9f034ffb4eb8`
+       - **Coste Mayorista:** `$9.84 USD`
+       - **QR & LPA:** `https://p.qrsim.net/8b47cda065214d149c26ae35ccd3ac9a.png` / `LPA:1$rsp-eu.simlessly.com$AB01B44146AF4C8E8A645FC1CB291163`
+       - **Estado:** `Completed` / Activo con telemetría de 20 GB en vivo.
+   - **Entrega de Correos Transaccionales con QR:**
+     * Despachado email con el código QR y LPA a la clienta `lorraineabel1@icloud.com` (200 OK vía WP-mail).
+     * Despachada copia de administración a `info@me-sim.com` (200 OK vía WP-mail).
+   - **Compilación de Producción:** Superada con 0 errores (`npm run build`, 45 páginas generadas con código 0).
 ### 📌 Resumen de la Sesión Actual: Paridad 100% con Panel StrongeSIM, Reconciliación de Pedidos #92/#93 y Resolución de Expiración y Telemetría en Pedidos #89/#90
 En esta sesión se resolvió la discrepancia entre el panel de proveedor (StrongeSIM) y el Panel de Administrador de ME-SIM, logrando un reflejo fiel al 100% de la realidad del operador:
 1. **Requerimiento y Directiva Estricta del Usuario:**

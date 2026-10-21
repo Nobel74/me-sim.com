@@ -425,9 +425,12 @@ export async function resolveStrongeSimPlanDetails({ sku, iso = 'es', dataAmount
             // StrongeSIM utiliza periodNum = targetDays para provisionar planes diarios multidía
             if (isUnlimited) {
               if (pIsUnlimited) {
-                // Mayor puntuación para planes con cuota generosa (ej. 2GB/día > 500MB/día)
-                score = 60000 + (pMb ? Math.min(pMb, 2048) * 10 : 0);
+                // Mayor puntuación para planes con cuota estándar de 2GB/día (2048 MB)
+                const mbDist = Math.abs((pMb || 2048) - 2048);
+                score = 70000 - Math.min(mbDist * 10, 25000);
                 if (pIso === targetIso) score += 5000;
+                // Preferir el precio más económico si hay múltiples planes de 2GB
+                score -= Math.min(500, Math.round(parseFloat(p.price || 0) * 10));
               } else {
                 // Si el país no tiene paquete ilimitado nativo, buscar paquete de alta capacidad multidía
                 const targetFupMb = targetDays * 2048;
@@ -912,3 +915,63 @@ export async function fetchStrongeSimBalance(forceRefresh = false) {
     billingMode: 'prepaid',
   };
 }
+
+/**
+ * Selecciona el plan ilimitado estándar oficial (2 GB / día) para un país o región
+ * @param {Array} plans - Lista de planes candidatos devueltos por StrongeSIM
+ * @param {string} [targetIso] - Código ISO opcional para filtrar país exacto
+ * @returns {Object|null} El plan ilimitado estándar seleccionado
+ */
+export function selectStandardUnlimitedPlan(plans, targetIso = null) {
+  if (!Array.isArray(plans) || plans.length === 0) return null;
+  const isoUpper = targetIso ? String(targetIso).toUpperCase().trim() : null;
+
+  const candidates = plans.filter((p) => {
+    const pIso = String(p.country_code || p.iso || p.isoCode || p.location || '').toUpperCase().trim();
+    if (isoUpper && pIso !== isoUpper) return false;
+    const name = String(p.name || p.title || p.package_name || '').toLowerCase();
+    const type = String(p.dataType || p.data_type || '').toLowerCase();
+    const code = String(p.package_code || p.code || p.sku || '').toLowerCase();
+    return name.includes('unlimited') || name.includes('ilimitad') || code.includes('unlimited') || type === 'daily_reset' || p.is_unlimited === true;
+  });
+
+  if (candidates.length === 0) return null;
+
+  const extractMb = (p) => {
+    if (p.data_volume_mb && !isNaN(parseFloat(p.data_volume_mb))) return parseFloat(p.data_volume_mb);
+    if (p.volume && !isNaN(parseFloat(p.volume))) return Math.round(parseFloat(p.volume) / (1024 * 1024));
+    const name = (p.name || p.title || '') + ' ' + (p.package_code || '');
+    const gm = name.match(/\b(\d+(?:\.\d+)?)\s*gb\b/i);
+    if (gm) return Math.round(parseFloat(gm[1]) * 1024);
+    const mm = name.match(/\b(\d+)\s*mb\b/i);
+    if (mm) return parseInt(mm[1], 10);
+    return 2048;
+  };
+
+  // 1. Prioridad: plan con cuota exactamente de 2048 MB (2 GB/día)
+  const exact2gb = candidates.filter((p) => Math.abs(extractMb(p) - 2048) < 100);
+  if (exact2gb.length > 0) {
+    exact2gb.sort((a, b) => parseFloat(a.price || a.costUsd || 0) - parseFloat(b.price || b.costUsd || 0));
+    return exact2gb[0];
+  }
+
+  // 2. Prioridad: plan más cercano <= 2048 MB (ej. 1 GB/día)
+  const under2gb = candidates.filter((p) => extractMb(p) <= 2048);
+  if (under2gb.length > 0) {
+    under2gb.sort((a, b) => {
+      const mbDiff = extractMb(b) - extractMb(a);
+      if (mbDiff !== 0) return mbDiff;
+      return parseFloat(a.price || a.costUsd || 0) - parseFloat(b.price || b.costUsd || 0);
+    });
+    return under2gb[0];
+  }
+
+  // 3. Fallback: plan con menor cuota > 2048 MB
+  candidates.sort((a, b) => {
+    const mbDiff = extractMb(a) - extractMb(b);
+    if (mbDiff !== 0) return mbDiff;
+    return parseFloat(a.price || a.costUsd || 0) - parseFloat(b.price || b.costUsd || 0);
+  });
+  return candidates[0];
+}
+

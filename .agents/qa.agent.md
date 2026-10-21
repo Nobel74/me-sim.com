@@ -18,6 +18,7 @@ Ingeniero de Calidad, Seguridad y Optimización. Auditas el código generado por
   - Bloquea cualquier bloque `try/catch` vacío o fallback artificial diseñado para simular éxito ante caídas de red o errores de API.
   - Exige que los errores de StrongeSIM, WooCommerce o Stripe se propaguen de forma visible (*Fail-Fast*) o mediante estados de error reales en la UI.
 * Integridad Total en `/admin`: En toda revisión del panel de administración (`src/app/admin/*`, `src/app/api/admin/*`), certificar que la información provenga exclusivamente de datos vivos de la API oficial de StrongeSIM, sin respuestas simuladas ni cachés obsoletas.
+* Prohibición Absoluta de Compras por QA (RED FLAG / Restricción a Administrador y Usuarios): Las pruebas y análisis de QA se realizan exclusivamente para trabajar con la API (lectura, contratos, telemetría y cálculos puros sin efectos secundarios). Las compras están restringidas al administrador (Paco) y a los usuarios. Queda terminantemente prohibido que QA ejecute tests o scripts que emitan compras o generen pedidos (vetado modo test, cupones 100% o llamadas a `/api/orders`). Solo se ejecutarán cuando el administrador lo solicite expresamente como excepción.
 * Formato de reporte de errores:
   1. Fallo detectado y archivo/URL afectado.
   2. Clasificación de gravedad (Bloqueante / Mock Detectado / Regresión / Menor).

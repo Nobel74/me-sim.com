@@ -514,7 +514,7 @@ export function computePlanPricing(costUsd, regionKey, customRules = null, custo
   // PVP * (1/1.21 - 0.015) = costEur + minProfitNetEur + 0.25
   const minProfitTarget = parseFloat(rules.minProfitNetEur) || 1.50;
   const denominator = (1 / 1.21) - 0.015; // ~0.811446
-  const requiredPvpForProfit = parseFloat(((costEur + minProfitTarget + 0.25) / denominator).toFixed(2));
+  const requiredPvpForProfit = Math.ceil(((costEur + minProfitTarget + 0.25) / denominator) * 100) / 100;
 
   const floorPrice = parseFloat(rules.floorPriceEur) || 2.90;
   const pvpFinal = Math.max(floorPrice, pvpBase, requiredPvpForProfit);
@@ -569,46 +569,71 @@ export function computePlanPricing(costUsd, regionKey, customRules = null, custo
  * @param {number} baseDailyCostUsd - Coste mayorista diario de StrongeSIM en USD
  * @param {string} regionKey - Clave de región comercial (ej: 'asia', 'europe')
  * @param {number} [customBasePriceEur] - Precio base diario de catálogo en EUR
+ * @param {Object} [customRules] - Reglas de precios activas (draft o live)
+ * @param {Object} [customRates] - Tipos de cambio dinámicos
  * @returns {number} PVP final en EUR (IVA 21% incluido)
  */
-export function computeUnlimitedDurationPriceEur(days, baseDailyCostUsd = 1.20, regionKey = 'global', customBasePriceEur = null) {
+export function computeUnlimitedDurationPriceEur(
+  days,
+  baseDailyCostUsd = 1.20,
+  regionKey = 'global',
+  customBasePriceEur = null,
+  customRules = null,
+  customRates = null
+) {
   const d = Math.max(1, parseInt(days || 1, 10));
+  const rules = customRules || getPricingRules('live');
+  const rate = parseFloat(rules.usdToEurRate) || 0.926;
   const dailyCost = Math.max(0.50, parseFloat(baseDailyCostUsd) || 1.20);
-
-  // 1. Coste total mayorista que facturará StrongeSIM por periodNum = d
   const totalWholesaleUsd = dailyCost * d;
+  const totalCostEur = totalWholesaleUsd * rate;
 
-  // 2. PVP técnico mínimo garantizado para beneficio neto positivo tras IVA (21%) y Stripe (1.5% + 0.25€)
-  const technicalPricing = computePlanPricing(totalWholesaleUsd, regionKey);
-  const minRequiredPvp = technicalPricing.pvpFinal;
+  // 1. Suelo técnico absoluto obligatorio (cero pérdidas garantizado tras IVA 21%, Stripe 1.5% + 0.25€ y beneficio mínimo)
+  const minProfitTarget = parseFloat(rules.minProfitNetEur) || 1.50;
+  const denominator = (1 / 1.21) - 0.015; // ~0.811446
+  const minTechnicalFloor = Math.ceil(((totalCostEur + minProfitTarget + 0.25) / denominator) * 100) / 100;
 
-  // 3. Escala comercial decreciente por duración (incentivo de compra multidía para el cliente)
-  let scaleFactor = 1.0;
-  if (d <= 1) scaleFactor = 1.0;
-  else if (d <= 3) scaleFactor = 0.81;
-  else if (d <= 5) scaleFactor = 0.73;
-  else if (d <= 7) scaleFactor = 0.668;
-  else if (d <= 10) scaleFactor = 0.61;
-  else if (d <= 15) scaleFactor = 0.543;
-  else if (d <= 20) scaleFactor = 0.509;
-  else if (d <= 30) scaleFactor = 0.407;
-  else scaleFactor = 0.35;
+  // 2. Escala de multiplicador comercial por duración para planes multidía
+  let durationMultiplier = 1.85;
+  if (d === 1) durationMultiplier = 1.85;
+  else if (d <= 3) durationMultiplier = 1.68;
+  else if (d <= 5) durationMultiplier = 1.58;
+  else if (d <= 7) durationMultiplier = 1.50;
+  else if (d <= 10) durationMultiplier = 1.45;
+  else if (d <= 15) durationMultiplier = 1.425;
+  else if (d <= 20) durationMultiplier = 1.40;
+  else durationMultiplier = 1.38;
 
-  const basePricePerDay = customBasePriceEur ? Math.max(4.90, customBasePriceEur) : 4.90;
-  let commercialCurvePvp = parseFloat((basePricePerDay * d * scaleFactor).toFixed(2));
+  let dynamicPvp = totalCostEur * durationMultiplier;
 
-  // Tiers de referencia comerciales limpios terminados en .90
-  if (d === 1) commercialCurvePvp = 4.90;
-  else if (d === 3) commercialCurvePvp = 11.90;
-  else if (d === 5) commercialCurvePvp = 17.90;
-  else if (d === 7) commercialCurvePvp = 22.90;
-  else if (d === 10) commercialCurvePvp = 29.90;
-  else if (d === 15) commercialCurvePvp = 39.90;
-  else if (d === 20) commercialCurvePvp = 49.90;
-  else if (d === 30) commercialCurvePvp = 59.90;
-  else if (d > 30) commercialCurvePvp = 59.90 + (d - 30) * 1.50;
+  // 3. Destinos económicos (coste diario <= 2.00 $ USD, ej. Europa, España, Reino Unido, EE.UU., Japón):
+  // Usar los tiers limpios de mercado (.90) altamente competitivos y rentables
+  if (dailyCost <= 2.00) {
+    let cleanTier = null;
+    if (d === 1) cleanTier = 4.90;
+    else if (d === 3) cleanTier = 11.90;
+    else if (d === 5) cleanTier = 17.90;
+    else if (d === 7) cleanTier = 22.90;
+    else if (d === 10) cleanTier = 29.90;
+    else if (d === 14) cleanTier = 37.90;
+    else if (d === 15) cleanTier = 39.90;
+    else if (d === 20) cleanTier = 49.90;
+    else if (d === 30) cleanTier = 59.90;
+    else if (d > 30) cleanTier = 59.90 + (d - 30) * 1.50;
+    if (cleanTier && cleanTier >= minTechnicalFloor) {
+      dynamicPvp = cleanTier;
+    }
+  } else {
+    // Destinos de alto coste mayorista (ej. México a 4.27 $/día, Canadá, etc.):
+    // Terminar en .90 limpio para apariencia comercial y garantizar que cubra costes y márgenes
+    dynamicPvp = Math.round(dynamicPvp) - 0.10;
+    if (dynamicPvp < minTechnicalFloor) {
+      dynamicPvp = Math.ceil(minTechnicalFloor) - 0.10;
+      if (dynamicPvp < minTechnicalFloor) dynamicPvp = minTechnicalFloor;
+    }
+  }
 
-  // 4. Blindaje: el PVP final es siempre el máximo entre la curva comercial y el mínimo rentable
-  const finalPvp = Math.max(commercialCurvePvp, minRequiredPvp);
+  // 4. Blindaje absoluto: el PVP final es siempre el máximo entre la curva comercial y el mínimo técnico rentable
+  const finalPvp = Math.max(minTechnicalFloor, parseFloat(dynamicPvp.toFixed(2)));
   return parseFloat(finalPvp.toFixed(2));
 }

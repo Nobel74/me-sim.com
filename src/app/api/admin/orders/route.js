@@ -142,6 +142,8 @@ export async function GET(request) {
                 }
               }
 
+              const getLineMeta = (k) => line.meta_data?.find((m) => m.key === k)?.value || '';
+
               ordersList.push({
                 orderId: idStr,
                 customerName: lo?.customerName || `${o.billing?.first_name || ''} ${o.billing?.last_name || ''}`.trim() || 'Cliente ME-SIM',
@@ -161,10 +163,10 @@ export async function GET(request) {
                 realIccid: lo?.realIccid || (esimTranNo && /^\d+$/.test(esimTranNo) ? esimTranNo : ''),
                 qrCodeUrl: rawQr,
                 lpaString: rawLpa,
-                dataAmount: lo?.dataAmount || getMeta('_esim_data_amount') || '1 GB',
-                days: lo?.days || getMeta('_esim_days') || '30',
+                dataAmount: lo?.dataAmount || getMeta('_esim_data_amount') || getLineMeta('data_amount') || '1 GB',
+                days: lo?.days || getMeta('_esim_days') || getLineMeta('days') || '30',
                 country: lo?.country || getMeta('_esim_country') || 'España',
-                iso: lo?.iso || getMeta('_esim_iso') || 'es',
+                iso: lo?.iso || getMeta('_esim_iso') || getLineMeta('iso') || 'es',
                 wholesaleCostUsd: lo?.wholesaleCostUsd || 2.34,
                 billing: lo?.billing || o.billing || {},
                 strongesimOrderId: lo?.strongesimOrderId || getMeta('_strongesim_order_id') || getMeta('_esim_order_id') || '',
@@ -304,6 +306,8 @@ export async function GET(request) {
 
             const totalMb = sOrd.plan?.data_volume_mb || 1024;
             const createdDate = sOrd.created_at || sOrd.createdAt || new Date().toISOString();
+            const planDisplayData = sOrd.plan?.data_display || (totalMb >= 1024 ? `${totalMb / 1024} GB` : `${totalMb} MB`);
+            const planValidityDays = sOrd.plan?.validity_days ? String(sOrd.plan.validity_days) : (sOrd.period_num ? String(sOrd.period_num) : '7');
 
             ordersList.push({
               orderId: shortRef,
@@ -311,6 +315,8 @@ export async function GET(request) {
               customerEmail: sOrd.end_customer_email || '',
               title: sOrd.plan?.name || `eSIM Plan (${totalMb}MB)`,
               plan: sOrd.plan?.name || `eSIM Plan (${totalMb}MB)`,
+              dataAmount: planDisplayData,
+              days: planValidityDays,
               amount: parseFloat(sOrd.price_charged || 0),
               originalAmount: parseFloat(sOrd.price_charged || 0),
               priceEur: parseFloat(sOrd.price_charged || 0),
@@ -415,14 +421,18 @@ export async function GET(request) {
     const completedOrders = ordersList.filter((o) => o.status === 'Completed').length;
     const pendingOrders = ordersList.filter((o) => o.status === 'Pending' || o.status === 'Processing').length;
 
-    // Ingresos brutos en moneda original (pedidos completados o en proceso)
-    const grossRevenueGbp = ordersList
-      .filter((o) => o.currency === 'GBP' && (o.status === 'Completed' || o.status === 'Processing'))
+    // Pedidos de venta en la tienda ME-SIM (excluyendo órdenes directas de aprovisionamiento del proveedor)
+    const storeOrdersList = ordersList.filter(
+      (o) => (o.status === 'Completed' || o.status === 'Processing') && o.source !== 'strongesim_provider'
+    );
+
+    // Ingresos brutos en moneda original de la tienda (pedidos completados o en proceso)
+    const grossRevenueGbp = storeOrdersList
+      .filter((o) => o.currency === 'GBP')
       .reduce((acc, o) => acc + (parseFloat(o.amount) || 0), 0);
 
-    // Conversión contable precisa a USD (pedidos completados o en proceso)
-    const grossRevenueUsd = ordersList
-      .filter((o) => o.status === 'Completed' || o.status === 'Processing')
+    // Conversión contable precisa a USD (pedidos de la tienda)
+    const grossRevenueUsd = storeOrdersList
       .reduce((acc, o) => {
         const amt = parseFloat(o.amount) || 0;
         if (o.currency === 'GBP') return acc + amt * 1.28; // GBP to USD
@@ -430,9 +440,6 @@ export async function GET(request) {
         return acc + amt;
       }, 0);
 
-    const storeOrdersList = ordersList.filter(
-      (o) => (o.status === 'Completed' || o.status === 'Processing') && (parseFloat(o.amount || 0) > 0 || o.source !== 'strongesim_provider')
-    );
     const totalWholesaleUsd = storeOrdersList.reduce((acc, o) => acc + (parseFloat(o.wholesaleCostUsd) || 2.34), 0);
     const storeCompletedCount = storeOrdersList.filter((o) => o.status === 'Completed').length;
     const gatewayFeesUsd = grossRevenueUsd * 0.029 + storeCompletedCount * 0.35;

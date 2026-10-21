@@ -108,9 +108,13 @@ export async function sendEmail({ to, subject, htmlText, type = 'magic_code', da
   );
 
   const cleanTo = (to || '').trim().toLowerCase();
-  const cleanAdmin = (ADMIN_NOTIFICATION_EMAIL || '').trim().toLowerCase();
+  const rawAdmin = process.env.ADMIN_ORDERS_CC_EMAIL || ADMIN_NOTIFICATION_EMAIL || 'info@me-sim.com';
+  const adminRecipients = rawAdmin
+    .split(/[,;]/)
+    .map((e) => e.trim().toLowerCase())
+    .filter((e) => Boolean(e) && e !== cleanTo);
 
-  if (!isCopy && isEsimDelivery && cleanAdmin && cleanTo !== cleanAdmin) {
+  if (!isCopy && isEsimDelivery && adminRecipients.length > 0) {
     try {
       const orderId = data?.orderId || data?.id || '';
       const orderSuffix = orderId ? ` #${orderId}` : '';
@@ -141,23 +145,25 @@ export async function sendEmail({ to, subject, htmlText, type = 'magic_code', da
         adminHtml = adminBanner + adminHtml;
       }
 
-      console.log(`[EMAIL SERVICE] Dispatching admin backup copy to ${cleanAdmin} (Order: #${orderId})`);
-      addDiagnosticLog('EMAIL_SERVICE', 'DISPATCHING_ADMIN_COPY', { adminEmail: cleanAdmin, originalTo: to, orderId });
+      for (const adminEmail of adminRecipients) {
+        console.log(`[EMAIL SERVICE] Dispatching admin backup copy to ${adminEmail} (Order: #${orderId})`);
+        addDiagnosticLog('EMAIL_SERVICE', 'DISPATCHING_ADMIN_COPY', { adminEmail, originalTo: to, orderId });
 
-      const adminCopyResult = await deliverSingleEmail({
-        to: cleanAdmin,
-        subject: adminSubject,
-        htmlText: adminHtml,
-        type: 'order_confirmation_admin_copy',
-        data: { ...data, originalRecipient: to },
-      });
+        const adminCopyResult = await deliverSingleEmail({
+          to: adminEmail,
+          subject: adminSubject,
+          htmlText: adminHtml,
+          type: 'order_confirmation_admin_copy',
+          data: { ...data, originalRecipient: to },
+        });
 
-      if (adminCopyResult.success) {
-        console.log(`[EMAIL SERVICE] Admin copy successfully delivered to ${cleanAdmin}`);
-        addDiagnosticLog('EMAIL_SERVICE', 'ADMIN_COPY_SUCCESS', { adminEmail: cleanAdmin, orderId });
-      } else {
-        console.warn(`[EMAIL SERVICE] Admin copy could not be delivered to ${cleanAdmin}:`, adminCopyResult.message);
-        addDiagnosticLog('EMAIL_SERVICE', 'ADMIN_COPY_WARNING', { adminEmail: cleanAdmin, message: adminCopyResult.message });
+        if (adminCopyResult.success) {
+          console.log(`[EMAIL SERVICE] Admin copy successfully delivered to ${adminEmail}`);
+          addDiagnosticLog('EMAIL_SERVICE', 'ADMIN_COPY_SUCCESS', { adminEmail, orderId });
+        } else {
+          console.warn(`[EMAIL SERVICE] Admin copy could not be delivered to ${adminEmail}:`, adminCopyResult.message);
+          addDiagnosticLog('EMAIL_SERVICE', 'ADMIN_COPY_WARNING', { adminEmail, message: adminCopyResult.message });
+        }
       }
     } catch (adminErr) {
       console.warn(`[EMAIL SERVICE] Error dispatching admin copy (isolated, client unaffected):`, adminErr.message);

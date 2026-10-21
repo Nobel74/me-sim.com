@@ -10,6 +10,7 @@ import { addDiagnosticLog } from '../../../lib/logger.js';
 import { checkOrderProvisioned, markOrderProvisioned } from '../../../lib/idempotency.js';
 import { saveOrUpdateOrder, getLocalOrders } from '../../../lib/ordersService.js';
 import { resolveCustomerLanguage } from '../../../lib/i18n.js';
+import { sendEmail, generateOrderConfirmationHtml } from '../../../lib/email.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -412,14 +413,13 @@ export async function POST(request) {
             Authorization: 'Basic ' + Buffer.from(`${ck}:${cs}`).toString('base64'),
           },
           body: JSON.stringify({
-            payment_method: 'stripe',
-            payment_method_title: 'Stripe',
+            payment_method: chargedGross === 0 ? 'free' : 'stripe',
+            payment_method_title: chargedGross === 0 ? (couponCode ? `Cupón Cortesía ME-SIM (${couponCode})` : 'Free') : 'Stripe',
             set_paid: true,
             status: 'completed',
             transaction_id: paymentIntentId || '',
             customer_id: customerId,
             currency: (currency || 'EUR').toUpperCase(),
-            coupon_lines: couponCode ? [{ code: couponCode }] : [],
             billing: {
               first_name: firstName,
               last_name: lastName,
@@ -568,35 +568,37 @@ export async function POST(request) {
         console.warn(`[BLOQUE 4] AVISO: El código QR no está disponible aún para el pedido #${effectiveOrderId} (${customerEmail}). Pausando envío de correo para evitar imagen rota.`);
         addDiagnosticLog('EMAIL_PAUSED', 'MISSING_QR', { orderId: effectiveOrderId, email: customerEmail });
       } else {
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://me-sim.com';
-        await fetch(`${baseUrl}/api/email/send`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: customerEmail,
-            type: 'order_confirmation',
-            orderData: {
-              title: title || `eSIM Plan (${planId})`,
-              orderId: effectiveOrderId,
-              esimTranNo: finalIccid,
-              qrCodeUrl: finalQrCodeUrl,
-              lpaCode: finalLpa,
-              totalPrice: `${price} ${(currency || 'EUR').toUpperCase()}`,
-              amount: parseFloat(price || 0),
-              price: parseFloat(price || 0),
-              currency: (currency || 'EUR').toUpperCase(),
-              coupon: couponCode || '',
-              couponCode: couponCode || '',
-              couponPercent: parseFloat(couponPercent || 0),
-              originalAmount: parseFloat(originalPrice || price || 0),
-              originalPrice: parseFloat(originalPrice || price || 0),
-              discountAmount: parseFloat(discountAmount || 0),
-              customerName: customerName,
-            },
-            lang: customerLang,
-          }),
+        const orderEmailData = {
+          title: title || `eSIM Plan (${planId})`,
+          orderId: effectiveOrderId,
+          esimTranNo: finalIccid,
+          qrCodeUrl: finalQrCodeUrl,
+          lpaCode: finalLpa,
+          totalPrice: `${price} ${(currency || 'EUR').toUpperCase()}`,
+          amount: parseFloat(price || 0),
+          price: parseFloat(price || 0),
+          currency: (currency || 'EUR').toUpperCase(),
+          coupon: couponCode || '',
+          couponCode: couponCode || '',
+          couponPercent: parseFloat(couponPercent || 0),
+          originalAmount: parseFloat(originalPrice || price || 0),
+          originalPrice: parseFloat(originalPrice || price || 0),
+          discountAmount: parseFloat(discountAmount || 0),
+          customerName: customerName,
+        };
+
+        const htmlText = generateOrderConfirmationHtml(orderEmailData, customerLang);
+        await sendEmail({
+          to: customerEmail,
+          subject: customerLang === 'en'
+            ? `Your ME-SIM eSIM Order Confirmation #${effectiveOrderId}`
+            : `Confirmación de tu Pedido eSIM en ME-SIM #${effectiveOrderId}`,
+          htmlText,
+          type: 'order_confirmation',
+          data: orderEmailData,
         });
-        console.log(`[BLOQUE 4] Correo de confirmación de pedido con QR enviado a ${customerEmail} (lang: ${customerLang})`);
+
+        console.log(`[BLOQUE 4] Correo de confirmación de pedido con QR enviado a ${customerEmail} (lang: ${customerLang}) y copia a administración`);
         addDiagnosticLog('EMAIL_SENT', 'ORDER_CONFIRMATION', { orderId: effectiveOrderId, email: customerEmail });
       }
     } catch (mailErr) {

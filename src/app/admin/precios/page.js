@@ -374,10 +374,15 @@ export default function AdminPreciosPage() {
       if (quickFilter === 'variation') {
         return Math.abs(p.variationPct || 0) >= 20;
       }
+      if (quickFilter === 'unlimited') {
+        return p.isUnlimited === true;
+      }
 
       return true;
     });
   }, [samplePlans, searchTerm, selectedRegionFilter, quickFilter]);
+
+  const unlimitedCount = useMemo(() => samplePlans.filter((p) => p.isUnlimited).length, [samplePlans]);
 
   const isEs = lang === 'es';
   const isDark = theme === 'dark';
@@ -882,6 +887,30 @@ export default function AdminPreciosPage() {
               <Zap className="w-3.5 h-3.5" />
               <span>{isEs ? 'Variación >20%' : 'Variation >20%'}</span>
             </button>
+            <button
+              onClick={() => setQuickFilter('unlimited')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all border flex items-center gap-1.5 ${
+                quickFilter === 'unlimited'
+                  ? 'bg-[#ffec00] text-black border-[#ffec00] shadow-sm'
+                  : isDark
+                    ? 'bg-zinc-800/90 text-zinc-300 border-zinc-700 hover:bg-zinc-700'
+                    : 'bg-zinc-100 text-zinc-800 border-zinc-300 hover:bg-zinc-200'
+              }`}
+            >
+              <Zap className={`w-3.5 h-3.5 ${quickFilter === 'unlimited' ? 'text-black' : 'text-[#ffec00]'}`} />
+              <span>{isEs ? 'Planes Ilimitados' : 'Unlimited Plans'}</span>
+              {unlimitedCount > 0 && (
+                <span className={`px-1.5 py-0.2 text-[10px] rounded-full font-black ${
+                  quickFilter === 'unlimited'
+                    ? 'bg-black text-[#ffec00]'
+                    : isDark
+                      ? 'bg-zinc-700 text-zinc-200'
+                      : 'bg-zinc-200 text-zinc-800'
+                }`}>
+                  {unlimitedCount}
+                </span>
+              )}
+            </button>
           </div>
         </div>
 
@@ -1003,6 +1032,11 @@ export default function AdminPreciosPage() {
 
                       {/* Plan / Días */}
                       <td className="py-2.5 px-3">
+                        {p.isUnlimited && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-amber-400/20 text-amber-300 border border-amber-400/30 mb-1">
+                            ⚡ {isEs ? 'ILIMITADO (2 GB/DÍA)' : 'UNLIMITED (2 GB/DAY)'}
+                          </span>
+                        )}
                         <span className="font-black block">{p.dataAmount}</span>
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <span className={`text-[11px] font-bold ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>

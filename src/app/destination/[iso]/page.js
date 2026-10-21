@@ -192,18 +192,24 @@ export default function DestinationPage() {
   const calculateTravelDays = () => {
     if (!rangeStart) return 1;
     const end = rangeEnd || rangeStart;
-    const diffMs = end.getTime() - rangeStart.getTime();
-    return Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)) + 1);
+    // Normalizar a medianoche UTC para evitar distorsiones por horario de verano (DST)
+    const utcStart = Date.UTC(rangeStart.getFullYear(), rangeStart.getMonth(), rangeStart.getDate());
+    const utcEnd = Date.UTC(end.getFullYear(), end.getMonth(), end.getDate());
+    const diffDays = Math.round((utcEnd - utcStart) / (1000 * 60 * 60 * 24));
+    return Math.max(1, diffDays + 1);
   };
 
   const travelDays = calculateTravelDays();
 
-  const unlimitedPlan = plans.find((p) => p.isUnlimited);
-  const unlimitedDailyCostUsd = unlimitedPlan?.costUsd || 1.20;
+  const countryObj = ALL_WORLD_COUNTRIES.find((c) => c.iso === isoCode);
+  const destinationRegion = countryObj?.region || plans[0]?.region || 'global';
+  const unlimitedPlan = plans.find((p) => p.isUnlimited && (p.dailyQuotaMb === 2048 || (p.dataAmount && p.dataAmount.includes('2 GB'))))
+    || plans.find((p) => p.isUnlimited);
+  const unlimitedDailyCostUsd = unlimitedPlan?.costUsd || (isoCode === 'mx' ? 4.272 : 1.44);
   const unlimitedPriceEur = computeUnlimitedDurationPriceEur(
     travelDays,
     unlimitedDailyCostUsd,
-    plans[0]?.region || 'global',
+    destinationRegion,
     unlimitedPlan?.priceEur
   );
 
@@ -243,14 +249,15 @@ export default function DestinationPage() {
       title: `eSIM ${countryName} ${t.unlimitedData} ${travelDays} ${lang === 'en' ? 'Days' : 'Días'}`,
       country: countryName,
       iso: isoCode,
-      region: plans[0]?.region || 'europe',
-      dataAmount: t.unlimitedData,
+      region: destinationRegion,
+      dataAmount: `${t.unlimitedData} (2 GB/${lang === 'en' ? 'day' : 'día'})`,
       days: travelDays,
       priceEur: unlimitedPriceEur,
       wholesaleCostUsd: parseFloat((unlimitedDailyCostUsd * travelDays).toFixed(2)),
       convertedPrice: convertCurrency(unlimitedPriceEur, currency, rates),
       currency: currency,
       isUnlimited: true,
+      planId: unlimitedPlan?.id,
       cartId: Date.now(),
     };
     existingCart.push(newItem);

@@ -33,5 +33,9 @@ Eres el Agente Principal y Director Técnico del proyecto. Tu función es analiz
    - Queda terminantemente prohibido aceptar entregables de Frontend o Backend que contengan datos simulados (`mockData`), fixtures locales o fallbacks cosméticos que oculten errores.
    - Exige que toda consulta (especialmente en `/admin` y sus endpoints asociados `src/app/admin` y `src/app/api/admin`) se resuelva contra datos reales y vivos de las APIs (StrongeSIM, WooCommerce, Stripe).
    - Si una llamada de red falla o un servicio externo no responde, exige que el subagente exponga el error real en lugar de inventar contenido para rellenar la interfaz.
-6. Protocolo de Actualización Continua de Memoria:
+6. Prohibición Absoluta de Compras por Agentes (RED FLAG / Restricción de Compras a Administrador y Usuarios):
+   - Las pruebas técnicas de la IA se limitan a trabajar con la API (lectura de datos, validación de endpoints, contratos y telemetría).
+   - Las compras están estrictamente restringidas a Paco como administrador y a los usuarios finales. Las compras automáticas o autónomas ejecutadas por la IA están terminantemente prohibidas y constituyen una RED FLAG.
+   - Solo se ejecutarán compras por parte de la IA cuando el administrador lo solicite de forma explícita e inequívoca como excepción.
+7. Protocolo de Actualización Continua de Memoria:
    - Al concluir cada sesión de trabajo, resolución de incidencias o hito relevante, actualiza de forma obligatoria `.agents/memoria.md` con el registro cronológico, los archivos afectados, las decisiones arquitectónicas y los próximos pasos del roadmap.
