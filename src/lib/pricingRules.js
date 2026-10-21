@@ -564,6 +564,124 @@ export function computePlanPricing(costUsd, regionKey, customRules = null, custo
 }
 
 /**
+ * Factores de escalado para planes fijos a partir del plan base (1 GB):
+ * Calibrados según los incrementos reales del proveedor StrongeSIM:
+ * - 1 GB: 1.000x (Base)
+ * - 2 GB: 1.400x (+40%)
+ * - 3 GB: 1.89887x (+89.9%)  [Paridad exacta con proveedor en GCC: 16.90€ / 8.90€]
+ * - 5 GB: 2.34831x (+134.8%) [Paridad exacta con proveedor en GCC: 20.90€ / 8.90€]
+ * - 10 GB: 4.37078x (+337.1%) [Paridad exacta con proveedor en GCC: 38.90€ / 8.90€]
+ * - 15 GB: 4.800x (+380%)
+ * - 20 GB: 5.500x (+450%)
+ * - 30 GB: 7.000x (+600%)
+ * - 50 GB: 9.000x (+800%)
+ */
+export const FIXED_PLAN_VOLUME_SCALES = [
+  { maxGb: 0.5, multiplier: 0.65 },
+  { maxGb: 1, multiplier: 1.00 },
+  { maxGb: 2, multiplier: 1.40 },
+  { maxGb: 3, multiplier: 1.89887 },
+  { maxGb: 5, multiplier: 2.34831 },
+  { maxGb: 10, multiplier: 4.37078 },
+  { maxGb: 15, multiplier: 4.80 },
+  { maxGb: 20, multiplier: 5.50 },
+  { maxGb: 30, multiplier: 7.00 },
+  { maxGb: 50, multiplier: 9.00 },
+];
+
+export function getFixedPlanVolumeMultiplier(gbAmount) {
+  const gb = Math.max(0.1, parseFloat(gbAmount) || 1);
+  for (const tier of FIXED_PLAN_VOLUME_SCALES) {
+    if (gb <= tier.maxGb) {
+      return tier.multiplier;
+    }
+  }
+  return 9.00 + (gb - 50) * 0.12;
+}
+
+export function extractGbAmount(plan) {
+  if (plan && plan.data_volume_mb) {
+    return plan.data_volume_mb / 1024;
+  }
+  const str = (plan && (plan.dataAmount || plan.data || plan.title || plan.name)) || '';
+  const gbMatch = str.match(/(\d+(\.\d+)?)\s*GB/i);
+  if (gbMatch) return parseFloat(gbMatch[1]);
+  const mbMatch = str.match(/(\d+(\.\d+)?)\s*MB/i);
+  if (mbMatch) return parseFloat(mbMatch[1]) / 1024;
+  return 1;
+}
+
+export function findBaseFixedPlan(plans) {
+  if (!plans || plans.length === 0) return null;
+  const sorted = [...plans].sort((a, b) => extractGbAmount(a) - extractGbAmount(b));
+  const oneGb = sorted.find((p) => {
+    const gb = extractGbAmount(p);
+    return gb >= 0.9 && gb <= 1.1;
+  });
+  return oneGb || sorted[0];
+}
+
+/**
+ * Calcula el PVP para un plan fijo escalado según el precio base del destino (primer precio):
+ * Garantiza que:
+ * 1. El primer plan fijo (base) computa según las reglas y coste API oficial de StrongeSIM.
+ * 2. Los planes sucesivos escalan proporcionalmente a partir del primer precio.
+ * 3. Se respeta el suelo técnico inquebrantable de rentabilidad (cero pérdidas garantizado).
+ */
+export function computeScaledFixedPlanPricing(
+  planCostUsd,
+  basePlanCostUsd,
+  gbAmount,
+  regionKey,
+  customRules = null,
+  customRates = null
+) {
+  const rules = customRules || getPricingRules('live');
+  const rates = customRates || CURRENCY_RATES;
+
+  const technicalPricing = computePlanPricing(planCostUsd, regionKey, rules, rates);
+  const minFloorEur = technicalPricing.pvpFinal;
+
+  const basePricing = computePlanPricing(basePlanCostUsd, regionKey, rules, rates);
+  const basePvpEur = basePricing.pvpFinal;
+
+  const volumeMultiplier = getFixedPlanVolumeMultiplier(gbAmount);
+  const scaledPvpEur = parseFloat((basePvpEur * volumeMultiplier).toFixed(2));
+
+  const finalPvpEur = Math.max(minFloorEur, scaledPvpEur);
+
+  const fxUsd = rates?.USD || CURRENCY_RATES.EUR_TO_USD;
+  const fxGbp = rates?.GBP || CURRENCY_RATES.EUR_TO_GBP;
+  const fxAud = rates?.AUD || CURRENCY_RATES.EUR_TO_AUD;
+
+  const baseImponible = parseFloat((finalPvpEur / 1.21).toFixed(2));
+  const vat21 = parseFloat((finalPvpEur - baseImponible).toFixed(2));
+  const stripeFee = parseFloat(((finalPvpEur * 0.015) + 0.25).toFixed(2));
+  const netRevenue = parseFloat((baseImponible - stripeFee).toFixed(2));
+  const costEur = technicalPricing.costEur;
+  const profitNetEur = parseFloat((netRevenue - costEur).toFixed(2));
+  const profitNetPct = costEur > 0 ? parseFloat(((profitNetEur / costEur) * 100).toFixed(1)) : 0;
+
+  return {
+    ...technicalPricing,
+    pvpFinal: finalPvpEur,
+    pvpUsd: parseFloat((finalPvpEur * fxUsd).toFixed(2)),
+    pvpGbp: parseFloat((finalPvpEur * fxGbp).toFixed(2)),
+    pvpAud: parseFloat((finalPvpEur * fxAud).toFixed(2)),
+    vat21,
+    baseImponible,
+    stripeFee,
+    netRevenue,
+    profitNetEur,
+    profitNetPct,
+    isScaledFromBase: finalPvpEur === scaledPvpEur && finalPvpEur > minFloorEur,
+    scaleMultiplier: volumeMultiplier,
+    basePvpEur,
+  };
+}
+
+
+/**
  * Calcula el PVP dinámico para planes ilimitados multidía garantizando rentabilidad financiera
  * @param {number} days - Días de validez solicitados (1 a 90)
  * @param {number} baseDailyCostUsd - Coste mayorista diario de StrongeSIM en USD

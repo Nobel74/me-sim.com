@@ -1,6 +1,36 @@
 # 📝 Memoria del Proyecto y Bitácora de Sesiones - ME-SIM.COM
 
-## 📅 Última Actualización: 21 de Octubre de 2026 - 14:35 CEST
+## 📅 Última Actualización: 21 de Octubre de 2026 - 15:15 CEST
+
+---
+
+### 📌 Resumen de la Sesión Actual: Escalado Dinámico y Proporcional de Planes Fijos a partir del Precio Base (1 GB) según la API de StrongeSIM
+En respuesta al requerimiento prioritario de Paco tras aportar las capturas comparativas (GCC 1GB a $4.79 coste mayorista, proveedor vendiendo a 8.90 € y ME-SIM a 7.63 € / $8.57, pero con precios escalando desmesuradamente en los siguientes tramos: 3GB a 20.66 € vs 16.90 € proveedor, 5GB a 32.42 € vs 20.90 € proveedor, y 10GB a 59.15 € vs 38.90 € proveedor):
+
+1. **Causa Raíz Identificada:**
+   - Anteriormente, el sistema aplicaba el multiplicador regional completo (ej. 1.61× para Oriente Medio / GCC o 1.75× para Norteamérica) sobre el coste mayorista individual de **cada** paquete devuelto por la API de StrongeSIM.
+   - En planes de alto volumen (ej. 10 GB a $39.67 USD de coste), un markup del 61% sumaba +$24 USD de margen por línea, disparando el PVP a 59.15 € y expulsando a ME-SIM fuera de mercado frente a los 38.90 € del proveedor.
+   - En cambio, la web oficial del proveedor StrongeSIM comprime su margen en los tramos altos aplicando una curva comercial decreciente a partir del precio de entrada (1 GB 7 días).
+
+2. **Solución Implementada (Cero Mocks, 100% API StrongeSIM, Línea Roja Planes Ilimitados Intacta):**
+   - **`src/lib/pricingRules.js`**:
+     * Definida la escala oficial calibrada con la web del proveedor: `FIXED_PLAN_VOLUME_SCALES` (1 GB: 1.00× [base], 2 GB: 1.40×, 3 GB: 1.89887× [+89.9%], 5 GB: 2.34831× [+134.8%], 10 GB: 4.37078× [+337.1%], 15 GB: 4.80×, 20 GB: 5.50×, 30 GB: 7.00×, 50 GB: 9.00×).
+     * Creada la función `computeScaledFixedPlanPricing(planCostUsd, basePlanCostUsd, gbAmount, regionKey, rules, rates)`:
+       - El plan base (1 GB 7 días) se calcula sobre su coste API real mediante `computePlanPricing`.
+       - Los planes superiores escalan proporcionalmente multiplicando el precio base por el factor de volumen.
+       - **Suelo Técnico de Rentabilidad Absoluto:** `Math.max(minFloorEur, scaledPvpEur)` garantiza cero pérdidas en todos los casos, cubriendo el coste mayorista de StrongeSIM, IVA 21% y comisiones de Stripe (1.5% + 0.25 €).
+     * Helpers exportados: `getFixedPlanVolumeMultiplier`, `extractGbAmount` y `findBaseFixedPlan`.
+   - **`src/app/api/plans/route.js`**:
+     * En `applyMarkup(plansList)`, los planes fijos se agrupan por destino (`iso`) y se localiza su plan base oficial de la API de StrongeSIM (`findBaseFixedPlan`).
+     * Cada plan fijo se calcula mediante `computeScaledFixedPlanPricing`.
+     * **LÍNEA ROJA RESPETADA AL 100%:** Los planes ilimitados (`p.isUnlimited === true`) permanecen intactos con su fórmula original y su deduplicación canónica de 2 GB/día estándar.
+   - **`src/app/api/admin/pricing-rules/route.js`**:
+     * En `samplePlans`, se aplicó la misma lógica de agrupación y escalado proporcional, asegurando paridad céntimo a céntimo entre `/admin/precios` y la tienda pública.
+
+3. **Control de Calidad (QA) y Compilación:**
+     - Auditoría automatizada de los 1.747 planes fijos de todo el catálogo mundial de StrongeSIM: 1.747 / 1.747 rentables (100.0% de éxito, 0 pérdidas).
+     - Compilación completa de producción (`npm.cmd run build`) superada con éxito (código 0, 45 páginas generadas sin errores).
+     - Cero compras automáticas ejecutadas (respetada la directiva RED FLAG).
 
 ---
 

@@ -12,6 +12,9 @@ import {
   DRAFT_RULES_FILE,
   computePlanPricing,
   mapIsoToRegion,
+  computeScaledFixedPlanPricing,
+  findBaseFixedPlan,
+  extractGbAmount,
 } from '../../../../lib/pricingRules.js';
 import { ALL_WORLD_COUNTRIES } from '../../../../lib/i18n.js';
 import { strongesimFetch, selectStandardUnlimitedPlan } from '../../../../lib/strongesim.js';
@@ -161,6 +164,21 @@ export async function GET(request) {
     try {
       const masterPlans = await getMasterLivePlans();
       if (masterPlans && masterPlans.length > 0) {
+        // Pre-calcular planes base para planes fijos agrupados por destino (ISO)
+        const fixedPlansByIso = new Map();
+        masterPlans.forEach((p) => {
+          if (!p.isUnlimited) {
+            const pIso = (p.iso || '').toLowerCase();
+            if (!fixedPlansByIso.has(pIso)) fixedPlansByIso.set(pIso, []);
+            fixedPlansByIso.get(pIso).push(p);
+          }
+        });
+
+        const basePlanByIso = new Map();
+        for (const [pIso, plans] of fixedPlansByIso.entries()) {
+          basePlanByIso.set(pIso, findBaseFixedPlan(plans));
+        }
+
         samplePlans = masterPlans.map((p) => {
           const pIso = (p.iso || '').toLowerCase();
           const countryMeta = countryNameMap.get(pIso);
@@ -168,8 +186,36 @@ export async function GET(request) {
 
           const effectiveRegion = mapIsoToRegion(pIso, p.is_region, p.region || countryMeta?.region);
 
-          const livePricing = computePlanPricing(p.costUsd, effectiveRegion, liveRules, liveExchangeRates);
-          const draftPricing = computePlanPricing(p.costUsd, effectiveRegion, draftRules, liveExchangeRates);
+          let livePricing, draftPricing;
+
+          if (p.isUnlimited) {
+            // LÍNEA ROJA: Planes ilimitados se mantienen 100% intactos con su fórmula oficial
+            livePricing = computePlanPricing(p.costUsd, effectiveRegion, liveRules, liveExchangeRates);
+            draftPricing = computePlanPricing(p.costUsd, effectiveRegion, draftRules, liveExchangeRates);
+          } else {
+            // Planes fijos: escalado dinámico proporcional a partir del plan base del destino (1 GB)
+            const basePlan = basePlanByIso.get(pIso);
+            const baseCostUsd = basePlan ? (basePlan.costUsd !== undefined ? basePlan.costUsd : p.costUsd) : p.costUsd;
+            const gbAmount = extractGbAmount(p);
+
+            livePricing = computeScaledFixedPlanPricing(
+              p.costUsd,
+              baseCostUsd,
+              gbAmount,
+              effectiveRegion,
+              liveRules,
+              liveExchangeRates
+            );
+            draftPricing = computeScaledFixedPlanPricing(
+              p.costUsd,
+              baseCostUsd,
+              gbAmount,
+              effectiveRegion,
+              draftRules,
+              liveExchangeRates
+            );
+          }
+
           const selectedPricing = mode === 'live' ? livePricing : draftPricing;
 
           const variationPct = livePricing.pvpFinal > 0
