@@ -248,12 +248,23 @@ export async function GET(request) {
           const matched = rawPlans.filter((p) => {
             const pIso = (p.country_code || p.iso || p.isoCode || p.location || '').toLowerCase().trim();
             const pReg = (p.region || '').toLowerCase().trim();
-            return pIso === queryTarget || pReg === queryTarget;
+            const matchesIso = pIso === queryTarget || pReg === queryTarget;
+            if (!matchesIso) return false;
+
+            // En destinos nacionales solo se admiten planes 100% locales (descartando paquetes multi-país/regionales)
+            const isMultiCountry = (p.plan_type && p.plan_type !== 'country') ||
+              (Array.isArray(p.operator_list) && p.operator_list.length > 1);
+            return !isMultiCountry;
           });
           mappedPlans = matched.map((p) => mapSinglePlan(p, null, null, false));
         } else {
-          // Catálogo global: mapear planes de países individuales
-          mappedPlans = rawPlans.map((p) => mapSinglePlan(p, null, null, false));
+          // Catálogo global: mapear planes de países individuales (exclusivamente planes locales de país)
+          const countryOnlyPlans = rawPlans.filter((p) => {
+            const isMultiCountry = (p.plan_type && p.plan_type !== 'country') ||
+              (Array.isArray(p.operator_list) && p.operator_list.length > 1);
+            return !isMultiCountry;
+          });
+          mappedPlans = countryOnlyPlans.map((p) => mapSinglePlan(p, null, null, false));
           // Y además incluir planes para cada región comercial mapeada
           for (const [slug, def] of Object.entries(REGION_MAPPING)) {
             if (slug !== def.canonicalSlug) continue;

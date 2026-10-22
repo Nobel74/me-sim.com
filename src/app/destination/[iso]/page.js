@@ -11,7 +11,7 @@ import CompatibilityModal from '../../../components/CompatibilityModal';
 import SeoMeta from '../../../components/SeoMeta';
 import LoadingProgressBar from '../../../components/LoadingProgressBar';
 import UnlimitedPlanInfo from '../../../components/UnlimitedPlanInfo';
-import { getDestinationStartingPrice } from '../../../lib/regionMapping';
+import { getDestinationStartingPrice, isRegionalSlug } from '../../../lib/regionMapping';
 import { computeUnlimitedDurationPriceEur } from '../../../lib/pricingRules';
 
 const DESTINATION_IMAGES = {
@@ -144,6 +144,14 @@ export default function DestinationPage() {
                 pRegion === isoCode ||
                 searchKeys.some((k) => pIso.includes(k) || pCountry.includes(k))
               );
+            });
+          }
+
+          if (!isRegionalSlug(isoCode)) {
+            exactIsoPlans = exactIsoPlans.filter((p) => {
+              if (p.is_region === true) return false;
+              const pTitle = (p.title || p.name || '').toLowerCase();
+              return !pTitle.includes('countries') && !pTitle.includes('aukus');
             });
           }
 

@@ -95,7 +95,13 @@ async function getMasterLivePlans() {
           };
         }
 
-        let mappedPlans = rawPlans.map((p) => mapSinglePlan(p, null, null, false));
+        // Catálogo global: mapear planes de países individuales (exclusivamente planes locales de país)
+        const countryOnlyPlans = rawPlans.filter((p) => {
+          const isMultiCountry = (p.plan_type && p.plan_type !== 'country') ||
+            (Array.isArray(p.operator_list) && p.operator_list.length > 1);
+          return !isMultiCountry;
+        });
+        let mappedPlans = countryOnlyPlans.map((p) => mapSinglePlan(p, null, null, false));
         for (const [slug, def] of Object.entries(REGION_MAPPING)) {
           if (slug !== def.canonicalSlug) continue;
           const matchedReg = rawPlans.filter((p) => isPlanInRegion(p, slug));

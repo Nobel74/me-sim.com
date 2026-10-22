@@ -3,7 +3,7 @@ import path from 'path';
 import os from 'os';
 import { addDiagnosticLog } from './logger.js';
 import { ALL_WORLD_COUNTRIES } from './i18n.js';
-import { isPlanInRegion } from './regionMapping.js';
+import { isPlanInRegion, isRegionalSlug } from './regionMapping.js';
 
 let lastAuthError = '';
 
@@ -376,7 +376,18 @@ export async function resolveStrongeSimPlanDetails({ sku, iso = 'es', dataAmount
           return false;
         });
 
-        const pool = countryPlans.length > 0 ? countryPlans : plansList;
+        const isRegionalTarget = isRegionalSlug(targetIso);
+        const filteredCountryPlans = !isRegionalTarget
+          ? countryPlans.filter(p => {
+              const isMulti = (p.plan_type && p.plan_type !== 'country') ||
+                (Array.isArray(p.operator_list) && p.operator_list.length > 1);
+              return !isMulti;
+            })
+          : countryPlans;
+
+        const pool = (filteredCountryPlans.length > 0 ? filteredCountryPlans : countryPlans).length > 0
+          ? (filteredCountryPlans.length > 0 ? filteredCountryPlans : countryPlans)
+          : plansList;
 
         if (pool.length > 0) {
           // Calculate suitability score for each candidate plan

@@ -1,6 +1,39 @@
 # 📝 Memoria del Proyecto y Bitácora de Sesiones - ME-SIM.COM
 
-## 📅 Última Actualización: 21 de Octubre de 2026 - 15:15 CEST
+## 📅 Última Actualización: 22 de Octubre de 2026 - 12:35 CEST
+
+---
+
+### 📌 Resumen de la Sesión Actual: Exclusión Estricta de Paquetes Multi-País en Destinos Nacionales y Erradicación de Planes Anómalos (Paridad 100% con Catálogo de StrongeSIM)
+En respuesta a la detección por parte de Paco de un plan anómalo de 1 GB a 30 días ($7.04 USD) que aparecía intercalado tras el plan de 5 GB en el catálogo de Australia sin figurar en los planes del proveedor:
+
+1. **Investigación de Causa Raíz (Telemetría de la API de StrongeSIM en Vivo):**
+   - **El Plan Concreto:** Se identificó el Plan ID `164065`, denominado oficialmente por el operador como `"AUKUS(3 countries) 1GB 30days"` (coste mayorista $3.60 USD).
+   - **Causa de Infiltración:** En la API mayorista de StrongeSIM, los paquetes multi-país de 3 países asignan `location: "AU"` o `country_code: "AU"`. Al consultar `/api/plans?country=au`, el backend capturaba cualquier paquete donde `pIso === 'au'`.
+   - **Por qué no se deduplicaba:** Los paquetes multi-país de 3 GB colisionaban con el 3 GB nacional de Australia ($2.28 USD) y eran descartados por precio. Pero Australia **no dispone de plan nacional de 1 GB a 30 días** (solo de 7 días por $0.84 USD). Al no haber rival nacional de 30 días, el paquete AUKUS sobrevivía a la deduplicación.
+   - **Inversión de Orden y Precio:** La API devuelve los paquetes ordenados por coste mayorista ($). Como el plan nacional de 5 GB cuesta $3.24 USD y el paquete multi-país AUKUS de 1 GB cuesta $3.60 USD, la API lo colocaba inmediatamente después de los 5 GB, calculando un suelo técnico de $7.04 USD.
+   - **Diferencia Arquitectónica:** StrongeSIM etiqueta internamente con precisión absoluta los 3.210 planes del catálogo mundial: 2.824 planes puramente nacionales (`plan_type: 'country'`, 1 sola ubicación en `operator_list`) y 386 paquetes multi-país/regionales (`plan_type: 'region'`, múltiples ubicaciones en `operator_list`).
+
+2. **Soluciones Implementadas (Defensa en Profundidad en Backend y Frontend):**
+   - **`src/app/api/plans/route.js`**:
+     * En consultas de destinos nacionales (`queryTarget` de país individual o `!isRegionQuery`), se filtran estrictamente los planes para admitir exclusivamente planes 100% locales:
+       `const isMultiCountry = (p.plan_type && p.plan_type !== 'country') || (Array.isArray(p.operator_list) && p.operator_list.length > 1); return !isMultiCountry;`
+     * En el catálogo global por defecto, los planes base de países individuales se circunscriben de igual forma a planes locales de país, preservando los paquetes multi-país exclusivamente en sus slugs comerciales correspondientes vía `REGION_MAPPING`.
+   - **`src/app/api/admin/pricing-rules/route.js`**:
+     * En `getMasterLivePlans()`, se replica la misma restricción estricta (`countryOnlyPlans`), garantizando paridad total céntimo a céntimo entre `/admin/precios` y la tienda pública.
+   - **`src/lib/strongesim.js`**:
+     * En `resolveStrongeSimPlanDetails`, cuando `targetIso` corresponde a un país individual (`!isRegionalSlug(targetIso)`), el pool de aprovisionamiento prioriza con exclusividad los planes 100% locales del país.
+   - **`src/app/destination/[iso]/page.js`**:
+     * En la vista pública de destino, cuando `isoCode` es un país nacional, se añade filtro de blindaje defensivo que descarta planes con `is_region === true` o referencias multi-país.
+
+3. **Control de Calidad (QA), Verificación y Compilación:**
+   - Creado y ejecutado el test automatizado [`scratch/test-e2e-national-plans.mjs`](file:///c:/Users/Paco/Documents/me-sim/scratch/test-e2e-national-plans.mjs):
+     * Australia: exactamente los 16 planes locales del proveedor (0 planes multi-país, 0 planes AUKUS).
+     * Deduplicación limpia en la UI con exactamente 10 opciones comerciales ordenadas de menor a mayor (100MB, 500MB, 1GB, 3GB 15d, 3GB 30d, 5GB 30d, 10GB 30d, 20GB 30d, 50GB 30d, 50GB 180d). Erradicado el plan anómalo de 1 GB 30 días.
+     * Pruebas de regresión aprobadas para México (16/16 planes nacionales limpios) y USA (52/52 planes nacionales limpios).
+     * Los paquetes regionales legítimos (AUKUS, Oceanía, Europa, Asia, etc.) permanecen 100% operativos e intactos en sus rutas comerciales dedicadas.
+   - Compilación completa de producción (`npm.cmd run build`) validada con código 0 (45/45 páginas generadas sin errores).
+   - Directiva RED FLAG respetada al 100% (cero compras o pedidos transaccionales ejecutados).
 
 ---
 
